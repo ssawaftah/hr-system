@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<title>HR System</title>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"></script>
+
+<style>
+body {
+  font-family: Arial;
+  direction: rtl;
+  background: #f5f5f7;
+  text-align: center;
+}
+
+.box {
+  margin-top: 100px;
+}
+
+input {
+  display:block;
+  margin:10px auto;
+  padding:10px;
+  width:80%;
+}
+
+button {
+  padding:10px 20px;
+  background:#0071e3;
+  color:white;
+  border:none;
+}
+</style>
+</head>
+
+<body>
+
+<div class="box">
+  <h2>تسجيل الدخول</h2>
+
+  <input id="id" placeholder="رقم الموظف أو البريد">
+  <input id="pass" type="password" placeholder="كلمة المرور">
+
+  <button onclick="login()">دخول</button>
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "YOUR_KEY",
+  authDomain: "YOUR_DOMAIN",
+  projectId: "YOUR_PROJECT"
+};
+
+firebase.initializeApp(firebaseConfig);
+
+const db = firebase.firestore();
+
+async function login() {
+  alert("جاهزين للمرحلة التالية 🚀");
+}
+</script>
+
+</body>
+</html>

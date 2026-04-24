@@ -1,19 +1,19 @@
-import { state } from "./state.js";
+import { loadUser } from "./state.js";
 
 /* =========================
-   Role-Based Access Control (RBAC)
-   - Core security layer
+   ROLE DEFINITIONS
 ========================= */
 
-export const roles = {
+const ROLES = {
   admin: "admin",
   manager: "manager",
   employee: "employee"
 };
 
 /* =========================
-   Permissions Map
+   PERMISSION MATRIX
 ========================= */
+
 const permissions = {
 
   admin: [
@@ -22,33 +22,37 @@ const permissions = {
     "employees.update",
     "employees.delete",
 
+    "requests.read",
     "requests.approve",
     "requests.reject",
-    "requests.read",
+
+    "payroll.read",
+    "payroll.write",
 
     "announcements.create",
     "announcements.read",
 
-    "payroll.generate",
-    "payroll.read",
-
     "attendance.read",
+    "attendance.write",
 
-    "audit.read"
+    "audit.read",
+
+    "settings.manage"
   ],
 
   manager: [
     "employees.read",
     "employees.update",
 
+    "requests.read",
     "requests.approve",
     "requests.reject",
-    "requests.read",
 
     "announcements.create",
     "announcements.read",
 
     "attendance.read",
+    "attendance.write",
 
     "payroll.read"
   ],
@@ -59,44 +63,67 @@ const permissions = {
 
     "announcements.read",
 
-    "attendance.read",
-    "payroll.read_own"
+    "attendance.read"
   ]
 };
 
 /* =========================
-   Check Permission
+   CHECK PERMISSION
 ========================= */
-export function can(action) {
 
-  const user = state.user;
+export function can(permission) {
+
+  const user = loadUser();
 
   if (!user) return false;
 
-  const role = user.role;
+  const rolePermissions = permissions[user.role] || [];
 
-  const rolePermissions = permissions[role] || [];
-
-  return rolePermissions.includes(action);
+  return rolePermissions.includes(permission);
 }
 
 /* =========================
-   Guard Function (UI Protection)
+   GUARDS (REAL USAGE)
 ========================= */
-export function guard(action, callback) {
 
-  if (can(action)) {
-    callback();
-  } else {
-    console.warn("Access Denied:", action);
-    alert("🚫 لا تملك صلاحية لهذه العملية");
+export function requirePermission(permission) {
+
+  const allowed = can(permission);
+
+  if (!allowed) {
+    console.warn("Access denied:", permission);
   }
 
+  return allowed;
 }
 
 /* =========================
-   Get user role
+   ROLE HELPERS
 ========================= */
-export function getRole() {
-  return state.user?.role || "employee";
+
+export function isAdmin() {
+  return loadUser()?.role === ROLES.admin;
+}
+
+export function isManager() {
+  return loadUser()?.role === ROLES.manager;
+}
+
+export function isEmployee() {
+  return loadUser()?.role === ROLES.employee;
+}
+
+/* =========================
+   DASHBOARD FILTER
+========================= */
+
+export function filterMenu(menuItems) {
+
+  const user = loadUser();
+
+  if (!user) return [];
+
+  return menuItems.filter(item => {
+    return !item.permission || can(item.permission);
+  });
 }

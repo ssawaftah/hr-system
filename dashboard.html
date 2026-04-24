@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<title>Dashboard</title>
+
+<style>
+body {
+  font-family: Arial;
+  direction: rtl;
+  background: #f5f5f7;
+  text-align: center;
+}
+
+.card {
+  background: white;
+  padding: 20px;
+  margin: 20px;
+  border-radius: 12px;
+}
+</style>
+</head>
+
+<body>
+
+<h2>لوحة التحكم</h2>
+
+<div class="card" id="userBox"></div>
+
+<script>
+const user = JSON.parse(sessionStorage.getItem("user"));
+
+if (!user) {
+  window.location.href = "index.html";
+}
+
+document.getElementById("userBox").innerHTML = `
+  <h3>مرحباً 👋</h3>
+  <p>${user.email}</p>
+`;
+</script>
+
+</body>
+</html>

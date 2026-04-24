@@ -34,10 +34,33 @@ if (!user) {
   window.location.href = "index.html";
 }
 
-document.getElementById("userBox").innerHTML = `
-  <h3>مرحباً 👋</h3>
-  <p>${user.email}</p>
+document.body.innerHTML = `
+  <h2>مرحباً ${user.name}</h2>
+  <p>الدور: ${user.role}</p>
+
+  <div id="panel"></div>
 `;
+
+// لوحة حسب الدور
+if (user.role === "admin") {
+  document.getElementById("panel").innerHTML = `
+    <h3>لوحة المدير 🔥</h3>
+    <ul>
+      <li>إدارة الموظفين</li>
+      <li>الطلبات</li>
+      <li>الإعلانات</li>
+    </ul>
+  `;
+} else {
+  document.getElementById("panel").innerHTML = `
+    <h3>لوحة الموظف 👷</h3>
+    <ul>
+      <li>الإعلانات</li>
+      <li>طلب إجازة</li>
+      <li>طلب مغادرة</li>
+    </ul>
+  `;
+}
 </script>
 
 </body>

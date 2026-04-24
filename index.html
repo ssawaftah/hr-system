@@ -2,61 +2,97 @@
 <html lang="ar">
 <head>
 <meta charset="UTF-8">
-<title>HR Login</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
+<title>HR System - Login</title>
+
+<!-- Font -->
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
 
 <style>
 body {
-  font-family: Arial;
-  direction: rtl;
+  margin: 0;
+  font-family: 'Tajawal', sans-serif;
   background: #f5f5f7;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  height:100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  direction: rtl;
 }
 
-.box {
-  background:white;
-  padding:20px;
-  border-radius:12px;
-  width:300px;
+.login-box {
+  background: white;
+  padding: 25px;
+  width: 320px;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+}
+
+h2 {
+  text-align: center;
+  margin-bottom: 20px;
 }
 
 input {
-  width:100%;
-  padding:10px;
-  margin:8px 0;
+  width: 100%;
+  padding: 12px;
+  margin: 8px 0;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  outline: none;
 }
 
 button {
-  width:100%;
-  padding:10px;
-  background:#0071e3;
-  color:white;
-  border:none;
+  width: 100%;
+  padding: 12px;
+  margin-top: 10px;
+  border: none;
+  border-radius: 10px;
+  background: #0071e3;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #005bb5;
+}
+
+.small {
+  text-align: center;
+  font-size: 12px;
+  color: gray;
+  margin-top: 10px;
 }
 </style>
+
 </head>
 
 <body>
 
-<div class="box">
-  <h3>تسجيل الدخول</h3>
+<div class="login-box">
+  <h2>تسجيل الدخول</h2>
 
-  <input id="id" placeholder="رقم الموظف">
-  <input id="pass" type="password" placeholder="كلمة السر">
+  <input type="text" id="employeeId" placeholder="رقم الموظف">
+  <input type="password" id="password" placeholder="كلمة المرور">
 
   <button onclick="login()">دخول</button>
+
+  <div class="small">
+    HR System ©
+  </div>
 </div>
 
+<!-- Firebase + App Logic -->
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+/* =========================
+   Firebase Config
+========================= */
 const firebaseConfig = {
   apiKey: "AIzaSyCfC1rS6ONG0F0NyNxsPHIbgmQK3cbcmHc",
   authDomain: "hr-steel-factory.firebaseapp.com",
@@ -69,34 +105,47 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+/* =========================
+   Login Function
+========================= */
 window.login = async function () {
 
-  const id = document.getElementById("id").value;
-  const pass = document.getElementById("pass").value;
+  const employeeId = document.getElementById("employeeId").value.trim();
+  const password = document.getElementById("password").value.trim();
+
+  if (!employeeId || !password) {
+    alert("الرجاء تعبئة جميع الحقول");
+    return;
+  }
 
   try {
 
     const q = query(
       collection(db, "users"),
-      where("employeeId", "==", id),
-      where("password", "==", pass)
+      where("employeeId", "==", employeeId),
+      where("password", "==", password)
     );
 
     const snap = await getDocs(q);
 
     if (snap.empty) {
-      alert("بيانات غير صحيحة ❌");
+      alert("بيانات الدخول غير صحيحة ❌");
       return;
     }
 
     const user = snap.docs[0].data();
 
+    // حفظ الجلسة
     sessionStorage.setItem("user", JSON.stringify(user));
 
+    alert("مرحباً " + user.name + " 👋");
+
+    // تحويل للداشبورد
     window.location.href = "dashboard.html";
 
-  } catch (e) {
-    alert("خطأ: " + e.message);
+  } catch (error) {
+    console.error(error);
+    alert("حدث خطأ في النظام");
   }
 };
 

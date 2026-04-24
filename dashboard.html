@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>HR SaaS Dashboard</title>
+  <title>HR System Dashboard</title>
 
   <link rel="stylesheet" href="./styles/main.css"/>
   <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;600;700&display=swap" rel="stylesheet"/>
@@ -13,44 +13,29 @@
 
 <div class="container">
 
-  <!-- Sidebar -->
-  <div class="sidebar">
+  <!-- SIDEBAR -->
+  <div class="sidebar" id="sidebar"></div>
 
-    <h2>🏢 HR System</h2>
-
-    <div id="userBox"></div>
-
-    <hr style="opacity:0.2"/>
-
-    <div class="menu-item" onclick="show('home')">🏠 الرئيسية</div>
-    <div class="menu-item" onclick="show('employees')">👥 الموظفين</div>
-    <div class="menu-item" onclick="show('requests')">📄 الطلبات</div>
-    <div class="menu-item" onclick="show('attendance')">⏱ الحضور</div>
-    <div class="menu-item" onclick="show('payroll')">💰 الرواتب</div>
-    <div class="menu-item" onclick="show('announcements')">📢 الإعلانات</div>
-    <div class="menu-item" onclick="show('audit')">🧾 السجل</div>
-
-    <div class="menu-item" onclick="logout()">🚪 تسجيل خروج</div>
-
-  </div>
-
-  <!-- Content -->
+  <!-- CONTENT -->
   <div class="content">
-
     <div id="app">جاري التحميل...</div>
-
   </div>
 
 </div>
 
 <!-- =========================
-     Scripts (Core System)
+     MAIN SCRIPT
 ========================= -->
 
 <script type="module">
 
-import { requireAuth, logout } from "./core/auth.js";
-import { state, loadUser } from "./core/state.js";
+import { loadUser } from "./core/state.js";
+import { logout } from "./core/auth.js";
+import { can } from "./core/permissions.js";
+
+/* =========================
+   MODULES
+========================= */
 
 import { renderEmployees } from "./modules/employees.js";
 import { renderRequests } from "./modules/requests.js";
@@ -59,39 +44,99 @@ import { renderPayrollUI } from "./modules/payroll.js";
 import { renderAnnouncements } from "./modules/announcements.js";
 import { renderAudit } from "./modules/audit.js";
 
-import { listenCollection } from "./core/realtime.js";
-
 /* =========================
-   Init User
+   INIT USER
 ========================= */
 
-const user = requireAuth();
+const user = loadUser();
 
-loadUser();
+if (!user) {
+  location.href = "index.html";
+}
 
 /* =========================
-   Sidebar User Info
+   MENU BUILD (RBAC)
 ========================= */
 
-document.getElementById("userBox").innerHTML = `
+const menu = [];
+
+menu.push({ key: "home", label: "🏠 الرئيسية" });
+
+if (can("employees.read")) {
+  menu.push({ key: "employees", label: "👥 الموظفين" });
+}
+
+if (can("requests.read")) {
+  menu.push({ key: "requests", label: "📄 الطلبات" });
+}
+
+if (can("attendance.read")) {
+  menu.push({ key: "attendance", label: "⏱ الحضور" });
+}
+
+if (can("payroll.read")) {
+  menu.push({ key: "payroll", label: "💰 الرواتب" });
+}
+
+if (can("announcements.read")) {
+  menu.push({ key: "announcements", label: "📢 الإعلانات" });
+}
+
+if (can("audit.read")) {
+  menu.push({ key: "audit", label: "🧾 السجل" });
+}
+
+/* =========================
+   RENDER SIDEBAR
+========================= */
+
+const sidebar = document.getElementById("sidebar");
+
+sidebar.innerHTML = `
+  <h2>🏢 HR System</h2>
+
   <div class="card">
-    <b>${user.name}</b>
-    <p>${user.role}</p>
+    <b>${user.name}</b><br/>
+    <small>${user.role}</small>
+  </div>
+
+  ${menu.map(m => `
+    <div class="menu-item" onclick="navigate('${m.key}')">
+      ${m.label}
+    </div>
+  `).join("")}
+
+  <div class="menu-item" onclick="logoutUser()">
+    🚪 تسجيل خروج
   </div>
 `;
 
 /* =========================
-   Router (Simple SPA)
+   NAVIGATION SYSTEM
 ========================= */
 
-window.show = async function(page) {
+window.navigate = async function(page) {
 
   const app = document.getElementById("app");
 
   app.innerHTML = "جاري التحميل...";
 
+  /* ===== GUARDS ===== */
+  if (page === "employees" && !can("employees.read")) return;
+  if (page === "requests" && !can("requests.read")) return;
+  if (page === "attendance" && !can("attendance.read")) return;
+  if (page === "payroll" && !can("payroll.read")) return;
+  if (page === "audit" && !can("audit.read")) return;
+
+  /* ===== ROUTES ===== */
+
   if (page === "home") {
-    app.innerHTML = "<h2>مرحباً 👋 في نظام الموارد البشرية</h2>";
+    app.innerHTML = `
+      <div class="card">
+        <h2>مرحباً 👋</h2>
+        <p>أهلاً بك في نظام الموارد البشرية</p>
+      </div>
+    `;
   }
 
   if (page === "employees") {
@@ -117,28 +162,21 @@ window.show = async function(page) {
   if (page === "audit") {
     await renderAudit("app");
   }
-
 };
 
-window.logout = logout;
-
 /* =========================
-   Default Page
+   LOGOUT
 ========================= */
 
-show("home");
+window.logoutUser = function () {
+  logout();
+};
 
 /* =========================
-   Live Updates (Realtime Hook)
+   DEFAULT PAGE
 ========================= */
 
-listenCollection("requests", () => {
-  console.log("Requests updated 🔄");
-});
-
-listenCollection("users", () => {
-  console.log("Employees updated 🔄");
-});
+navigate("home");
 
 </script>
 

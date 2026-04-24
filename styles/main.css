@@ -1,61 +1,62 @@
 /* =========================
-   HR ENTERPRISE DESIGN SYSTEM
-   Apple-level UI + Dark Mode + Responsive
+   HR SYSTEM - ARABIC APPLE UI
+   Enterprise Clean Design
 ========================= */
 
+/* ===== ROOT DESIGN SYSTEM ===== */
 :root {
 
-  /* Colors */
+  /* Backgrounds */
   --bg: #f5f5f7;
-  --card: #ffffff;
-  --text: #1d1d1f;
+  --surface: #ffffff;
+  --text: #1c1c1e;
   --muted: #6e6e73;
 
-  --primary: #0071e3;
-  --danger: #ff3b30;
+  /* Brand */
+  --primary: #0a84ff;
   --success: #34c759;
-  --warning: #ff9500;
-
-  --border: rgba(0,0,0,0.08);
+  --danger: #ff3b30;
+  --warning: #ff9f0a;
 
   /* UI */
-  --radius: 18px;
-  --shadow: 0 10px 30px rgba(0,0,0,0.08);
+  --radius: 20px;
+  --shadow: 0 12px 30px rgba(0,0,0,0.08);
 
-  --transition: all 0.25s ease;
+  --border: rgba(0,0,0,0.06);
+
+  /* Animation */
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-/* =========================
-   DARK MODE
-========================= */
-
+/* ===== DARK MODE ===== */
 [data-theme="dark"] {
 
   --bg: #0b0b0f;
-  --card: #16161a;
+  --surface: #16161a;
   --text: #f5f5f7;
   --muted: #a1a1aa;
 
   --border: rgba(255,255,255,0.08);
 
-  --shadow: 0 10px 30px rgba(0,0,0,0.4);
+  --shadow: 0 12px 30px rgba(0,0,0,0.5);
 }
 
-/* =========================
-   RESET
-========================= */
-
+/* ===== GLOBAL RESET ===== */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: 'Tajawal', sans-serif;
+  font-family: "Tajawal", system-ui, sans-serif;
+}
+
+html {
+  direction: rtl;
 }
 
 body {
   background: var(--bg);
   color: var(--text);
-  transition: var(--transition);
+  line-height: 1.6;
 }
 
 /* =========================
@@ -67,171 +68,182 @@ body {
   min-height: 100vh;
 }
 
-/* Sidebar */
+/* ===== SIDEBAR ===== */
 .sidebar {
-  width: 260px;
-  background: var(--card);
-  padding: 20px;
+  width: 280px;
+  background: var(--surface);
+  padding: 24px;
   position: fixed;
   top: 0;
   bottom: 0;
+  right: 0;
+  border-left: 1px solid var(--border);
   box-shadow: var(--shadow);
-  border-right: 1px solid var(--border);
   overflow-y: auto;
 }
 
 .sidebar h2 {
+  font-size: 18px;
   margin-bottom: 20px;
-  font-size: 20px;
+  font-weight: 700;
 }
 
+/* MENU */
 .menu-item {
-  padding: 12px;
-  border-radius: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
   cursor: pointer;
   margin-bottom: 8px;
-  transition: var(--transition);
+  transition: all 0.25s var(--ease);
+  font-size: 14px;
 }
 
 .menu-item:hover {
-  background: rgba(0,113,227,0.12);
+  background: rgba(10,132,255,0.08);
   color: var(--primary);
-  transform: translateX(-3px);
+  transform: translateX(-4px);
 }
 
-/* Content */
+/* ===== CONTENT ===== */
 .content {
-  margin-left: 260px;
-  padding: 24px;
-  width: calc(100% - 260px);
+  margin-right: 280px;
+  padding: 28px;
+  width: calc(100% - 280px);
 }
 
 /* =========================
-   CARDS
+   CARDS (Apple Style)
 ========================= */
 
 .card {
-  background: var(--card);
-  padding: 18px;
+  background: var(--surface);
   border-radius: var(--radius);
+  padding: 20px;
   box-shadow: var(--shadow);
-  margin-bottom: 16px;
   border: 1px solid var(--border);
-  transition: var(--transition);
+  margin-bottom: 16px;
+  transition: all 0.3s var(--ease);
 }
 
 .card:hover {
-  transform: translateY(-3px);
+  transform: translateY(-4px);
 }
 
 /* =========================
    BUTTONS
 ========================= */
 
-button, .btn {
+button {
   border: none;
   padding: 10px 14px;
-  border-radius: 12px;
+  border-radius: 14px;
   cursor: pointer;
   font-weight: 600;
-  transition: var(--transition);
+  transition: all 0.25s var(--ease);
 }
 
-.btn-primary { background: var(--primary); color: white; }
-.btn-danger { background: var(--danger); color: white; }
-.btn-success { background: var(--success); color: white; }
-.btn-warning { background: var(--warning); color: white; }
-
-.btn:hover {
-  opacity: 0.85;
+button:hover {
   transform: scale(1.03);
 }
 
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-success { background: var(--success); color: #fff; }
+.btn-danger { background: var(--danger); color: #fff; }
+.btn-warning { background: var(--warning); color: #fff; }
+
 /* =========================
-   FORMS
+   FORMS (Clean Enterprise)
 ========================= */
 
 input, select, textarea {
   width: 100%;
-  padding: 12px;
-  margin-top: 8px;
-  margin-bottom: 12px;
-  border-radius: 12px;
+  padding: 12px 14px;
+  margin-top: 6px;
+  margin-bottom: 14px;
+  border-radius: 14px;
   border: 1px solid var(--border);
-  background: var(--card);
+  background: var(--surface);
   color: var(--text);
   outline: none;
-  transition: var(--transition);
+  transition: all 0.2s var(--ease);
 }
 
 input:focus {
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(0,113,227,0.15);
+  box-shadow: 0 0 0 4px rgba(10,132,255,0.15);
 }
 
 /* =========================
-   FLEX UTILITIES
-========================= */
-
-.flex {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.mt { margin-top: 10px; }
-
-/* =========================
-   TABLES
+   TABLES (Dashboard Style)
 ========================= */
 
 table {
   width: 100%;
   border-collapse: collapse;
-  background: var(--card);
+  background: var(--surface);
   border-radius: var(--radius);
   overflow: hidden;
   box-shadow: var(--shadow);
 }
 
 th, td {
-  padding: 12px;
+  padding: 14px;
   border-bottom: 1px solid var(--border);
-  text-align: left;
+  text-align: right;
+  font-size: 14px;
 }
 
 th {
   background: rgba(0,0,0,0.03);
+  font-weight: 700;
 }
 
 /* =========================
-   LOGIN BOX
+   LOGIN SCREEN
 ========================= */
 
 .login-box {
   max-width: 420px;
-  margin: 100px auto;
-  background: var(--card);
+  margin: 90px auto;
+  background: var(--surface);
   padding: 30px;
   border-radius: var(--radius);
   box-shadow: var(--shadow);
 }
 
 /* =========================
-   ANIMATIONS
+   UTILITIES
 ========================= */
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+.flex {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.mt { margin-top: 10px; }
+
+/* =========================
+   ANIMATIONS (Apple feel)
+========================= */
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .card {
-  animation: fadeIn 0.3s ease;
+  animation: fadeUp 0.25s var(--ease);
 }
 
 /* =========================
-   RESPONSIVE (MOBILE FIRST FIX)
+   MOBILE RESPONSIVE (REAL FIX)
 ========================= */
 
 @media (max-width: 768px) {
@@ -241,25 +253,27 @@ th {
   }
 
   .sidebar {
-    width: 100%;
     position: relative;
+    width: 100%;
     height: auto;
+    border-left: none;
+    border-bottom: 1px solid var(--border);
   }
 
   .content {
-    margin-left: 0;
+    margin-right: 0;
     width: 100%;
     padding: 16px;
   }
 
   .menu-item {
     display: inline-block;
-    margin-right: 8px;
+    margin-left: 8px;
   }
 }
 
 /* =========================
-   SCROLLBAR (nice touch 😎)
+   SCROLLBAR (Premium feel)
 ========================= */
 
 ::-webkit-scrollbar {

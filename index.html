@@ -69,7 +69,12 @@ window.login = async function () {
   const id = document.getElementById("id").value;
   const pass = document.getElementById("pass").value;
 
+  alert("بدينا تسجيل الدخول...");
+
   try {
+
+    console.log("ID:", id);
+    console.log("PASS:", pass);
 
     const q = query(
       collection(db, "users"),
@@ -77,29 +82,28 @@ window.login = async function () {
       where("password", "==", pass)
     );
 
+    console.log("Query created");
+
     const snap = await getDocs(q);
 
+    console.log("Docs found:", snap.size);
+
     if (snap.empty) {
-      alert("بيانات غير صحيحة ❌");
+      alert("ما في مستخدم مطابق ❌");
       return;
     }
 
     const user = snap.docs[0].data();
 
-    // حفظ الجلسة
+    alert("تم العثور على المستخدم: " + user.name);
+
     sessionStorage.setItem("user", JSON.stringify(user));
 
-    alert("مرحباً " + user.name + " 👋");
-
-    // تحويل حسب الدور
-    if (user.role === "admin") {
-      window.location.href = "dashboard.html?role=admin";
-    } else {
-      window.location.href = "dashboard.html?role=employee";
-    }
+    window.location.href = "dashboard.html";
 
   } catch (err) {
-    alert("خطأ في النظام: " + err.message);
+    alert("خطأ فعلي: " + err.message);
+    console.log(err);
   }
 };
 </script>

@@ -1,82 +1,144 @@
 <!DOCTYPE html>
 <html lang="ar">
 <head>
-<meta charset="UTF-8">
-<title>Dashboard</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>HR SaaS Dashboard</title>
 
-<style>
-body{margin:0;font-family:Arial;direction:rtl;background:#f5f5f7}
-.container{display:flex;height:100vh}
-.sidebar{width:220px;background:#1d1d1f;color:#fff;padding:15px}
-.menu{padding:10px;margin:5px 0;background:#333;cursor:pointer;border-radius:8px}
-.content{flex:1;padding:20px}
-.card{background:#fff;padding:15px;margin:10px 0;border-radius:10px}
-.hidden{display:none}
-</style>
+  <link rel="stylesheet" href="./styles/main.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;600;700&display=swap" rel="stylesheet"/>
 </head>
 
 <body>
 
 <div class="container">
 
-<div class="sidebar">
-<h3 id="name"></h3>
-<div class="menu" onclick="show('home')">الرئيسية</div>
-<div class="menu" onclick="show('employees')">الموظفين</div>
-<div class="menu" onclick="show('requests')">الطلبات</div>
-<div class="menu" onclick="show('ann')">الإعلانات</div>
-<div class="menu" onclick="logout()">خروج</div>
-</div>
+  <!-- Sidebar -->
+  <div class="sidebar">
 
-<div class="content">
+    <h2>🏢 HR System</h2>
 
-<div id="home">
-<h2>لوحة التحكم</h2>
-<div class="card" id="info"></div>
-</div>
+    <div id="userBox"></div>
 
-<div id="employees" class="hidden">
-<h2>الموظفين</h2>
-<div id="empBox"></div>
-</div>
+    <hr style="opacity:0.2"/>
 
-<div id="requests" class="hidden">
-<h2>الطلبات</h2>
-<div class="card">نظام الطلبات قريباً</div>
-</div>
+    <div class="menu-item" onclick="show('home')">🏠 الرئيسية</div>
+    <div class="menu-item" onclick="show('employees')">👥 الموظفين</div>
+    <div class="menu-item" onclick="show('requests')">📄 الطلبات</div>
+    <div class="menu-item" onclick="show('attendance')">⏱ الحضور</div>
+    <div class="menu-item" onclick="show('payroll')">💰 الرواتب</div>
+    <div class="menu-item" onclick="show('announcements')">📢 الإعلانات</div>
+    <div class="menu-item" onclick="show('audit')">🧾 السجل</div>
 
-<div id="ann" class="hidden">
-<h2>الإعلانات</h2>
-<div class="card">الإعلانات قريباً</div>
-</div>
+    <div class="menu-item" onclick="logout()">🚪 تسجيل خروج</div>
+
+  </div>
+
+  <!-- Content -->
+  <div class="content">
+
+    <div id="app">جاري التحميل...</div>
+
+  </div>
 
 </div>
 
-</div>
+<!-- =========================
+     Scripts (Core System)
+========================= -->
 
 <script type="module">
 
-const user = JSON.parse(sessionStorage.getItem("user"));
+import { requireAuth, logout } from "./core/auth.js";
+import { state, loadUser } from "./core/state.js";
 
-if(!user) location.href="index.html";
+import { renderEmployees } from "./modules/employees.js";
+import { renderRequests } from "./modules/requests.js";
+import { renderAttendance } from "./modules/attendance.js";
+import { renderPayrollUI } from "./modules/payroll.js";
+import { renderAnnouncements } from "./modules/announcements.js";
+import { renderAudit } from "./modules/audit.js";
 
-document.getElementById("name").innerText = user.name;
+import { listenCollection } from "./core/realtime.js";
 
-document.getElementById("info").innerHTML = `
-<p>الاسم: ${user.name}</p>
-<p>الرقم: ${user.employeeId}</p>
-<p>الدور: ${user.role}</p>
+/* =========================
+   Init User
+========================= */
+
+const user = requireAuth();
+
+loadUser();
+
+/* =========================
+   Sidebar User Info
+========================= */
+
+document.getElementById("userBox").innerHTML = `
+  <div class="card">
+    <b>${user.name}</b>
+    <p>${user.role}</p>
+  </div>
 `;
 
-window.show = function(id){
-document.querySelectorAll(".content > div").forEach(d=>d.classList.add("hidden"));
-document.getElementById(id).classList.remove("hidden");
+/* =========================
+   Router (Simple SPA)
+========================= */
+
+window.show = async function(page) {
+
+  const app = document.getElementById("app");
+
+  app.innerHTML = "جاري التحميل...";
+
+  if (page === "home") {
+    app.innerHTML = "<h2>مرحباً 👋 في نظام الموارد البشرية</h2>";
+  }
+
+  if (page === "employees") {
+    await renderEmployees("app");
+  }
+
+  if (page === "requests") {
+    await renderRequests("app", user);
+  }
+
+  if (page === "attendance") {
+    await renderAttendance("app");
+  }
+
+  if (page === "payroll") {
+    await renderPayrollUI("app");
+  }
+
+  if (page === "announcements") {
+    await renderAnnouncements("app", user.employeeId);
+  }
+
+  if (page === "audit") {
+    await renderAudit("app");
+  }
+
 };
 
-window.logout = function(){
-sessionStorage.clear();
-location.href="index.html";
-};
+window.logout = logout;
+
+/* =========================
+   Default Page
+========================= */
+
+show("home");
+
+/* =========================
+   Live Updates (Realtime Hook)
+========================= */
+
+listenCollection("requests", () => {
+  console.log("Requests updated 🔄");
+});
+
+listenCollection("users", () => {
+  console.log("Employees updated 🔄");
+});
 
 </script>
 

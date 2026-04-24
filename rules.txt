@@ -1,1 +1,100 @@
+rules_version = '2';
 
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /* =========================
+       USERS
+    ========================= */
+    match /users/{userId} {
+
+      allow read: if true;
+
+      allow create: if request.auth == null; 
+      // النظام الداخلي يعتمد تسجيل يدوي
+
+      allow update, delete: if false; 
+      // فقط عبر API داخلي (ليس مباشر)
+    }
+
+    /* =========================
+       REQUESTS
+    ========================= */
+    match /requests/{requestId} {
+
+      allow read: if true;
+
+      allow create: if true;
+
+      allow update: if true;
+
+      allow delete: if false;
+    }
+
+    /* =========================
+       PAYROLL
+    ========================= */
+    match /payroll/{payrollId} {
+
+      allow read: if true;
+
+      allow create, update: if false;
+      // فقط النظام ينشئها عبر API
+
+      allow delete: if false;
+    }
+
+    /* =========================
+       ATTENDANCE
+    ========================= */
+    match /attendance/{attId} {
+
+      allow read: if true;
+
+      allow create, update: if true;
+
+      allow delete: if false;
+    }
+
+    /* =========================
+       ANNOUNCEMENTS
+    ========================= */
+    match /announcements/{annId} {
+
+      allow read: if true;
+
+      allow create: if true;
+
+      allow update: if true;
+
+      allow delete: if false;
+    }
+
+    /* =========================
+       NOTIFICATIONS
+    ========================= */
+    match /notifications/{notifId} {
+
+      allow read: if true;
+
+      allow create: if true;
+
+      allow update: if true;
+
+      allow delete: if false;
+    }
+
+    /* =========================
+       AUDIT LOGS (IMPORTANT 🔥)
+    ========================= */
+    match /audit/{auditId} {
+
+      allow read: if true;
+
+      allow create: if true;
+
+      allow update, delete: if false;
+    }
+
+  }
+}

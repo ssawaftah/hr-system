@@ -52,14 +52,10 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebas
 import { getFirestore, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCfC1rS6ONG0F0NyNxsPHIbgmQK3cbcmHc",
-  authDomain: "hr-steel-factory.firebaseapp.com",
-  projectId: "hr-steel-factory",
-  storageBucket: "hr-steel-factory.firebasestorage.app",
-  messagingSenderId: "268695668396",
-  appId: "1:268695668396:web:39c73c8bd8e19ce591c109"
+  apiKey: "YOUR_KEY",
+  authDomain: "YOUR_DOMAIN",
+  projectId: "YOUR_PROJECT"
 };
-
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
@@ -69,12 +65,9 @@ window.login = async function () {
   const id = document.getElementById("id").value;
   const pass = document.getElementById("pass").value;
 
-  alert("بدينا تسجيل الدخول...");
+  alert("1 - بدأنا");
 
   try {
-
-    console.log("ID:", id);
-    console.log("PASS:", pass);
 
     const q = query(
       collection(db, "users"),
@@ -82,28 +75,28 @@ window.login = async function () {
       where("password", "==", pass)
     );
 
-    console.log("Query created");
+    alert("2 - نفذنا الاستعلام");
 
     const snap = await getDocs(q);
 
-    console.log("Docs found:", snap.size);
+    alert("3 - عدد النتائج: " + snap.size);
 
     if (snap.empty) {
-      alert("ما في مستخدم مطابق ❌");
+      alert("ما في مستخدم ❌");
       return;
     }
 
     const user = snap.docs[0].data();
 
-    alert("تم العثور على المستخدم: " + user.name);
+    alert("تم الدخول: " + user.name);
 
     sessionStorage.setItem("user", JSON.stringify(user));
 
     window.location.href = "dashboard.html";
 
-  } catch (err) {
-    alert("خطأ فعلي: " + err.message);
-    console.log(err);
+  } catch (e) {
+    alert("ERROR: " + e.message);
+    console.log(e);
   }
 };
 </script>

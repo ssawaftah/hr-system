@@ -2,153 +2,52 @@
 <html lang="ar">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>HR System - Login</title>
-
-<!-- Font -->
-<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
-
+<title>HR Login</title>
 <style>
-body {
-  margin: 0;
-  font-family: 'Tajawal', sans-serif;
-  background: #f5f5f7;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  direction: rtl;
-}
-
-.login-box {
-  background: white;
-  padding: 25px;
-  width: 320px;
-  border-radius: 16px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-}
-
-h2 {
-  text-align: center;
-  margin-bottom: 20px;
-}
-
-input {
-  width: 100%;
-  padding: 12px;
-  margin: 8px 0;
-  border: 1px solid #ddd;
-  border-radius: 10px;
-  outline: none;
-}
-
-button {
-  width: 100%;
-  padding: 12px;
-  margin-top: 10px;
-  border: none;
-  border-radius: 10px;
-  background: #0071e3;
-  color: white;
-  font-weight: bold;
-  cursor: pointer;
-}
-
-button:hover {
-  background: #005bb5;
-}
-
-.small {
-  text-align: center;
-  font-size: 12px;
-  color: gray;
-  margin-top: 10px;
-}
+body{font-family:Arial;background:#f5f5f7;display:flex;justify-content:center;align-items:center;height:100vh;direction:rtl}
+.box{background:#fff;padding:20px;border-radius:12px;width:320px}
+input{width:100%;padding:10px;margin:8px 0}
+button{width:100%;padding:10px;background:#0071e3;color:#fff;border:none}
 </style>
-
 </head>
-
 <body>
 
-<div class="login-box">
-  <h2>تسجيل الدخول</h2>
-
-  <input type="text" id="employeeId" placeholder="رقم الموظف">
-  <input type="password" id="password" placeholder="كلمة المرور">
-
-  <button onclick="login()">دخول</button>
-
-  <div class="small">
-    HR System ©
-  </div>
+<div class="box">
+<h3>HR System</h3>
+<input id="id" placeholder="رقم الموظف">
+<input id="pass" type="password" placeholder="كلمة السر">
+<button onclick="login()">دخول</button>
 </div>
 
-<!-- Firebase + App Logic -->
 <script type="module">
+import { db } from "./firebase-config.js";
+import { collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+window.login = async function(){
 
-/* =========================
-   Firebase Config
-========================= */
-const firebaseConfig = {
-  apiKey: "AIzaSyCfC1rS6ONG0F0NyNxsPHIbgmQK3cbcmHc",
-  authDomain: "hr-steel-factory.firebaseapp.com",
-  projectId: "hr-steel-factory",
-  storageBucket: "hr-steel-factory.firebasestorage.app",
-  messagingSenderId: "268695668396",
-  appId: "1:268695668396:web:39c73c8bd8e19ce591c109"
+const id = document.getElementById("id").value;
+const pass = document.getElementById("pass").value;
+
+const q = query(
+  collection(db,"users"),
+  where("employeeId","==",id),
+  where("password","==",pass)
+);
+
+const snap = await getDocs(q);
+
+if(snap.empty){
+  alert("خطأ");
+  return;
+}
+
+const user = snap.docs[0].data();
+
+sessionStorage.setItem("user", JSON.stringify(user));
+
+location.href="dashboard.html";
+
 };
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-/* =========================
-   Login Function
-========================= */
-window.login = async function () {
-
-  const employeeId = document.getElementById("employeeId").value.trim();
-  const password = document.getElementById("password").value.trim();
-
-  if (!employeeId || !password) {
-    alert("الرجاء تعبئة جميع الحقول");
-    return;
-  }
-
-  try {
-
-    const q = query(
-      collection(db, "users"),
-      where("employeeId", "==", employeeId),
-      where("password", "==", password)
-    );
-
-    const snap = await getDocs(q);
-
-    if (snap.empty) {
-      alert("بيانات الدخول غير صحيحة ❌");
-      return;
-    }
-
-    const user = snap.docs[0].data();
-
-    // حفظ الجلسة
-    sessionStorage.setItem("user", JSON.stringify(user));
-
-    alert("مرحباً " + user.name + " 👋");
-
-    // تحويل للداشبورد
-    window.location.href = "dashboard.html";
-
-  } catch (error) {
-    console.error(error);
-    alert("حدث خطأ في النظام");
-  }
-};
-
 </script>
 
 </body>

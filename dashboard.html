@@ -8,24 +8,22 @@
 body {
   font-family: Arial;
   direction: rtl;
-  background: #f5f5f7;
-  text-align: center;
+  background:#f5f5f7;
+  padding:20px;
 }
 
 .card {
-  background: white;
-  padding: 20px;
-  margin: 20px;
-  border-radius: 12px;
+  background:white;
+  padding:15px;
+  border-radius:10px;
+  margin-top:10px;
 }
 </style>
 </head>
 
 <body>
 
-<h2>لوحة التحكم</h2>
-
-<div class="card" id="userBox"></div>
+<div id="app"></div>
 
 <script>
 const user = JSON.parse(sessionStorage.getItem("user"));
@@ -34,33 +32,28 @@ if (!user) {
   window.location.href = "index.html";
 }
 
-document.body.innerHTML = `
+const app = document.getElementById("app");
+
+app.innerHTML = `
   <h2>مرحباً ${user.name}</h2>
+  <p>رقم الموظف: ${user.employeeId}</p>
   <p>الدور: ${user.role}</p>
 
-  <div id="panel"></div>
+  <div class="card">
+    <h3>القائمة</h3>
+    <ul>
+      ${user.role === "admin" ? `
+        <li>إدارة الموظفين</li>
+        <li>الطلبات</li>
+        <li>الإعلانات</li>
+      ` : `
+        <li>الإعلانات</li>
+        <li>طلب إجازة</li>
+        <li>طلب مغادرة</li>
+      `}
+    </ul>
+  </div>
 `;
-
-// لوحة حسب الدور
-if (user.role === "admin") {
-  document.getElementById("panel").innerHTML = `
-    <h3>لوحة المدير 🔥</h3>
-    <ul>
-      <li>إدارة الموظفين</li>
-      <li>الطلبات</li>
-      <li>الإعلانات</li>
-    </ul>
-  `;
-} else {
-  document.getElementById("panel").innerHTML = `
-    <h3>لوحة الموظف 👷</h3>
-    <ul>
-      <li>الإعلانات</li>
-      <li>طلب إجازة</li>
-      <li>طلب مغادرة</li>
-    </ul>
-  `;
-}
 </script>
 
 </body>

@@ -2,33 +2,38 @@
 <html lang="ar">
 <head>
 <meta charset="UTF-8">
-<title>HR System</title>
+<title>HR Login</title>
 
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"></script>
 
 <style>
 body {
   font-family: Arial;
   direction: rtl;
   background: #f5f5f7;
-  text-align: center;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
 }
 
 .box {
-  margin-top: 100px;
+  background:white;
+  padding:20px;
+  border-radius:12px;
+  width:300px;
 }
 
 input {
-  display:block;
-  margin:10px auto;
+  width:100%;
   padding:10px;
-  width:80%;
+  margin:8px 0;
 }
 
 button {
-  padding:10px 20px;
+  width:100%;
+  padding:10px;
   background:#0071e3;
   color:white;
   border:none;
@@ -39,22 +44,26 @@ button {
 <body>
 
 <div class="box">
-  <h2>تسجيل الدخول</h2>
+  <h3>تسجيل الدخول</h3>
 
-  <input id="id" placeholder="رقم الموظف أو البريد">
-  <input id="pass" type="password" placeholder="كلمة المرور">
+  <input id="id" placeholder="رقم الموظف">
+  <input id="pass" type="password" placeholder="كلمة السر">
 
   <button onclick="login()">دخول</button>
 </div>
 
 <script type="module">
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "YOUR_KEY",
-  authDomain: "YOUR_DOMAIN",
-  projectId: "YOUR_PROJECT"
+  apiKey: "AIzaSyCfC1rS6ONG0F0NyNxsPHIbgmQK3cbcmHc",
+  authDomain: "hr-steel-factory.firebaseapp.com",
+  projectId: "hr-steel-factory",
+  storageBucket: "hr-steel-factory.firebasestorage.app",
+  messagingSenderId: "268695668396",
+  appId: "1:268695668396:web:39c73c8bd8e19ce591c109"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -65,8 +74,6 @@ window.login = async function () {
   const id = document.getElementById("id").value;
   const pass = document.getElementById("pass").value;
 
-  alert("1 - بدأنا");
-
   try {
 
     const q = query(
@@ -75,30 +82,24 @@ window.login = async function () {
       where("password", "==", pass)
     );
 
-    alert("2 - نفذنا الاستعلام");
-
     const snap = await getDocs(q);
 
-    alert("3 - عدد النتائج: " + snap.size);
-
     if (snap.empty) {
-      alert("ما في مستخدم ❌");
+      alert("بيانات غير صحيحة ❌");
       return;
     }
 
     const user = snap.docs[0].data();
-
-    alert("تم الدخول: " + user.name);
 
     sessionStorage.setItem("user", JSON.stringify(user));
 
     window.location.href = "dashboard.html";
 
   } catch (e) {
-    alert("ERROR: " + e.message);
-    console.log(e);
+    alert("خطأ: " + e.message);
   }
 };
+
 </script>
 
 </body>

@@ -115,54 +115,35 @@ sidebar.innerHTML = `
    NAVIGATION SYSTEM
 ========================= */
 
-window.navigate = async function(page) {
+
+  window.navigate = async function(page) {
 
   const app = document.getElementById("app");
 
-  app.innerHTML = "جاري التحميل...";
+  try {
 
-  /* ===== GUARDS ===== */
-  if (page === "employees" && !can("employees.read")) return;
-  if (page === "requests" && !can("requests.read")) return;
-  if (page === "attendance" && !can("attendance.read")) return;
-  if (page === "payroll" && !can("payroll.read")) return;
-  if (page === "audit" && !can("audit.read")) return;
+    if (page === "home") {
+      app.innerHTML = "الرئيسية تعمل ✅";
+    }
 
-  /* ===== ROUTES ===== */
+    else if (page === "employees") {
+      app.innerHTML = "الموظفين تعمل ✅";
+    }
 
-  if (page === "home") {
-    app.innerHTML = `
-      <div class="card">
-        <h2>مرحباً 👋</h2>
-        <p>أهلاً بك في نظام الموارد البشرية</p>
-      </div>
-    `;
-  }
+    else if (page === "requests") {
+      app.innerHTML = "الطلبات تعمل ✅";
+    }
 
-  if (page === "employees") {
-    await renderEmployees("app");
-  }
+    else {
+      app.innerHTML = "صفحة أخرى";
+    }
 
-  if (page === "requests") {
-    await renderRequests("app", user);
-  }
-
-  if (page === "attendance") {
-    await renderAttendance("app");
-  }
-
-  if (page === "payroll") {
-    await renderPayrollUI("app");
-  }
-
-  if (page === "announcements") {
-    await renderAnnouncements("app", user.employeeId);
-  }
-
-  if (page === "audit") {
-    await renderAudit("app");
+  } catch (err) {
+    console.error(err);
+    app.innerHTML = "❌ خطأ في تحميل الصفحة";
   }
 };
+  
 
 /* =========================
    LOGOUT

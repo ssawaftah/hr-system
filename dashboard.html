@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard</title>
-  <link rel="stylesheet" href="./styles/main.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>HR System</title>
+
+  <link rel="stylesheet" href="./styles/main.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;600;700&display=swap" rel="stylesheet"/>
 </head>
 
 <body>
@@ -22,62 +24,161 @@
 <script type="module">
 
 /* =========================
-   SAFE INIT (NO IMPORTS)
+   SAFE IMPORT WRAPPER
 ========================= */
 
-console.log("🔥 Dashboard Loaded");
-
-/* fake user (اختبار) */
-const user = {
-  name: "Admin",
-  role: "admin",
-  employeeId: "1001"
-};
+async function safeImport(path) {
+  try {
+    return await import(path);
+  } catch (e) {
+    console.error("❌ Failed to load:", path, e);
+    return null;
+  }
+}
 
 /* =========================
-   MENU
+   LOAD CORE SYSTEM
 ========================= */
 
-const sidebar = document.getElementById("sidebar");
+const stateMod = await safeImport("./core/state.js");
+const permMod = await safeImport("./core/permissions.js");
+const authMod = await safeImport("./core/auth.js");
 
-sidebar.innerHTML = `
-  <h2>🏢 HR</h2>
+/* fallback if failed */
+const loadUser = stateMod?.loadUser || (() => null);
+const can = permMod?.can || (() => true);
+const logout = authMod?.logout || (() => location.href = "index.html");
+
+/* =========================
+   USER
+========================= */
+
+let user = loadUser();
+
+if (!user) {
+  console.warn("⚠️ No user found → fallback admin");
+  user = {
+    name: "Admin",
+    role: "admin",
+    employeeId: "1001"
+  };
+}
+
+/* =========================
+   MODULES SAFE LOAD
+========================= */
+
+const employeesMod = await safeImport("./modules/employees.js");
+const requestsMod = await safeImport("./modules/requests.js");
+const attendanceMod = await safeImport("./modules/attendance.js");
+const payrollMod = await safeImport("./modules/payroll.js");
+const announcementsMod = await safeImport("./modules/announcements.js");
+const auditMod = await safeImport("./modules/audit.js");
+
+/* =========================
+   MENU (RBAC)
+========================= */
+
+const menu = [
+  { key: "home", label: "🏠 الرئيسية" },
+  can("employees.read") && { key: "employees", label: "👥 الموظفين" },
+  can("requests.read") && { key: "requests", label: "📄 الطلبات" },
+  can("attendance.read") && { key: "attendance", label: "⏱ الحضور" },
+  can("payroll.read") && { key: "payroll", label: "💰 الرواتب" },
+  can("announcements.read") && { key: "announcements", label: "📢 الإعلانات" },
+  can("audit.read") && { key: "audit", label: "🧾 السجل" }
+].filter(Boolean);
+
+/* =========================
+   RENDER SIDEBAR
+========================= */
+
+document.getElementById("sidebar").innerHTML = `
+  <h2>🏢 HR System</h2>
 
   <div class="card">
     <b>${user.name}</b><br/>
     <small>${user.role}</small>
   </div>
 
-  <div class="menu-item" onclick="navigate('home')">🏠 الرئيسية</div>
-  <div class="menu-item" onclick="navigate('employees')">👥 الموظفين</div>
-  <div class="menu-item" onclick="navigate('requests')">📄 الطلبات</div>
+  ${menu.map(m => `
+    <div class="menu-item" onclick="navigate('${m.key}')">
+      ${m.label}
+    </div>
+  `).join("")}
+
+  <div class="menu-item" onclick="logoutUser()">🚪 تسجيل خروج</div>
 `;
 
 /* =========================
-   NAVIGATION
+   NAVIGATION ENGINE
 ========================= */
 
-window.navigate = function(page) {
+window.navigate = async function(page) {
 
   const app = document.getElementById("app");
+  app.innerHTML = "⏳ جاري التحميل...";
 
-  console.log("Go to:", page);
+  try {
 
-  if (page === "home") {
-    app.innerHTML = "🔥 الصفحة الرئيسية تعمل";
+    if (page === "home") {
+      app.innerHTML = `
+        <div class="card">
+          <h2>مرحباً 👋</h2>
+          <p>النظام يعمل بكفاءة</p>
+        </div>
+      `;
+    }
+
+    else if (page === "employees") {
+      if (!employeesMod) throw "employees module missing";
+      await employeesMod.renderEmployees("app");
+    }
+
+    else if (page === "requests") {
+      if (!requestsMod) throw "requests module missing";
+      await requestsMod.renderRequests("app", user);
+    }
+
+    else if (page === "attendance") {
+      if (!attendanceMod) throw "attendance module missing";
+      await attendanceMod.renderAttendance("app");
+    }
+
+    else if (page === "payroll") {
+      if (!payrollMod) throw "payroll module missing";
+      await payrollMod.renderPayrollUI("app");
+    }
+
+    else if (page === "announcements") {
+      if (!announcementsMod) throw "announcements module missing";
+      await announcementsMod.renderAnnouncements("app", user.employeeId);
+    }
+
+    else if (page === "audit") {
+      if (!auditMod) throw "audit module missing";
+      await auditMod.renderAudit("app");
+    }
+
+  } catch (err) {
+
+    console.error("🔥 RENDER ERROR:", err);
+
+    app.innerHTML = `
+      <div class="card">
+        <h3>⚠️ خطأ في تحميل الصفحة</h3>
+        <p>${err}</p>
+      </div>
+    `;
   }
+};
 
-  else if (page === "employees") {
-    app.innerHTML = "🔥 الموظفين تعمل";
-  }
+/* =========================
+   LOGOUT
+========================= */
 
-  else if (page === "requests") {
-    app.innerHTML = "🔥 الطلبات تعمل";
-  }
-
-  else {
-    app.innerHTML = "صفحة أخرى";
-  }
+window.logoutUser = function () {
+  logout();
 };
 
 /* =========================

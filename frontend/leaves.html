@@ -12,13 +12,13 @@
       <div class="sidebar-logo">HR System V2</div>
       <nav class="sidebar-menu">
         <a href="./dashboard.html" class="" data-role-link="dashboard">لوحة التحكم</a>
-<a href="./users.html" class="" data-role-link="users">المستخدمون</a>
-<a href="./departments.html" class="" data-role-link="departments">الأقسام</a>
-<a href="./employees.html" class="" data-role-link="employees">الموظفون</a>
-<a href="./attendance.html" class="" data-role-link="attendance">الحضور</a>
-<a href="./leaves.html" class="active" data-role-link="leaves">الإجازات</a>
-<a href="./salaries.html" class="" data-role-link="salaries">الرواتب</a>
-<a href="./reports.html" class="" data-role-link="reports">التقارير</a>
+        <a href="./users.html" class="" data-role-link="users">المستخدمون</a>
+        <a href="./departments.html" class="" data-role-link="departments">الأقسام</a>
+        <a href="./employees.html" class="" data-role-link="employees">الموظفون</a>
+        <a href="./attendance.html" class="" data-role-link="attendance">الحضور</a>
+        <a href="./leaves.html" class="active" data-role-link="leaves">الإجازات</a>
+        <a href="./salaries.html" class="" data-role-link="salaries">الرواتب</a>
+        <a href="./reports.html" class="" data-role-link="reports">التقارير</a>
       </nav>
     </aside>
 
@@ -26,52 +26,91 @@
       <header class="topbar">
         <div>
           <h1>إدارة الإجازات</h1>
-          <p id="pageSubtitle">نظام موارد بشرية محلي</p>
+          <p id="pageSubtitle">إنشاء ومراجعة واعتماد طلبات الإجازات</p>
         </div>
         <button id="logoutBtn" class="logout-btn">تسجيل الخروج</button>
       </header>
 
+      <section class="content-card">
+        <h2>طلب إجازة</h2>
 
-<section class="content-card">
-  <h2>طلب إجازة</h2>
+        <form id="leaveForm" class="form-grid">
+          <select id="employee_id" required>
+            <option value="">اختر الموظف</option>
+          </select>
+          <select id="leave_type">
+            <option value="annual">سنوية</option>
+            <option value="sick">مرضية</option>
+            <option value="unpaid">بدون راتب</option>
+            <option value="other">أخرى</option>
+          </select>
+          <input type="date" id="start_date" required />
+          <input type="date" id="end_date" required />
+          <input type="text" id="reason" placeholder="السبب" />
+          <button type="submit">حفظ الطلب</button>
+        </form>
 
-  <form id="leaveForm" class="form-grid">
-    <select id="employee_id" required>
-      <option value="">اختر الموظف</option>
-    </select>
-    <select id="leave_type">
-      <option value="annual">سنوية</option>
-      <option value="sick">مرضية</option>
-      <option value="unpaid">بدون راتب</option>
-      <option value="other">أخرى</option>
-    </select>
-    <input type="date" id="start_date" required />
-    <input type="date" id="end_date" required />
-    <input type="text" id="reason" placeholder="السبب" />
-    <button type="submit">حفظ الطلب</button>
-  </form>
+        <p id="formMessage" class="inline-message"></p>
+      </section>
 
-  <p id="formMessage"></p>
-</section>
+      <section class="table-container">
+        <div class="section-header">
+          <div>
+            <h2>طلبات الإجازات</h2>
+            <p id="leavesCountText">جاري تحميل البيانات...</p>
+          </div>
 
-<section class="table-container">
-  <table>
-    <thead>
-      <tr>
-        <th>#</th>
-        <th>الموظف</th>
-        <th>النوع</th>
-        <th>من</th>
-        <th>إلى</th>
-        <th>السبب</th>
-        <th>الحالة</th>
-        <th>إجراءات</th>
-      </tr>
-    </thead>
-    <tbody id="leavesTableBody"></tbody>
-  </table>
-</section>
+          <div class="actions-row">
+            <button id="refreshLeavesBtn" class="secondary-btn">تحديث</button>
+            <button id="exportLeavesBtn" class="secondary-btn">تصدير CSV</button>
+          </div>
+        </div>
 
+        <div class="filters-grid attendance-filters-grid">
+          <input type="text" id="leaveSearchInput" placeholder="بحث باسم الموظف أو السبب" />
+
+          <select id="leaveEmployeeFilter">
+            <option value="">كل الموظفين</option>
+          </select>
+
+          <select id="leaveStatusFilter">
+            <option value="">كل الحالات</option>
+            <option value="pending">قيد الانتظار</option>
+            <option value="approved">مقبولة</option>
+            <option value="rejected">مرفوضة</option>
+          </select>
+
+          <select id="leaveTypeFilter">
+            <option value="">كل الأنواع</option>
+            <option value="annual">سنوية</option>
+            <option value="sick">مرضية</option>
+            <option value="unpaid">بدون راتب</option>
+            <option value="other">أخرى</option>
+          </select>
+
+          <input type="date" id="leaveFromDate" title="من تاريخ" />
+          <input type="date" id="leaveToDate" title="إلى تاريخ" />
+        </div>
+
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>الموظف</th>
+                <th>النوع</th>
+                <th>من</th>
+                <th>إلى</th>
+                <th>الأيام</th>
+                <th>السبب</th>
+                <th>الحالة</th>
+                <th>إجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="leavesTableBody"></tbody>
+          </table>
+        </div>
+      </section>
     </main>
   </div>
   <script src="./js/auth-guard.js"></script>

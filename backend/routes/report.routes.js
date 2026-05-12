@@ -10,6 +10,8 @@ const authMiddleware = require("../middlewares/auth.middleware");
 const roleMiddleware = require("../middlewares/role.middleware");
 
 router.get("/attendance-summary", authMiddleware, roleMiddleware("admin", "hr"), getAttendanceSummary);
-router.get("/salary-summary", authMiddleware, roleMiddleware("admin", "hr"), getSalarySummary);
+
+// Salary reports include financial data, so they are restricted to admin only.
+router.get("/salary-summary", authMiddleware, roleMiddleware("admin"), getSalarySummary);
 
 module.exports = router;

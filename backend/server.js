@@ -38,7 +38,10 @@ app.get("/", async (req, res) => {
     });
   } catch (error) {
     console.error("DB ERROR:", error.message);
-    res.status(500).json({ error: "Database connection failed" });
+    res.status(500).json({
+  error: "Database connection failed",
+  details: error.message,
+});
   }
 });
 

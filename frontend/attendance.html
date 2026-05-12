@@ -9,14 +9,16 @@
 <body>
   <div class="app-layout">
     <aside class="sidebar">
-      <div class="sidebar-logo">HR System</div>
+      <div class="sidebar-logo">HR System V2</div>
       <nav class="sidebar-menu">
         <a href="./dashboard.html" class="" data-role-link="dashboard">لوحة التحكم</a>
-<a href="./users.html" class="" data-role-link="users">المستخدمون</a>
-<a href="./departments.html" class="" data-role-link="departments">الأقسام</a>
-<a href="./employees.html" class="" data-role-link="employees">الموظفون</a>
-<a href="./attendance.html" class="active" data-role-link="attendance">الحضور</a>
-<a href="./salaries.html" class="" data-role-link="salaries">الرواتب</a>
+        <a href="./users.html" class="" data-role-link="users">المستخدمون</a>
+        <a href="./departments.html" class="" data-role-link="departments">الأقسام</a>
+        <a href="./employees.html" class="" data-role-link="employees">الموظفون</a>
+        <a href="./attendance.html" class="active" data-role-link="attendance">الحضور</a>
+        <a href="./leaves.html" class="" data-role-link="leaves">الإجازات</a>
+        <a href="./salaries.html" class="" data-role-link="salaries">الرواتب</a>
+        <a href="./reports.html" class="" data-role-link="reports">التقارير</a>
       </nav>
     </aside>
 
@@ -24,53 +26,84 @@
       <header class="topbar">
         <div>
           <h1>إدارة الحضور</h1>
-          <p id="pageSubtitle">نظام موارد بشرية محلي</p>
+          <p id="pageSubtitle">تسجيل ومتابعة حضور الموظفين</p>
         </div>
         <button id="logoutBtn" class="logout-btn">تسجيل الخروج</button>
       </header>
 
+      <section class="content-card">
+        <h2>تسجيل حضور</h2>
 
-<section class="content-card">
-  <h2>تسجيل حضور</h2>
+        <form id="attendanceForm" class="form-grid">
+          <select id="employee_id" required>
+            <option value="">اختر الموظف</option>
+          </select>
+          <input type="date" id="attendance_date" required />
+          <input type="time" id="check_in" />
+          <input type="time" id="check_out" />
+          <select id="status">
+            <option value="present">حاضر</option>
+            <option value="absent">غائب</option>
+            <option value="late">متأخر</option>
+            <option value="leave">إجازة</option>
+          </select>
+          <input type="text" id="notes" placeholder="ملاحظات" />
+          <button type="submit">حفظ السجل</button>
+        </form>
 
-  <form id="attendanceForm" class="form-grid">
-    <select id="employee_id" required>
-      <option value="">اختر الموظف</option>
-    </select>
-    <input type="date" id="attendance_date" required />
-    <input type="time" id="check_in" />
-    <input type="time" id="check_out" />
-    <select id="status">
-      <option value="present">حاضر</option>
-      <option value="absent">غائب</option>
-      <option value="late">متأخر</option>
-      <option value="leave">إجازة</option>
-    </select>
-    <input type="text" id="notes" placeholder="ملاحظات" />
-    <button type="submit">حفظ السجل</button>
-  </form>
+        <p id="formMessage" class="inline-message"></p>
+      </section>
 
-  <p id="formMessage"></p>
-</section>
+      <section class="table-container">
+        <div class="section-header">
+          <div>
+            <h2>سجلات الحضور</h2>
+            <p id="attendanceCountText">جاري تحميل البيانات...</p>
+          </div>
 
-<section class="table-container">
-  <table>
-    <thead>
-      <tr>
-        <th>#</th>
-        <th>الموظف</th>
-        <th>التاريخ</th>
-        <th>الدخول</th>
-        <th>الخروج</th>
-        <th>الحالة</th>
-        <th>ملاحظات</th>
-        <th>إجراءات</th>
-      </tr>
-    </thead>
-    <tbody id="attendanceTableBody"></tbody>
-  </table>
-</section>
+          <div class="actions-row">
+            <button id="refreshAttendanceBtn" class="secondary-btn">تحديث</button>
+            <button id="exportAttendanceBtn" class="secondary-btn">تصدير CSV</button>
+          </div>
+        </div>
 
+        <div class="filters-grid attendance-filters-grid">
+          <input type="text" id="attendanceSearchInput" placeholder="بحث باسم الموظف أو الملاحظات" />
+
+          <select id="attendanceEmployeeFilter">
+            <option value="">كل الموظفين</option>
+          </select>
+
+          <select id="attendanceStatusFilter">
+            <option value="">كل الحالات</option>
+            <option value="present">حاضر</option>
+            <option value="absent">غائب</option>
+            <option value="late">متأخر</option>
+            <option value="leave">إجازة</option>
+          </select>
+
+          <input type="date" id="attendanceFromDate" title="من تاريخ" />
+          <input type="date" id="attendanceToDate" title="إلى تاريخ" />
+        </div>
+
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>الموظف</th>
+                <th>التاريخ</th>
+                <th>الدخول</th>
+                <th>الخروج</th>
+                <th>الحالة</th>
+                <th>ملاحظات</th>
+                <th>إجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="attendanceTableBody"></tbody>
+          </table>
+        </div>
+      </section>
     </main>
   </div>
   <script src="./js/auth-guard.js"></script>

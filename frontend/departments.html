@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>إدارة الأقسام</title>
+  <link rel="stylesheet" href="./css/style.css" />
+</head>
+<body>
+  <div class="app-layout">
+    <aside class="sidebar">
+      <div class="sidebar-logo">HR System</div>
+      <nav class="sidebar-menu">
+        <a href="./dashboard.html" class="" data-role-link="dashboard">لوحة التحكم</a>
+<a href="./users.html" class="" data-role-link="users">المستخدمون</a>
+<a href="./departments.html" class="active" data-role-link="departments">الأقسام</a>
+<a href="./employees.html" class="" data-role-link="employees">الموظفون</a>
+<a href="./attendance.html" class="" data-role-link="attendance">الحضور</a>
+<a href="./salaries.html" class="" data-role-link="salaries">الرواتب</a>
+      </nav>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <div>
+          <h1>إدارة الأقسام</h1>
+          <p id="pageSubtitle">نظام موارد بشرية محلي</p>
+        </div>
+        <button id="logoutBtn" class="logout-btn">تسجيل الخروج</button>
+      </header>
+
+
+<section class="content-card">
+  <h2 id="departmentFormTitle">إضافة قسم</h2>
+
+  <form id="departmentForm" class="form-grid">
+    <input type="hidden" id="departmentId" />
+    <input type="text" id="departmentName" placeholder="اسم القسم" required />
+    <input type="text" id="departmentDescription" placeholder="الوصف" />
+    <select id="departmentActive">
+      <option value="true">نشط</option>
+      <option value="false">معطل</option>
+    </select>
+    <button type="submit">حفظ</button>
+    <button type="button" id="cancelEditBtn" class="secondary-btn">إلغاء التعديل</button>
+  </form>
+
+  <p id="formMessage"></p>
+</section>
+
+<section class="table-container">
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>اسم القسم</th>
+        <th>الوصف</th>
+        <th>الحالة</th>
+        <th>إجراءات</th>
+      </tr>
+    </thead>
+    <tbody id="departmentsTableBody"></tbody>
+  </table>
+</section>
+
+    </main>
+  </div>
+  <script src="./js/auth-guard.js"></script>
+  <script src="./js/departments.js"></script>
+</body>
+</html>

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>لوحة التحكم</title>
+  <link rel="stylesheet" href="./css/style.css" />
+</head>
+<body>
+  <div class="app-layout">
+    <aside class="sidebar">
+      <div class="sidebar-logo">HR System V2</div>
+      <nav class="sidebar-menu">
+        <a href="./dashboard.html" class="active" data-role-link="dashboard">لوحة التحكم</a>
+<a href="./users.html" class="" data-role-link="users">المستخدمون</a>
+<a href="./departments.html" class="" data-role-link="departments">الأقسام</a>
+<a href="./employees.html" class="" data-role-link="employees">الموظفون</a>
+<a href="./attendance.html" class="" data-role-link="attendance">الحضور</a>
+<a href="./leaves.html" class="" data-role-link="leaves">الإجازات</a>
+<a href="./salaries.html" class="" data-role-link="salaries">الرواتب</a>
+<a href="./reports.html" class="" data-role-link="reports">التقارير</a>
+      </nav>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <div>
+          <h1>لوحة التحكم</h1>
+          <p id="pageSubtitle">نظام موارد بشرية محلي</p>
+        </div>
+        <button id="logoutBtn" class="logout-btn">تسجيل الخروج</button>
+      </header>
+
+
+<section class="stats-grid">
+  <div class="stat-card"><h3>المستخدمون</h3><p id="usersCount">0</p></div>
+  <div class="stat-card"><h3>الأقسام</h3><p id="departmentsCount">0</p></div>
+  <div class="stat-card"><h3>الموظفون</h3><p id="employeesCount">0</p></div>
+  <div class="stat-card"><h3>الحضور</h3><p id="attendanceCount">0</p></div>
+  <div class="stat-card"><h3>الإجازات</h3><p id="leavesCount">0</p></div>
+  <div class="stat-card"><h3>الرواتب</h3><p id="salariesCount">0</p></div>
+</section>
+
+<section class="content-card">
+  <h2>مرحبًا بك</h2>
+  <p id="welcomeMessage">جاري تحميل بيانات المستخدم...</p>
+</section>
+
+    </main>
+  </div>
+  <script src="./js/auth-guard.js"></script>
+  <script src="./js/dashboard.js"></script>
+</body>
+</html>

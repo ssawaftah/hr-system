@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>إدارة الإجازات</title>
+  <link rel="stylesheet" href="./css/style.css" />
+</head>
+<body>
+  <div class="app-layout">
+    <aside class="sidebar">
+      <div class="sidebar-logo">HR System V2</div>
+      <nav class="sidebar-menu">
+        <a href="./dashboard.html" class="" data-role-link="dashboard">لوحة التحكم</a>
+<a href="./users.html" class="" data-role-link="users">المستخدمون</a>
+<a href="./departments.html" class="" data-role-link="departments">الأقسام</a>
+<a href="./employees.html" class="" data-role-link="employees">الموظفون</a>
+<a href="./attendance.html" class="" data-role-link="attendance">الحضور</a>
+<a href="./leaves.html" class="active" data-role-link="leaves">الإجازات</a>
+<a href="./salaries.html" class="" data-role-link="salaries">الرواتب</a>
+<a href="./reports.html" class="" data-role-link="reports">التقارير</a>
+      </nav>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <div>
+          <h1>إدارة الإجازات</h1>
+          <p id="pageSubtitle">نظام موارد بشرية محلي</p>
+        </div>
+        <button id="logoutBtn" class="logout-btn">تسجيل الخروج</button>
+      </header>
+
+
+<section class="content-card">
+  <h2>طلب إجازة</h2>
+
+  <form id="leaveForm" class="form-grid">
+    <select id="employee_id" required>
+      <option value="">اختر الموظف</option>
+    </select>
+    <select id="leave_type">
+      <option value="annual">سنوية</option>
+      <option value="sick">مرضية</option>
+      <option value="unpaid">بدون راتب</option>
+      <option value="other">أخرى</option>
+    </select>
+    <input type="date" id="start_date" required />
+    <input type="date" id="end_date" required />
+    <input type="text" id="reason" placeholder="السبب" />
+    <button type="submit">حفظ الطلب</button>
+  </form>
+
+  <p id="formMessage"></p>
+</section>
+
+<section class="table-container">
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>الموظف</th>
+        <th>النوع</th>
+        <th>من</th>
+        <th>إلى</th>
+        <th>السبب</th>
+        <th>الحالة</th>
+        <th>إجراءات</th>
+      </tr>
+    </thead>
+    <tbody id="leavesTableBody"></tbody>
+  </table>
+</section>
+
+    </main>
+  </div>
+  <script src="./js/auth-guard.js"></script>
+  <script src="./js/leaves.js"></script>
+</body>
+</html>

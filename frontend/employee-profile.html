@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ملف الموظف</title>
+  <link rel="stylesheet" href="./css/style.css" />
+</head>
+<body>
+  <div class="app-layout">
+    <aside class="sidebar">
+      <div class="sidebar-logo">HR System V2</div>
+      <nav class="sidebar-menu">
+        <a href="./dashboard.html" class="" data-role-link="dashboard">لوحة التحكم</a>
+<a href="./users.html" class="" data-role-link="users">المستخدمون</a>
+<a href="./departments.html" class="" data-role-link="departments">الأقسام</a>
+<a href="./employees.html" class="active" data-role-link="employees">الموظفون</a>
+<a href="./attendance.html" class="" data-role-link="attendance">الحضور</a>
+<a href="./leaves.html" class="" data-role-link="leaves">الإجازات</a>
+<a href="./salaries.html" class="" data-role-link="salaries">الرواتب</a>
+<a href="./reports.html" class="" data-role-link="reports">التقارير</a>
+      </nav>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <div>
+          <h1>ملف الموظف</h1>
+          <p id="pageSubtitle">نظام موارد بشرية محلي</p>
+        </div>
+        <button id="logoutBtn" class="logout-btn">تسجيل الخروج</button>
+      </header>
+
+
+<section class="content-card">
+  <h2 id="employeeName">جاري التحميل...</h2>
+  <div class="details-grid" id="employeeDetails"></div>
+</section>
+
+<section class="table-container">
+  <h2>آخر سجلات الحضور</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>التاريخ</th>
+        <th>الدخول</th>
+        <th>الخروج</th>
+        <th>الحالة</th>
+      </tr>
+    </thead>
+    <tbody id="attendanceBody"></tbody>
+  </table>
+</section>
+
+<section class="table-container">
+  <h2>آخر سجلات الرواتب</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>الشهر</th>
+        <th>الصافي</th>
+        <th>الحالة</th>
+      </tr>
+    </thead>
+    <tbody id="salariesBody"></tbody>
+  </table>
+</section>
+
+<section class="table-container">
+  <h2>آخر طلبات الإجازة</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>النوع</th>
+        <th>من</th>
+        <th>إلى</th>
+        <th>الحالة</th>
+      </tr>
+    </thead>
+    <tbody id="leavesBody"></tbody>
+  </table>
+</section>
+
+    </main>
+  </div>
+  <script src="./js/auth-guard.js"></script>
+  <script src="./js/employee-profile.js"></script>
+</body>
+</html>

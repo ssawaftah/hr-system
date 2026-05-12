@@ -16,7 +16,7 @@ const pagePermissions = {
   "employee-profile.html": ["admin", "hr"],
   "attendance.html": ["admin", "hr"],
   "leaves.html": ["admin", "hr"],
-  "salaries.html": ["admin", "hr"],
+  "salaries.html": ["admin"],
   "reports.html": ["admin", "hr"],
 };
 
@@ -27,7 +27,7 @@ const linkPermissions = {
   employees: ["admin", "hr"],
   attendance: ["admin", "hr"],
   leaves: ["admin", "hr"],
-  salaries: ["admin", "hr"],
+  salaries: ["admin"],
   reports: ["admin", "hr"],
 };
 

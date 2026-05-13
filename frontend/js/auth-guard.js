@@ -50,7 +50,8 @@ const injectStylesheet = (href) => {
   document.head.appendChild(el);
 };
 const ensureUxFixes = () => {
-  injectStylesheet("./css/app.css?v=clean-apple-1");
+  injectStylesheet("./css/app.css?v=clean-apple-2");
+  injectStylesheet("./css/icons.css?v=svg-icons-1");
   document.documentElement.lang = "ar";
   document.documentElement.dir = "rtl";
   document.body.dir = "rtl";

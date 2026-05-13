@@ -9,7 +9,7 @@ let loggedAccess = { roles: [], permissions: [] };
 const fallbackNavigationConfig = [
   { id: "dashboard", label: "الرئيسية", path: "./dashboard.html", icon: "⌂", group: "الرئيسية", requiredPermissions: ["dashboard.view"], showInSidebar: true, showInShortcutMenu: true, order: 1 },
   { id: "attendance", label: "الحضور والانصراف", path: "./attendance.html", icon: "◷", group: "التشغيل اليومي", requiredPermissions: ["attendance.view", "attendance.view.self", "attendance.view.department", "attendance.view.all"], showInSidebar: true, showInShortcutMenu: true, order: 10 },
-  { id: "leaves", label: "الطلبات والإجازات", path: "./leaves.html", icon: "◫", group: "التشغيل اليومي", requiredPermissions: ["leaves.view", "requests.view.self", "requests.view.department", "requests.view.all"], showInSidebar: true, showInShortcutMenu: true, order: 11 },
+  { id: "leaves", label: "الطلبات", path: "./leaves.html", icon: "◫", group: "التشغيل اليومي", requiredPermissions: ["leaves.view", "requests.view.self", "requests.view.department", "requests.view.all"], showInSidebar: true, showInShortcutMenu: true, order: 11 },
   { id: "shifts", label: "الشفتات", path: "./shifts.html", icon: "⇄", group: "التشغيل اليومي", requiredPermissions: ["shifts.view"], showInSidebar: true, showInShortcutMenu: false, order: 12 },
   { id: "employees", label: "الموظفون", path: "./employees.html", icon: "☷", group: "الموارد البشرية", requiredPermissions: ["employees.view", "employees.view.self"], showInSidebar: true, showInShortcutMenu: false, order: 20 },
   { id: "departments", label: "الأقسام", path: "./departments.html", icon: "▦", group: "الموارد البشرية", requiredPermissions: ["departments.view"], showInSidebar: true, showInShortcutMenu: false, order: 21 },
@@ -20,7 +20,7 @@ const fallbackNavigationConfig = [
 
 const getNavigationConfig = () => Array.isArray(window.navigationConfig) ? window.navigationConfig : fallbackNavigationConfig;
 
-const roleLabels = { admin: "مدير النظام", hr: "الموارد البشرية", employee: "موظف", manager: "مدير قسم", finance: "المالية" };
+const shellRoleLabels = { admin: "مدير النظام", hr: "الموارد البشرية", employee: "موظف", manager: "مدير قسم", finance: "المالية" };
 
 const normalizeList = (value) => {
   if (!value) return [];
@@ -136,7 +136,7 @@ const setupResponsiveShell = () => {
     const oldLogout = document.getElementById("logoutBtn");
     const tools = document.createElement("div");
     tools.className = "topbar-tools";
-    tools.innerHTML = `<button type="button" class="notification-btn" aria-label="الإشعارات">الإشعارات</button><div class="user-chip"><span class="user-avatar">${(loggedUser?.full_name || "م").slice(0, 1)}</span><div><strong>${loggedUser?.full_name || "مستخدم"}</strong><small>${normalizeList(loggedAccess.roles).map((r) => roleLabels[r] || r).join("، ") || "مستخدم"}</small></div></div>`;
+    tools.innerHTML = `<button type="button" class="notification-btn" aria-label="الإشعارات">الإشعارات</button><div class="user-chip"><span class="user-avatar">${(loggedUser?.full_name || "م").slice(0, 1)}</span><div><strong>${loggedUser?.full_name || "مستخدم"}</strong><small>${normalizeList(loggedAccess.roles).map((r) => shellRoleLabels[r] || r).join("، ") || "مستخدم"}</small></div></div>`;
     if (oldLogout) tools.appendChild(oldLogout);
     topbar.appendChild(tools);
   }

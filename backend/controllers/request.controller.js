@@ -3,7 +3,6 @@ const { ensureAttendanceSchema, upsertAutoAttendance } = require("./attendance.c
 const { getUserAccess, hasPermissionValue } = require("../services/permission.service");
 
 const REQUEST_TYPES = ["leave", "exit", "advance", "resignation", "complaint", "custom"];
-const STATUSES = ["draft", "pending", "needs_info", "approved", "rejected", "cancelled"];
 
 const ensureRequestSchema = async () => {
   await pool.query(`
@@ -51,14 +50,16 @@ const ensureRequestSchema = async () => {
 const getAccess = async (req) => getUserAccess(req.user.id, req.user);
 const can = (access, permission) => hasPermissionValue(access, permission);
 const canAny = (access, permissions) => permissions.some((permission) => can(access, permission));
+const asInt = (value) => (value === undefined || value === null || value === "" ? null : Number(value));
+const asText = (value) => (value === undefined || value === null || value === "" ? null : String(value));
 
 const getCurrentEmployeeId = async (req) => {
-  if (req.user?.employee_id) return req.user.employee_id;
-  const user = await pool.query(`SELECT employee_id, employee_number FROM users WHERE id=$1`, [req.user?.id]);
-  if (user.rows[0]?.employee_id) return user.rows[0].employee_id;
+  if (req.user?.employee_id) return Number(req.user.employee_id);
+  const user = await pool.query(`SELECT employee_id, employee_number FROM users WHERE id=$1::int`, [asInt(req.user?.id) || 0]);
+  if (user.rows[0]?.employee_id) return Number(user.rows[0].employee_id);
   if (user.rows[0]?.employee_number) {
-    const employee = await pool.query(`SELECT id FROM employees WHERE employee_number=$1`, [user.rows[0].employee_number]);
-    return employee.rows[0]?.id || null;
+    const employee = await pool.query(`SELECT id FROM employees WHERE employee_number=$1::text`, [String(user.rows[0].employee_number)]);
+    return employee.rows[0]?.id ? Number(employee.rows[0].id) : null;
   }
   return null;
 };
@@ -66,21 +67,23 @@ const getCurrentEmployeeId = async (req) => {
 const addLog = async ({ requestId, action, req, reason = null, comment = null, oldStatus = null, newStatus = null }) => {
   const actorEmployeeId = await getCurrentEmployeeId(req);
   await pool.query(
-    `INSERT INTO employee_request_action_logs (request_id, action, actor_user_id, actor_employee_id, actor_name, reason, comment, old_status, new_status)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
-    [requestId, action, req.user?.id || null, actorEmployeeId, req.user?.full_name || null, reason, comment, oldStatus, newStatus]
+    `INSERT INTO employee_request_action_logs
+     (request_id, action, actor_user_id, actor_employee_id, actor_name, reason, comment, old_status, new_status)
+     VALUES ($1::int,$2::text,$3::int,$4::int,$5::text,$6::text,$7::text,$8::text,$9::text)`,
+    [asInt(requestId), asText(action), asInt(req.user?.id), asInt(actorEmployeeId), asText(req.user?.full_name), asText(reason), asText(comment), asText(oldStatus), asText(newStatus)]
   );
 };
 
 const getPrimaryDepartmentId = async (employeeId) => {
+  if (!employeeId) return null;
   const result = await pool.query(
     `SELECT COALESCE(ed.department_id, e.department_id) AS department_id
      FROM employees e
      LEFT JOIN employee_departments ed ON ed.employee_id=e.id AND ed.is_primary=true
-     WHERE e.id=$1 LIMIT 1`,
-    [employeeId]
+     WHERE e.id=$1::int LIMIT 1`,
+    [asInt(employeeId)]
   );
-  return result.rows[0]?.department_id || null;
+  return result.rows[0]?.department_id ? Number(result.rows[0].department_id) : null;
 };
 
 const validateRequest = (type, data) => {
@@ -161,23 +164,19 @@ const getRequests = async (req, res) => {
     const employeeId = await getCurrentEmployeeId(req);
     let where = "";
     const params = [];
-
     if (canAny(access, ["requests.view.all", "requests.manage"])) {
       where = "";
     } else if (can(access, "requests.view.department")) {
       const departmentId = await getPrimaryDepartmentId(employeeId);
-      if (!departmentId) where = "WHERE r.employee_id=$1", params.push(employeeId || 0);
-      else where = "WHERE r.department_id=$1 OR r.employee_id=$2", params.push(departmentId, employeeId || 0);
+      if (!departmentId) { where = "WHERE r.employee_id=$1::int"; params.push(asInt(employeeId) || 0); }
+      else { where = "WHERE r.department_id=$1::int OR r.employee_id=$2::int"; params.push(asInt(departmentId), asInt(employeeId) || 0); }
     } else {
-      where = "WHERE r.employee_id=$1";
-      params.push(employeeId || 0);
+      where = "WHERE r.employee_id=$1::int";
+      params.push(asInt(employeeId) || 0);
     }
-
     const result = await pool.query(`${baseSelect} ${where} ORDER BY CASE WHEN r.status='pending' THEN 0 WHEN r.status='needs_info' THEN 1 ELSE 2 END, r.id DESC`, params);
     res.status(200).json({ requests: result.rows });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+  } catch (error) { res.status(500).json({ error: error.message }); }
 };
 
 const getRequestById = async (req, res) => {
@@ -185,19 +184,17 @@ const getRequestById = async (req, res) => {
     await ensureRequestSchema();
     const access = await getAccess(req);
     const employeeId = await getCurrentEmployeeId(req);
-    const result = await pool.query(`${baseSelect} WHERE r.id=$1`, [req.params.id]);
+    const result = await pool.query(`${baseSelect} WHERE r.id=$1::int`, [asInt(req.params.id)]);
     if (!result.rows.length) return res.status(404).json({ error: "الطلب غير موجود" });
     const request = result.rows[0];
     const sameEmployee = Number(request.employee_id) === Number(employeeId);
-    const sameDepartment = request.department_id && request.department_id === await getPrimaryDepartmentId(employeeId);
+    const sameDepartment = request.department_id && Number(request.department_id) === await getPrimaryDepartmentId(employeeId);
     if (!sameEmployee && !canAny(access, ["requests.view.all", "requests.manage"]) && !(sameDepartment && can(access, "requests.view.department"))) {
       return res.status(403).json({ error: "لا تملك صلاحية الوصول" });
     }
-    const logs = await pool.query(`SELECT * FROM employee_request_action_logs WHERE request_id=$1 ORDER BY id ASC`, [req.params.id]);
+    const logs = await pool.query(`SELECT * FROM employee_request_action_logs WHERE request_id=$1::int ORDER BY id ASC`, [asInt(req.params.id)]);
     res.status(200).json({ request, logs: logs.rows });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+  } catch (error) { res.status(500).json({ error: error.message }); }
 };
 
 const createRequest = async (req, res) => {
@@ -206,26 +203,24 @@ const createRequest = async (req, res) => {
     const access = await getAccess(req);
     const currentEmployeeId = await getCurrentEmployeeId(req);
     if (!canAny(access, ["requests.create.self", "requests.manage"])) return res.status(403).json({ error: "لا تملك صلاحية تنفيذ هذا الإجراء" });
-
     const type = req.body.request_type;
     const data = req.body.request_data || {};
     const validation = validateRequest(type, data);
     if (validation) return res.status(400).json({ error: validation });
-
-    const employeeId = can(access, "requests.manage") && req.body.employee_id ? req.body.employee_id : currentEmployeeId;
+    const employeeId = can(access, "requests.manage") && req.body.employee_id ? asInt(req.body.employee_id) : asInt(currentEmployeeId);
     if (!employeeId) return res.status(400).json({ error: "لا يوجد موظف مرتبط بحسابك" });
     const departmentId = await getPrimaryDepartmentId(employeeId);
     const status = req.body.status === "draft" ? "draft" : "pending";
+    const submittedAt = status === "pending" ? new Date() : null;
     const result = await pool.query(
-      `INSERT INTO employee_requests (employee_id, department_id, request_type, request_title, request_data, status, priority, created_by, submitted_at, updated_at)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,CURRENT_TIMESTAMP) RETURNING *`,
-      [employeeId, departmentId, type, titleFor(type, data), JSON.stringify(data), status, req.body.priority || null, req.user?.id || null, status === "pending" ? new Date() : null]
+      `INSERT INTO employee_requests
+       (employee_id, department_id, request_type, request_title, request_data, status, priority, created_by, submitted_at, updated_at)
+       VALUES ($1::int,$2::int,$3::text,$4::text,$5::jsonb,$6::text,$7::text,$8::int,$9::timestamp,CURRENT_TIMESTAMP) RETURNING *`,
+      [employeeId, asInt(departmentId), asText(type), asText(titleFor(type, data)), JSON.stringify(data), asText(status), asText(req.body.priority), asInt(req.user?.id), submittedAt]
     );
     await addLog({ requestId: result.rows[0].id, action: status === "draft" ? "created" : "submitted", req, oldStatus: null, newStatus: status });
     res.status(201).json({ message: status === "draft" ? "تم حفظ الطلب كمسودة" : "تم إرسال الطلب بنجاح", request: result.rows[0] });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+  } catch (error) { res.status(500).json({ error: error.message }); }
 };
 
 const actOnRequest = async (req, res) => {
@@ -233,12 +228,13 @@ const actOnRequest = async (req, res) => {
     await ensureRequestSchema();
     const access = await getAccess(req);
     const employeeId = await getCurrentEmployeeId(req);
-    const existing = await pool.query(`SELECT * FROM employee_requests WHERE id=$1`, [req.params.id]);
+    const requestId = asInt(req.params.id);
+    const existing = await pool.query(`SELECT * FROM employee_requests WHERE id=$1::int`, [requestId]);
     if (!existing.rows.length) return res.status(404).json({ error: "الطلب غير موجود" });
     const request = existing.rows[0];
-    const action = req.body.action;
-    const reason = req.body.reason || "";
-    const comment = req.body.comment || "";
+    const action = String(req.body.action || "");
+    const reason = String(req.body.reason || "").trim();
+    const comment = String(req.body.comment || "").trim();
     let newStatus = request.status;
 
     if (action === "approve") {
@@ -246,41 +242,54 @@ const actOnRequest = async (req, res) => {
       newStatus = "approved";
     } else if (action === "reject") {
       if (!canAny(access, ["requests.reject.all", "requests.manage"])) return res.status(403).json({ error: "لا تملك صلاحية تنفيذ هذا الإجراء" });
-      if (!reason.trim()) return res.status(400).json({ error: "يجب إدخال سبب الرفض" });
+      if (!reason) return res.status(400).json({ error: "يجب إدخال سبب الرفض" });
       newStatus = "rejected";
     } else if (action === "cancel") {
       const selfCancel = Number(request.employee_id) === Number(employeeId) && request.status === "pending" && can(access, "requests.cancel.self_pending");
       if (!selfCancel && !canAny(access, ["requests.cancel.all", "requests.manage"])) return res.status(403).json({ error: "لا تملك صلاحية تنفيذ هذا الإجراء" });
-      if (!selfCancel && !reason.trim()) return res.status(400).json({ error: "يجب إدخال سبب الإلغاء" });
+      if (!selfCancel && !reason) return res.status(400).json({ error: "يجب إدخال سبب الإلغاء" });
       newStatus = "cancelled";
     } else if (action === "request_info") {
       if (!canAny(access, ["requests.request_info", "requests.manage"])) return res.status(403).json({ error: "لا تملك صلاحية تنفيذ هذا الإجراء" });
-      if (!comment.trim()) return res.status(400).json({ error: "يجب إدخال تعليق لطلب المعلومات" });
+      if (!comment) return res.status(400).json({ error: "يجب إدخال تعليق لطلب المعلومات" });
       newStatus = "needs_info";
     } else if (action === "respond_info") {
       if (Number(request.employee_id) !== Number(employeeId)) return res.status(403).json({ error: "لا تملك صلاحية تنفيذ هذا الإجراء" });
-      if (!comment.trim()) return res.status(400).json({ error: "يجب إدخال الرد" });
+      if (!comment) return res.status(400).json({ error: "يجب إدخال الرد" });
       newStatus = "pending";
     } else if (action === "comment") {
       if (!canAny(access, ["requests.comment", "requests.manage"]) && Number(request.employee_id) !== Number(employeeId)) return res.status(403).json({ error: "لا تملك صلاحية تنفيذ هذا الإجراء" });
-      if (!comment.trim()) return res.status(400).json({ error: "يجب إدخال تعليق" });
+      if (!comment) return res.status(400).json({ error: "يجب إدخال تعليق" });
     } else {
       return res.status(400).json({ error: "الإجراء غير صحيح" });
     }
 
+    const now = new Date();
+    const isFinal = ["approved", "rejected", "cancelled"].includes(newStatus);
+    const completedAt = ["approved", "rejected"].includes(newStatus) ? now : request.completed_at || null;
+    const cancelledAt = newStatus === "cancelled" ? now : request.cancelled_at || null;
+    const finalDecisionBy = isFinal ? asInt(req.user?.id) : asInt(request.final_decision_by);
+    const finalDecisionAt = isFinal ? now : request.final_decision_at || null;
+    const finalReason = reason || request.final_decision_reason || null;
+
     const result = await pool.query(
-      `UPDATE employee_requests SET status=$1, final_decision_reason=$2, final_decision_by=$3, final_decision_at=$4,
-       completed_at=CASE WHEN $1 IN ('approved','rejected') THEN CURRENT_TIMESTAMP ELSE completed_at END,
-       cancelled_at=CASE WHEN $1='cancelled' THEN CURRENT_TIMESTAMP ELSE cancelled_at END,
-       updated_at=CURRENT_TIMESTAMP WHERE id=$5 RETURNING *`,
-      [newStatus, reason || request.final_decision_reason, req.user?.id || null, ["approved", "rejected", "cancelled"].includes(newStatus) ? new Date() : request.final_decision_at, req.params.id]
+      `UPDATE employee_requests
+       SET status=$1::text,
+           final_decision_reason=$2::text,
+           final_decision_by=$3::int,
+           final_decision_at=$4::timestamp,
+           completed_at=$5::timestamp,
+           cancelled_at=$6::timestamp,
+           updated_at=CURRENT_TIMESTAMP
+       WHERE id=$7::int
+       RETURNING *`,
+      [asText(newStatus), asText(finalReason), asInt(finalDecisionBy), finalDecisionAt, completedAt, cancelledAt, requestId]
     );
-    await addLog({ requestId: req.params.id, action, req, reason: reason || null, comment: comment || null, oldStatus: request.status, newStatus });
+
+    await addLog({ requestId, action, req, reason: reason || null, comment: comment || null, oldStatus: request.status, newStatus });
     await materializeApprovedLeave(result.rows[0]);
     res.status(200).json({ message: "تم تنفيذ الإجراء بنجاح", request: result.rows[0] });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+  } catch (error) { res.status(500).json({ error: error.message }); }
 };
 
 const deleteRequest = async (req, res) => {
@@ -288,12 +297,10 @@ const deleteRequest = async (req, res) => {
     await ensureRequestSchema();
     const access = await getAccess(req);
     if (!can(access, "requests.manage")) return res.status(403).json({ error: "لا تملك صلاحية تنفيذ هذا الإجراء" });
-    const result = await pool.query(`DELETE FROM employee_requests WHERE id=$1 RETURNING id`, [req.params.id]);
+    const result = await pool.query(`DELETE FROM employee_requests WHERE id=$1::int RETURNING id`, [asInt(req.params.id)]);
     if (!result.rows.length) return res.status(404).json({ error: "الطلب غير موجود" });
     res.status(200).json({ message: "تم حذف الطلب بنجاح" });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+  } catch (error) { res.status(500).json({ error: error.message }); }
 };
 
 module.exports = { getRequests, getRequestById, createRequest, actOnRequest, deleteRequest, ensureRequestSchema };

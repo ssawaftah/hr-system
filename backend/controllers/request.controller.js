@@ -45,6 +45,7 @@ const ensureRequestSchema = async () => {
   await pool.query(`CREATE INDEX IF NOT EXISTS employee_requests_employee_idx ON employee_requests(employee_id)`);
   await pool.query(`CREATE INDEX IF NOT EXISTS employee_requests_status_idx ON employee_requests(status)`);
   await pool.query(`CREATE INDEX IF NOT EXISTS employee_requests_type_idx ON employee_requests(request_type)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS employee_requests_updated_idx ON employee_requests(updated_at DESC)`);
 };
 
 const getAccess = async (req) => getUserAccess(req.user.id, req.user);
@@ -151,7 +152,9 @@ const materializeApprovedLeave = async (request) => {
 };
 
 const baseSelect = `
-  SELECT r.*, e.full_name AS employee_name, e.employee_number, d.name AS department_name
+  SELECT r.id, r.employee_id, r.department_id, r.request_type, r.request_title, r.request_data, r.status,
+         r.priority, r.submitted_at, r.completed_at, r.cancelled_at, r.final_decision_reason,
+         r.created_at, r.updated_at, e.full_name AS employee_name, e.employee_number, d.name AS department_name
   FROM employee_requests r
   JOIN employees e ON e.id=r.employee_id
   LEFT JOIN departments d ON d.id=r.department_id
@@ -174,7 +177,7 @@ const getRequests = async (req, res) => {
       where = "WHERE r.employee_id=$1::int";
       params.push(asInt(employeeId) || 0);
     }
-    const result = await pool.query(`${baseSelect} ${where} ORDER BY CASE WHEN r.status='pending' THEN 0 WHEN r.status='needs_info' THEN 1 ELSE 2 END, r.id DESC`, params);
+    const result = await pool.query(`${baseSelect} ${where} ORDER BY CASE WHEN r.status='pending' THEN 0 WHEN r.status='needs_info' THEN 1 ELSE 2 END, r.id DESC LIMIT 150`, params);
     res.status(200).json({ requests: result.rows });
   } catch (error) { res.status(500).json({ error: error.message }); }
 };
@@ -219,7 +222,8 @@ const createRequest = async (req, res) => {
       [employeeId, asInt(departmentId), asText(type), asText(titleFor(type, data)), JSON.stringify(data), asText(status), asText(req.body.priority), asInt(req.user?.id), submittedAt]
     );
     await addLog({ requestId: result.rows[0].id, action: status === "draft" ? "created" : "submitted", req, oldStatus: null, newStatus: status });
-    res.status(201).json({ message: status === "draft" ? "تم حفظ الطلب كمسودة" : "تم إرسال الطلب بنجاح", request: result.rows[0] });
+    const enriched = await pool.query(`${baseSelect} WHERE r.id=$1::int`, [result.rows[0].id]);
+    res.status(201).json({ message: status === "draft" ? "تم حفظ الطلب كمسودة" : "تم إرسال الطلب بنجاح", request: enriched.rows[0] || result.rows[0] });
   } catch (error) { res.status(500).json({ error: error.message }); }
 };
 
@@ -233,8 +237,7 @@ const actOnRequest = async (req, res) => {
     if (!existing.rows.length) return res.status(404).json({ error: "الطلب غير موجود" });
     const request = existing.rows[0];
     const action = String(req.body.action || "");
-    const reason = String(req.body.reason || "").trim();
-    const comment = String(req.body.comment || "").trim();
+    const note = String(req.body.note || req.body.comment || req.body.reason || "").trim();
     let newStatus = request.status;
 
     if (action === "approve") {
@@ -242,24 +245,22 @@ const actOnRequest = async (req, res) => {
       newStatus = "approved";
     } else if (action === "reject") {
       if (!canAny(access, ["requests.reject.all", "requests.manage"])) return res.status(403).json({ error: "لا تملك صلاحية تنفيذ هذا الإجراء" });
-      if (!reason) return res.status(400).json({ error: "يجب إدخال سبب الرفض" });
       newStatus = "rejected";
     } else if (action === "cancel") {
       const selfCancel = Number(request.employee_id) === Number(employeeId) && request.status === "pending" && can(access, "requests.cancel.self_pending");
       if (!selfCancel && !canAny(access, ["requests.cancel.all", "requests.manage"])) return res.status(403).json({ error: "لا تملك صلاحية تنفيذ هذا الإجراء" });
-      if (!selfCancel && !reason) return res.status(400).json({ error: "يجب إدخال سبب الإلغاء" });
       newStatus = "cancelled";
     } else if (action === "request_info") {
       if (!canAny(access, ["requests.request_info", "requests.manage"])) return res.status(403).json({ error: "لا تملك صلاحية تنفيذ هذا الإجراء" });
-      if (!comment) return res.status(400).json({ error: "يجب إدخال تعليق لطلب المعلومات" });
+      if (!note) return res.status(400).json({ error: "يرجى كتابة المعلومات المطلوبة" });
       newStatus = "needs_info";
     } else if (action === "respond_info") {
       if (Number(request.employee_id) !== Number(employeeId)) return res.status(403).json({ error: "لا تملك صلاحية تنفيذ هذا الإجراء" });
-      if (!comment) return res.status(400).json({ error: "يجب إدخال الرد" });
+      if (!note) return res.status(400).json({ error: "يرجى كتابة الرد" });
       newStatus = "pending";
     } else if (action === "comment") {
       if (!canAny(access, ["requests.comment", "requests.manage"]) && Number(request.employee_id) !== Number(employeeId)) return res.status(403).json({ error: "لا تملك صلاحية تنفيذ هذا الإجراء" });
-      if (!comment) return res.status(400).json({ error: "يجب إدخال تعليق" });
+      if (!note) return res.status(400).json({ error: "يجب إدخال تعليق" });
     } else {
       return res.status(400).json({ error: "الإجراء غير صحيح" });
     }
@@ -270,7 +271,7 @@ const actOnRequest = async (req, res) => {
     const cancelledAt = newStatus === "cancelled" ? now : request.cancelled_at || null;
     const finalDecisionBy = isFinal ? asInt(req.user?.id) : asInt(request.final_decision_by);
     const finalDecisionAt = isFinal ? now : request.final_decision_at || null;
-    const finalReason = reason || request.final_decision_reason || null;
+    const finalReason = isFinal ? (note || null) : (request.final_decision_reason || null);
 
     const result = await pool.query(
       `UPDATE employee_requests
@@ -286,9 +287,12 @@ const actOnRequest = async (req, res) => {
       [asText(newStatus), asText(finalReason), asInt(finalDecisionBy), finalDecisionAt, completedAt, cancelledAt, requestId]
     );
 
-    await addLog({ requestId, action, req, reason: reason || null, comment: comment || null, oldStatus: request.status, newStatus });
+    const reason = ["reject", "cancel"].includes(action) ? note || null : null;
+    const comment = ["approve", "request_info", "respond_info", "comment"].includes(action) ? note || null : null;
+    await addLog({ requestId, action, req, reason, comment, oldStatus: request.status, newStatus });
     await materializeApprovedLeave(result.rows[0]);
-    res.status(200).json({ message: "تم تنفيذ الإجراء بنجاح", request: result.rows[0] });
+    const enriched = await pool.query(`${baseSelect} WHERE r.id=$1::int`, [requestId]);
+    res.status(200).json({ message: "تم تنفيذ الإجراء بنجاح", request: enriched.rows[0] || result.rows[0] });
   } catch (error) { res.status(500).json({ error: error.message }); }
 };
 

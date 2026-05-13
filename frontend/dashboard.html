@@ -12,13 +12,14 @@
       <div class="sidebar-logo">HR System V2</div>
       <nav class="sidebar-menu">
         <a href="./dashboard.html" class="active" data-role-link="dashboard">لوحة التحكم</a>
-<a href="./users.html" class="" data-role-link="users">المستخدمون</a>
-<a href="./departments.html" class="" data-role-link="departments">الأقسام</a>
-<a href="./employees.html" class="" data-role-link="employees">الموظفون</a>
-<a href="./attendance.html" class="" data-role-link="attendance">الحضور</a>
-<a href="./leaves.html" class="" data-role-link="leaves">الإجازات</a>
-<a href="./salaries.html" class="" data-role-link="salaries">الرواتب</a>
-<a href="./reports.html" class="" data-role-link="reports">التقارير</a>
+        <a href="./users.html" data-role-link="users">المستخدمون</a>
+        <a href="./departments.html" data-role-link="departments">الأقسام</a>
+        <a href="./employees.html" data-role-link="employees">الموظفون</a>
+        <a href="./attendance.html" data-role-link="attendance">الحضور</a>
+        <a href="./shifts.html" data-role-link="shifts">الشفتات</a>
+        <a href="./leaves.html" data-role-link="leaves">الإجازات</a>
+        <a href="./salaries.html" data-role-link="salaries">الرواتب</a>
+        <a href="./reports.html" data-role-link="reports">التقارير</a>
       </nav>
     </aside>
 
@@ -26,29 +27,48 @@
       <header class="topbar">
         <div>
           <h1>لوحة التحكم</h1>
-          <p id="pageSubtitle">نظام موارد بشرية محلي</p>
+          <p id="pageSubtitle">نظرة تنفيذية على الموارد البشرية والحضور والرواتب</p>
         </div>
         <button id="logoutBtn" class="logout-btn">تسجيل الخروج</button>
       </header>
 
+      <section class="content-card employee-profile-hero">
+        <div>
+          <h2 id="welcomeTitle">مرحبًا بك</h2>
+          <p id="welcomeMessage">جاري تحميل بيانات المستخدم...</p>
+        </div>
+        <div class="actions-row">
+          <a class="button-link" href="./employees.html" data-role-link="employees">إدارة الموظفين</a>
+          <a class="secondary-btn button-link" href="./attendance.html" data-role-link="attendance">متابعة الحضور</a>
+        </div>
+      </section>
 
-<section class="stats-grid">
-  <div class="stat-card"><h3>المستخدمون</h3><p id="usersCount">0</p></div>
-  <div class="stat-card"><h3>الأقسام</h3><p id="departmentsCount">0</p></div>
-  <div class="stat-card"><h3>الموظفون</h3><p id="employeesCount">0</p></div>
-  <div class="stat-card"><h3>الحضور</h3><p id="attendanceCount">0</p></div>
-  <div class="stat-card"><h3>الإجازات</h3><p id="leavesCount">0</p></div>
-  <div class="stat-card"><h3>الرواتب</h3><p id="salariesCount">0</p></div>
-</section>
+      <section class="stats-grid">
+        <div class="stat-card"><h3>المستخدمون</h3><p id="usersCount">0</p></div>
+        <div class="stat-card"><h3>الأقسام</h3><p id="departmentsCount">0</p></div>
+        <div class="stat-card"><h3>الموظفون</h3><p id="employeesCount">0</p></div>
+        <div class="stat-card"><h3>الحضور</h3><p id="attendanceCount">0</p></div>
+        <div class="stat-card"><h3>الإجازات</h3><p id="leavesCount">0</p></div>
+        <div class="stat-card"><h3>الرواتب</h3><p id="salariesCount">0</p></div>
+      </section>
 
-<section class="content-card">
-  <h2>مرحبًا بك</h2>
-  <p id="welcomeMessage">جاري تحميل بيانات المستخدم...</p>
-</section>
-
+      <section class="content-card">
+        <div class="section-header">
+          <div>
+            <h2>اختصارات العمل اليومية</h2>
+            <p>روابط سريعة حسب صلاحيات المستخدم الحالي</p>
+          </div>
+        </div>
+        <div class="profile-summary-grid">
+          <a class="summary-card" href="./employees.html" data-role-link="employees"><span>الموظفون</span><strong>فتح</strong></a>
+          <a class="summary-card" href="./leaves.html" data-role-link="leaves"><span>الإجازات</span><strong>مراجعة</strong></a>
+          <a class="summary-card" href="./salaries.html" data-role-link="salaries"><span>الرواتب</span><strong>إدارة</strong></a>
+          <a class="summary-card" href="./reports.html" data-role-link="reports"><span>التقارير</span><strong>عرض</strong></a>
+        </div>
+      </section>
     </main>
   </div>
   <script src="./js/auth-guard.js"></script>
-  <script src="./js/dashboard.js"></script>
+  <script src="./js/dashboard.js?v=ux-1"></script>
 </body>
 </html>

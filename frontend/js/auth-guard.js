@@ -55,11 +55,38 @@ const hasPermission = (permission) => loggedAccess.roles.includes("admin") || lo
 const hasAnyPermission = (permissions = []) => loggedAccess.roles.includes("admin") || permissions.some((permission) => loggedAccess.permissions.includes(permission));
 const getCurrentPageName = () => window.location.pathname.split("/").pop() || "dashboard.html";
 
+const ensureUxFixes = () => {
+  if (document.querySelector('link[href*="ux-fixes.css"]')) return;
+  const link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.href = "./css/ux-fixes.css?v=2";
+  document.head.appendChild(link);
+};
+
+const closeSidebar = () => {
+  const appLayout = document.querySelector(".app-layout");
+  const backdrop = document.querySelector(".sidebar-backdrop");
+  appLayout?.classList.remove("sidebar-open");
+  backdrop?.classList.remove("is-visible");
+  document.body.classList.remove("no-scroll");
+};
+
+const toggleSidebar = () => {
+  const appLayout = document.querySelector(".app-layout");
+  const backdrop = document.querySelector(".sidebar-backdrop");
+  const willOpen = !appLayout?.classList.contains("sidebar-open");
+  appLayout?.classList.toggle("sidebar-open", willOpen);
+  backdrop?.classList.toggle("is-visible", willOpen);
+  document.body.classList.toggle("no-scroll", willOpen);
+};
+
 const enhanceNavigationLabels = () => {
+  document.querySelectorAll(".sidebar-logo").forEach((logo) => { logo.textContent = "نظام الموارد البشرية"; });
   document.querySelectorAll("[data-role-link]").forEach((link) => {
     const meta = navMeta[link.dataset.roleLink];
     if (!meta) return;
     link.innerHTML = `<span class="nav-icon">${meta.icon}</span><span>${meta.label}</span>`;
+    link.addEventListener("click", closeSidebar);
   });
 };
 
@@ -67,8 +94,7 @@ const applyNavigationPermissions = () => {
   document.querySelectorAll("[data-role-link]").forEach((link) => {
     const key = link.dataset.roleLink;
     const required = linkPermissions[key] || [];
-    if (required.length && !hasAnyPermission(required)) link.style.display = "none";
-    else link.style.display = "";
+    link.style.display = required.length && !hasAnyPermission(required) ? "none" : "";
   });
 };
 
@@ -98,16 +124,19 @@ const setupResponsiveShell = () => {
   if (!document.querySelector(".sidebar-backdrop")) {
     const backdrop = document.createElement("div");
     backdrop.className = "sidebar-backdrop";
-    backdrop.addEventListener("click", () => appLayout.classList.remove("sidebar-open"));
+    backdrop.addEventListener("click", closeSidebar);
     document.body.appendChild(backdrop);
   }
+
+  const titleBlock = Array.from(topbar.children).find((child) => child.tagName === "DIV" && !child.classList.contains("topbar-tools"));
+  titleBlock?.classList.add("topbar-title");
 
   if (!topbar.querySelector(".mobile-menu-btn")) {
     const menuButton = document.createElement("button");
     menuButton.className = "secondary-btn mobile-menu-btn";
     menuButton.type = "button";
     menuButton.textContent = "القائمة";
-    menuButton.addEventListener("click", () => appLayout.classList.toggle("sidebar-open"));
+    menuButton.addEventListener("click", toggleSidebar);
     topbar.prepend(menuButton);
   }
 
@@ -119,10 +148,7 @@ const setupResponsiveShell = () => {
       <button type="button" class="notification-btn" aria-label="الإشعارات">الإشعارات</button>
       <div class="user-chip">
         <span class="user-avatar">${(loggedUser?.full_name || "م").slice(0, 1)}</span>
-        <div>
-          <strong>${loggedUser?.full_name || "مستخدم"}</strong>
-          <small>${normalizeList(loggedAccess.roles).map((r) => roleLabels[r] || r).join("، ") || "مستخدم"}</small>
-        </div>
+        <div><strong>${loggedUser?.full_name || "مستخدم"}</strong><small>${normalizeList(loggedAccess.roles).map((r) => roleLabels[r] || r).join("، ") || "مستخدم"}</small></div>
       </div>
     `;
     if (oldLogout) tools.appendChild(oldLogout);
@@ -139,11 +165,10 @@ const setupBottomShortcuts = () => {
     { key: "salaries", href: "./salaries.html", label: "راتبي" },
     { key: "reports", href: "./reports.html", label: "التقارير" },
   ].filter((item) => hasAnyPermission(linkPermissions[item.key] || []));
-
   const nav = document.createElement("nav");
   nav.className = "bottom-shortcuts";
   nav.setAttribute("aria-label", "قائمة الاختصارات");
-  nav.innerHTML = items.slice(0, 5).map((item) => `<a href="${item.href}" data-role-link="${item.key}">${item.label}</a>`).join("");
+  nav.innerHTML = items.slice(0, 5).map((item) => `<a href="${item.href}">${item.label}</a>`).join("");
   document.body.appendChild(nav);
 };
 
@@ -157,6 +182,7 @@ if (logoutButton) {
 
 const loadLoggedUser = async () => {
   try {
+    ensureUxFixes();
     const response = await fetch(`${API_BASE_URL}/auth/me`, { headers: { Authorization: `Bearer ${token}` } });
     const data = await response.json();
     if (!response.ok) {
@@ -164,17 +190,13 @@ const loadLoggedUser = async () => {
       window.location.href = "./login.html";
       return null;
     }
-
     loggedUser = data.user;
     let access = { roles: normalizeList(loggedUser.roles || loggedUser.role), permissions: [] };
     try {
       const accessResponse = await fetch(`${API_BASE_URL}/users/me/access`, { headers: { Authorization: `Bearer ${token}` } });
       const accessData = await accessResponse.json();
       if (accessResponse.ok) access = { roles: normalizeList(accessData.roles), permissions: normalizeList(accessData.permissions) };
-    } catch (error) {
-      console.log(error);
-    }
-
+    } catch (error) { console.log(error); }
     loggedAccess = access;
     localStorage.setItem("user", JSON.stringify({ ...loggedUser, roles: access.roles, permissions: access.permissions }));
     enhanceNavigationLabels();

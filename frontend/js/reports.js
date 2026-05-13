@@ -6,6 +6,7 @@ const mainDepartmentFilter=document.getElementById('reportMainDepartmentFilter')
 const subDepartmentFilter=document.getElementById('reportSubDepartmentFilter');
 const monthFilter=document.getElementById('reportMonthFilter');
 const statusFilter=document.getElementById('reportStatusFilter');
+const absenceReasonFilter=document.getElementById('reportAbsenceReasonFilter');
 const applyBtn=document.getElementById('applyAttendanceReportFilters');
 const exportAttendanceBtn=document.getElementById('exportAttendanceDetailed');
 const monthlyBody=document.getElementById('attendanceMonthlyBody');
@@ -14,16 +15,17 @@ const monthlyCount=document.getElementById('monthlyReportCount');
 const recordsCount=document.getElementById('recordsReportCount');
 const totalCard=document.getElementById('reportTotalRecords');
 const presentCard=document.getElementById('reportPresentDays');
-const absentCard=document.getElementById('reportAbsentDays');
-const lateCard=document.getElementById('reportLateDays');
+const excusedAbsentCard=document.getElementById('reportExcusedAbsentDays');
+const unexcusedAbsentCard=document.getElementById('reportUnexcusedAbsentDays');
 
 let currentUserRoles=[];
 let salarySummary=[];
 let employees=[];
 let reportData={totals:{},monthly_by_employee:[],records:[]};
 const hasRole=(role)=>currentUserRoles.includes(role);
-const statusLabels={present:'حاضر',absent:'غائب',late:'متأخر',leave:'إجازة',early_leave:'خروج مبكر'};
+const statusLabels={present:'حاضر',absent:'غائب',late:'متأخر',leave:'إجازة',early_leave:'خروج مبكر',excused_absence:'غياب بعذر',unexcused_absence:'غياب بدون عذر'};
 const sourceLabels={system:'النظام',fingerprint:'البصمة',manual:'إدخال يدوي'};
+const leaveTypeLabels={annual:'إجازة سنوية',sick:'إجازة مرضية',unpaid:'إجازة بدون راتب',emergency:'إجازة طارئة',other:'إجازة أخرى'};
 
 const initReports=async()=>{
   const user=await loadLoggedUser();
@@ -76,6 +78,7 @@ const buildReportUrl=()=>{
   if(subDepartmentFilter.value)params.set('sub_department_id',subDepartmentFilter.value);
   if(monthFilter.value)params.set('month',monthFilter.value);
   if(statusFilter.value)params.set('status',statusFilter.value);
+  if(absenceReasonFilter?.value)params.set('absence_reason',absenceReasonFilter.value);
   return `${API_BASE_URL}/reports/attendance-detailed?${params.toString()}`;
 };
 
@@ -85,8 +88,8 @@ const loadAttendanceDetailedReport=async()=>{
   const response=await fetch(buildReportUrl(),{headers:{Authorization:`Bearer ${token}`}});
   const data=await response.json();
   if(!response.ok){
-    monthlyBody.innerHTML='<tr><td colspan="10">تعذر تحميل تقرير الحضور</td></tr>';
-    recordsBody.innerHTML='<tr><td colspan="9">تعذر تحميل السجلات</td></tr>';
+    monthlyBody.innerHTML='<tr><td colspan="12">تعذر تحميل تقرير الحضور</td></tr>';
+    recordsBody.innerHTML='<tr><td colspan="10">تعذر تحميل السجلات</td></tr>';
     return;
   }
   reportData=data;
@@ -98,13 +101,23 @@ const loadAttendanceDetailedReport=async()=>{
 const renderTotals=(totals)=>{
   totalCard.textContent=totals.total_records||0;
   presentCard.textContent=totals.present||0;
-  absentCard.textContent=totals.absent||0;
-  lateCard.textContent=totals.late||0;
+  excusedAbsentCard.textContent=totals.excused_absent||0;
+  unexcusedAbsentCard.textContent=totals.unexcused_absent||0;
+};
+
+const absenceReasonText=(row)=>{
+  if(row.status!=='absent')return '-';
+  if(row.approved_leave_id){
+    const type=leaveTypeLabels[row.approved_leave_type]||'إجازة معتمدة';
+    const reason=row.approved_leave_reason?` - ${row.approved_leave_reason}`:'';
+    return `غياب بعذر - ${type}${reason}`;
+  }
+  return 'غياب بدون طلب إجازة معتمد';
 };
 
 const renderMonthly=(rows)=>{
   monthlyCount.textContent=`عرض ${rows.length} موظف في التقرير`;
-  if(!rows.length){monthlyBody.innerHTML='<tr><td colspan="10">لا توجد بيانات شهرية مطابقة</td></tr>';return;}
+  if(!rows.length){monthlyBody.innerHTML='<tr><td colspan="12">لا توجد بيانات شهرية مطابقة</td></tr>';return;}
   monthlyBody.innerHTML='';
   rows.forEach((row)=>{
     monthlyBody.innerHTML+=`
@@ -115,6 +128,8 @@ const renderMonthly=(rows)=>{
         <td>${row.total_records||0}</td>
         <td>${row.present_days||0}</td>
         <td>${row.absent_days||0}</td>
+        <td>${row.excused_absent_days||0}</td>
+        <td>${row.unexcused_absent_days||0}</td>
         <td>${row.late_days||0}</td>
         <td>${row.early_leave_days||0}</td>
         <td>${row.leave_days||0}</td>
@@ -125,7 +140,7 @@ const renderMonthly=(rows)=>{
 
 const renderRecords=(rows)=>{
   recordsCount.textContent=`عرض ${rows.length} سجل تفصيلي`;
-  if(!rows.length){recordsBody.innerHTML='<tr><td colspan="9">لا توجد سجلات مطابقة</td></tr>';return;}
+  if(!rows.length){recordsBody.innerHTML='<tr><td colspan="10">لا توجد سجلات مطابقة</td></tr>';return;}
   recordsBody.innerHTML='';
   rows.forEach((row)=>{
     recordsBody.innerHTML+=`
@@ -137,7 +152,8 @@ const renderRecords=(rows)=>{
         <td>${formatDate(row.attendance_date)}</td>
         <td>${row.check_in||'-'}</td>
         <td>${row.check_out||'-'}</td>
-        <td>${statusLabels[row.status]||row.status||'-'}</td>
+        <td>${statusLabels[row.effective_status]||statusLabels[row.status]||row.status||'-'}</td>
+        <td>${absenceReasonText(row)}</td>
         <td>${sourceLabels[row.source]||row.source||'النظام'}</td>
       </tr>`;
   });
@@ -168,7 +184,7 @@ const exportCSV=(filename,rows)=>{
 };
 
 exportAttendanceBtn?.addEventListener('click',()=>{
-  const monthlyRows=[['الموظف','القسم الرئيسي','القسم الفرعي','إجمالي السجلات','حضور','غياب','تأخير','خروج مبكر','إجازة'],...(reportData.monthly_by_employee||[]).map((r)=>[r.employee_name,r.primary_department_name||'',r.sub_department_name||'',r.total_records||0,r.present_days||0,r.absent_days||0,r.late_days||0,r.early_leave_days||0,r.leave_days||0])];
+  const monthlyRows=[['الموظف','القسم الرئيسي','القسم الفرعي','إجمالي السجلات','حضور','غياب','غياب بعذر','غياب بدون عذر','تأخير','خروج مبكر','إجازة'],...(reportData.monthly_by_employee||[]).map((r)=>[r.employee_name,r.primary_department_name||'',r.sub_department_name||'',r.total_records||0,r.present_days||0,r.absent_days||0,r.excused_absent_days||0,r.unexcused_absent_days||0,r.late_days||0,r.early_leave_days||0,r.leave_days||0])];
   exportCSV('attendance-report.csv',monthlyRows);
 });
 
@@ -178,6 +194,6 @@ exportSalarySummaryBtn?.addEventListener('click',()=>{
 });
 
 applyBtn.addEventListener('click',loadAttendanceDetailedReport);
-[employeeFilter,mainDepartmentFilter,subDepartmentFilter,monthFilter,statusFilter].forEach((el)=>el.addEventListener('change',loadAttendanceDetailedReport));
+[employeeFilter,mainDepartmentFilter,subDepartmentFilter,monthFilter,statusFilter,absenceReasonFilter].filter(Boolean).forEach((el)=>el.addEventListener('change',loadAttendanceDetailedReport));
 
 initReports();

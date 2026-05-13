@@ -44,7 +44,7 @@
         <div class="section-header">
           <div>
             <h2>إنشاء طلب</h2>
-            <p>اختر نوع الطلب، وسيظهر النموذج في نافذة سريعة دون إبطاء الصفحة.</p>
+            <p>اختر نوع الطلب، وسيظهر النموذج في نافذة سريعة وقابلة للتمرير.</p>
           </div>
         </div>
         <div id="requestTypeCards" class="request-type-grid">
@@ -98,29 +98,6 @@
           </table>
         </div>
       </section>
-
-      <section class="content-card" id="requestDetailsCard" style="display:none">
-        <div class="section-header">
-          <div><h2>تفاصيل الطلب</h2><p id="requestDetailsSubtitle">-</p></div>
-          <button id="closeDetailsBtn" class="secondary-btn">إغلاق التفاصيل</button>
-        </div>
-        <div id="requestDetailsBox" class="details-grid"></div>
-        <div class="actions-row request-actions-row">
-          <input type="hidden" id="selectedRequestId" />
-          <button type="button" id="approveRequestBtn">موافقة</button>
-          <button type="button" id="rejectRequestBtn" class="danger-btn">رفض</button>
-          <button type="button" id="requestInfoBtn" class="secondary-btn">طلب معلومات</button>
-          <button type="button" id="respondInfoBtn" class="secondary-btn">الرد على طلب المعلومات</button>
-          <button type="button" id="cancelRequestBtn" class="danger-btn">إلغاء الطلب</button>
-        </div>
-        <h3 style="margin-top:20px">سجل الإجراءات</h3>
-        <div class="table-scroll">
-          <table>
-            <thead><tr><th>#</th><th>الإجراء</th><th>منفذ الإجراء</th><th>التفاصيل</th><th>التاريخ</th></tr></thead>
-            <tbody id="requestLogsBody"></tbody>
-          </table>
-        </div>
-      </section>
     </main>
   </div>
 
@@ -141,6 +118,31 @@
     </div>
   </div>
 
+  <div class="modal-backdrop" id="detailsModal" aria-hidden="true">
+    <div class="modal-card details-modal-card" role="dialog" aria-modal="true">
+      <div class="modal-header">
+        <div><h2>تفاصيل الطلب</h2><p id="requestDetailsSubtitle">جاري تحميل التفاصيل...</p></div>
+        <button type="button" class="secondary-btn small-btn" id="closeDetailsBtn">إغلاق</button>
+      </div>
+      <input type="hidden" id="selectedRequestId" />
+      <div id="requestDetailsBox" class="details-grid request-details-grid"><div class="full-width empty-state">جاري تحميل التفاصيل...</div></div>
+      <div class="actions-row request-actions-row">
+        <button type="button" id="approveRequestBtn">موافقة</button>
+        <button type="button" id="rejectRequestBtn" class="danger-btn">رفض</button>
+        <button type="button" id="requestInfoBtn" class="secondary-btn">طلب معلومات</button>
+        <button type="button" id="respondInfoBtn" class="secondary-btn">الرد على طلب المعلومات</button>
+        <button type="button" id="cancelRequestBtn" class="danger-btn">إلغاء الطلب</button>
+      </div>
+      <h3 class="timeline-title">سجل الإجراءات</h3>
+      <div class="table-scroll request-log-scroll">
+        <table>
+          <thead><tr><th>#</th><th>الإجراء</th><th>منفذ الإجراء</th><th>التفاصيل</th><th>التاريخ</th></tr></thead>
+          <tbody id="requestLogsBody"><tr><td colspan="5">جاري تحميل السجل...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-backdrop" id="actionModal" aria-hidden="true">
     <div class="modal-card action-modal-card" role="dialog" aria-modal="true">
       <div class="modal-header">
@@ -157,6 +159,6 @@
   </div>
 
   <script src="./js/auth-guard.js"></script>
-  <script src="./js/leaves.js?v=requests-fast-1"></script>
+  <script src="./js/leaves.js?v=requests-fast-2"></script>
 </body>
 </html>

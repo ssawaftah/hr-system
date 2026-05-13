@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>لوحة التحكم</title>
   <link rel="stylesheet" href="./css/style.css" />
+  <link rel="stylesheet" href="./css/announcements.css" />
 </head>
 <body>
   <div class="app-layout">
@@ -12,12 +13,13 @@
       <div class="sidebar-logo">HR System V2</div>
       <nav class="sidebar-menu">
         <a href="./dashboard.html" class="active" data-role-link="dashboard">لوحة التحكم</a>
-        <a href="./users.html" data-role-link="users">المستخدمون</a>
+        <a href="./users.html" data-role-link="users">الصلاحيات</a>
         <a href="./departments.html" data-role-link="departments">الأقسام</a>
         <a href="./employees.html" data-role-link="employees">الموظفون</a>
         <a href="./attendance.html" data-role-link="attendance">الحضور</a>
         <a href="./shifts.html" data-role-link="shifts">الشفتات</a>
-        <a href="./leaves.html" data-role-link="leaves">الإجازات</a>
+        <a href="./leaves.html" data-role-link="leaves">الطلبات</a>
+        <a href="./announcements.html" data-role-link="announcements">الإعلانات</a>
         <a href="./salaries.html" data-role-link="salaries">الرواتب</a>
         <a href="./reports.html" data-role-link="reports">التقارير</a>
       </nav>
@@ -43,12 +45,23 @@
         </div>
       </section>
 
+      <section class="content-card">
+        <div class="section-header">
+          <div>
+            <h2>الإعلانات</h2>
+            <p>آخر الإعلانات النشطة الموجهة لك</p>
+          </div>
+          <a class="secondary-btn button-link" href="./announcements.html" data-role-link="announcements">إدارة الإعلانات</a>
+        </div>
+        <div id="dashboardAnnouncements" class="announcements-grid"><div class="empty-soft">جاري تحميل الإعلانات...</div></div>
+      </section>
+
       <section class="stats-grid">
         <div class="stat-card"><h3>المستخدمون</h3><p id="usersCount">0</p></div>
         <div class="stat-card"><h3>الأقسام</h3><p id="departmentsCount">0</p></div>
         <div class="stat-card"><h3>الموظفون</h3><p id="employeesCount">0</p></div>
         <div class="stat-card"><h3>الحضور</h3><p id="attendanceCount">0</p></div>
-        <div class="stat-card"><h3>الإجازات</h3><p id="leavesCount">0</p></div>
+        <div class="stat-card"><h3>الطلبات</h3><p id="leavesCount">0</p></div>
         <div class="stat-card"><h3>الرواتب</h3><p id="salariesCount">0</p></div>
       </section>
 
@@ -61,14 +74,16 @@
         </div>
         <div class="profile-summary-grid">
           <a class="summary-card" href="./employees.html" data-role-link="employees"><span>الموظفون</span><strong>فتح</strong></a>
-          <a class="summary-card" href="./leaves.html" data-role-link="leaves"><span>الإجازات</span><strong>مراجعة</strong></a>
+          <a class="summary-card" href="./leaves.html" data-role-link="leaves"><span>الطلبات</span><strong>مراجعة</strong></a>
+          <a class="summary-card" href="./announcements.html" data-role-link="announcements"><span>الإعلانات</span><strong>عرض</strong></a>
           <a class="summary-card" href="./salaries.html" data-role-link="salaries"><span>الرواتب</span><strong>إدارة</strong></a>
           <a class="summary-card" href="./reports.html" data-role-link="reports"><span>التقارير</span><strong>عرض</strong></a>
         </div>
       </section>
     </main>
   </div>
-  <script src="./js/auth-guard.js"></script>
-  <script src="./js/dashboard.js?v=ux-1"></script>
+  <script src="./js/navigation-config.js?v=announcements-1"></script>
+  <script src="./js/auth-guard.js?v=shell-roles-fix-1"></script>
+  <script src="./js/dashboard.js?v=announcements-1"></script>
 </body>
 </html>

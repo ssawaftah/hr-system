@@ -31,6 +31,20 @@ const linkPermissions = {
   reports: ["reports.view"],
 };
 
+const navMeta = {
+  dashboard: { label: "الرئيسية", icon: "⌂" },
+  users: { label: "الصلاحيات", icon: "◌" },
+  departments: { label: "الأقسام", icon: "▦" },
+  employees: { label: "الموظفون", icon: "☷" },
+  attendance: { label: "الحضور", icon: "◷" },
+  shifts: { label: "الشفتات", icon: "⇄" },
+  leaves: { label: "الإجازات", icon: "◫" },
+  salaries: { label: "الرواتب", icon: "◈" },
+  reports: { label: "التقارير", icon: "▣" },
+};
+
+const roleLabels = { admin: "مدير النظام", hr: "الموارد البشرية", employee: "موظف" };
+
 const normalizeList = (value) => {
   if (!value) return [];
   if (Array.isArray(value)) return value.flatMap(normalizeList);
@@ -39,14 +53,22 @@ const normalizeList = (value) => {
 
 const hasPermission = (permission) => loggedAccess.roles.includes("admin") || loggedAccess.permissions.includes(permission);
 const hasAnyPermission = (permissions = []) => loggedAccess.roles.includes("admin") || permissions.some((permission) => loggedAccess.permissions.includes(permission));
-
 const getCurrentPageName = () => window.location.pathname.split("/").pop() || "dashboard.html";
+
+const enhanceNavigationLabels = () => {
+  document.querySelectorAll("[data-role-link]").forEach((link) => {
+    const meta = navMeta[link.dataset.roleLink];
+    if (!meta) return;
+    link.innerHTML = `<span class="nav-icon">${meta.icon}</span><span>${meta.label}</span>`;
+  });
+};
 
 const applyNavigationPermissions = () => {
   document.querySelectorAll("[data-role-link]").forEach((link) => {
     const key = link.dataset.roleLink;
     const required = linkPermissions[key] || [];
     if (required.length && !hasAnyPermission(required)) link.style.display = "none";
+    else link.style.display = "";
   });
 };
 
@@ -54,7 +76,7 @@ const enforcePagePermission = () => {
   const currentPage = getCurrentPageName();
   const required = pagePermissions[currentPage];
   if (!required || hasAnyPermission(required)) return true;
-  alert("ليس لديك صلاحية للوصول إلى هذه الصفحة");
+  alert("لا تملك صلاحية الوصول إلى هذه الصفحة");
   window.location.href = "./dashboard.html";
   return false;
 };
@@ -64,6 +86,65 @@ const applyActionPermissions = () => {
     const permissions = normalizeList(el.dataset.permission);
     if (permissions.length && !hasAnyPermission(permissions)) el.style.display = "none";
   });
+};
+
+const setupResponsiveShell = () => {
+  const sidebar = document.querySelector(".sidebar");
+  const topbar = document.querySelector(".topbar");
+  const appLayout = document.querySelector(".app-layout");
+  if (!sidebar || !topbar || !appLayout) return;
+
+  sidebar.setAttribute("aria-label", "القائمة الجانبية");
+  if (!document.querySelector(".sidebar-backdrop")) {
+    const backdrop = document.createElement("div");
+    backdrop.className = "sidebar-backdrop";
+    backdrop.addEventListener("click", () => appLayout.classList.remove("sidebar-open"));
+    document.body.appendChild(backdrop);
+  }
+
+  if (!topbar.querySelector(".mobile-menu-btn")) {
+    const menuButton = document.createElement("button");
+    menuButton.className = "secondary-btn mobile-menu-btn";
+    menuButton.type = "button";
+    menuButton.textContent = "القائمة";
+    menuButton.addEventListener("click", () => appLayout.classList.toggle("sidebar-open"));
+    topbar.prepend(menuButton);
+  }
+
+  if (!topbar.querySelector(".topbar-tools")) {
+    const oldLogout = document.getElementById("logoutBtn");
+    const tools = document.createElement("div");
+    tools.className = "topbar-tools";
+    tools.innerHTML = `
+      <button type="button" class="notification-btn" aria-label="الإشعارات">الإشعارات</button>
+      <div class="user-chip">
+        <span class="user-avatar">${(loggedUser?.full_name || "م").slice(0, 1)}</span>
+        <div>
+          <strong>${loggedUser?.full_name || "مستخدم"}</strong>
+          <small>${normalizeList(loggedAccess.roles).map((r) => roleLabels[r] || r).join("، ") || "مستخدم"}</small>
+        </div>
+      </div>
+    `;
+    if (oldLogout) tools.appendChild(oldLogout);
+    topbar.appendChild(tools);
+  }
+};
+
+const setupBottomShortcuts = () => {
+  if (document.querySelector(".bottom-shortcuts")) return;
+  const items = [
+    { key: "dashboard", href: "./dashboard.html", label: "الرئيسية" },
+    { key: "attendance", href: "./attendance.html", label: "الحضور" },
+    { key: "leaves", href: "./leaves.html", label: "الإجازات" },
+    { key: "salaries", href: "./salaries.html", label: "راتبي" },
+    { key: "reports", href: "./reports.html", label: "التقارير" },
+  ].filter((item) => hasAnyPermission(linkPermissions[item.key] || []));
+
+  const nav = document.createElement("nav");
+  nav.className = "bottom-shortcuts";
+  nav.setAttribute("aria-label", "قائمة الاختصارات");
+  nav.innerHTML = items.slice(0, 5).map((item) => `<a href="${item.href}" data-role-link="${item.key}">${item.label}</a>`).join("");
+  document.body.appendChild(nav);
 };
 
 const logoutButton = document.getElementById("logoutBtn");
@@ -96,7 +177,10 @@ const loadLoggedUser = async () => {
 
     loggedAccess = access;
     localStorage.setItem("user", JSON.stringify({ ...loggedUser, roles: access.roles, permissions: access.permissions }));
+    enhanceNavigationLabels();
     applyNavigationPermissions();
+    setupResponsiveShell();
+    setupBottomShortcuts();
     applyActionPermissions();
     if (!enforcePagePermission()) return null;
     return { ...loggedUser, roles: access.roles, permissions: access.permissions };

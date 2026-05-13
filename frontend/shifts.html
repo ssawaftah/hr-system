@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>إدارة الشفتات</title>
+  <link rel="stylesheet" href="./css/style.css" />
+  <link rel="stylesheet" href="./css/employees.css" />
+</head>
+<body>
+  <div class="app-layout">
+    <aside class="sidebar">
+      <div class="sidebar-logo">HR System V2</div>
+      <nav class="sidebar-menu">
+        <a href="./dashboard.html" data-role-link="dashboard">لوحة التحكم</a>
+        <a href="./users.html" data-role-link="users">المستخدمون</a>
+        <a href="./departments.html" data-role-link="departments">الأقسام</a>
+        <a href="./employees.html" data-role-link="employees">الموظفون</a>
+        <a href="./attendance.html" data-role-link="attendance">الحضور</a>
+        <a href="./shifts.html" class="active" data-role-link="shifts">الشفتات</a>
+        <a href="./leaves.html" data-role-link="leaves">الإجازات</a>
+        <a href="./salaries.html" data-role-link="salaries">الرواتب</a>
+        <a href="./reports.html" data-role-link="reports">التقارير</a>
+      </nav>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <div>
+          <h1>إدارة الشفتات</h1>
+          <p>إنشاء الشفتات وربطها بالموظفين لاستخدامها في تحليل الحضور</p>
+        </div>
+        <button id="logoutBtn" class="logout-btn">تسجيل الخروج</button>
+      </header>
+
+      <section class="content-card">
+        <h2 id="shiftFormTitle">إضافة شفت</h2>
+        <form id="shiftForm" class="form-grid employee-form-grid">
+          <input type="hidden" id="shiftId" />
+          <input type="text" id="shiftName" placeholder="اسم الشفت: صباحي / ليلي / إداري" required />
+          <input type="time" id="shiftStart" value="07:00" required />
+          <input type="time" id="shiftEnd" value="15:00" required />
+          <input type="number" id="lateGraceMinutes" min="0" value="0" placeholder="سماح التأخير بالدقائق" />
+          <input type="number" id="absentAfterMinutes" min="1" value="180" placeholder="يعتبر غائبًا بعد كم دقيقة" />
+          <select id="shiftActive"><option value="true">نشط</option><option value="false">معطل</option></select>
+          <button type="submit">حفظ الشفت</button>
+          <button type="button" id="cancelShiftEditBtn" class="secondary-btn">إلغاء التعديل</button>
+        </form>
+        <p id="shiftMessage" class="inline-message"></p>
+      </section>
+
+      <section class="content-card">
+        <h2>ربط موظف بشفت</h2>
+        <form id="assignmentForm" class="form-grid employee-form-grid">
+          <select id="assignmentEmployee" required><option value="">اختر الموظف</option></select>
+          <select id="assignmentShift" required><option value="">اختر الشفت</option></select>
+          <input type="date" id="assignmentFrom" />
+          <input type="date" id="assignmentTo" />
+          <button type="submit">ربط الشفت</button>
+        </form>
+        <p id="assignmentMessage" class="inline-message"></p>
+      </section>
+
+      <section class="table-container">
+        <div class="section-header"><div><h2>قائمة الشفتات</h2><p id="shiftsCountText">جاري تحميل البيانات...</p></div><button id="refreshShiftsBtn" class="secondary-btn">تحديث</button></div>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>#</th><th>الاسم</th><th>البداية</th><th>النهاية</th><th>سماح التأخير</th><th>غياب بعد</th><th>الحالة</th><th>إجراءات</th></tr></thead>
+            <tbody id="shiftsTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="table-container">
+        <div class="section-header"><h2>ربط الموظفين بالشفتات</h2></div>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>#</th><th>الموظف</th><th>الشفت</th><th>من</th><th>إلى</th><th>الحالة</th></tr></thead>
+            <tbody id="assignmentsTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script src="./js/auth-guard.js"></script>
+  <script src="./js/shifts.js"></script>
+</body>
+</html>

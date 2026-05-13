@@ -1,0 +1,27 @@
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap');
+
+:root{
+  --app-bg:#F7F8FA;
+  --app-bg-warm:#F8F7F4;
+  --surface:#FFFFFF;
+  --surface-soft:#FBFBFD;
+  --text:#1D1D1F;
+  --text-muted:#6E6E73;
+  --border:#E5E5EA;
+  --border-soft:rgba(229,229,234,.72);
+  --primary:#7C3AED;
+  --primary-2:#8B5CF6;
+  --blue:#007AFF;
+  --success:#34C759;
+  --warning:#FF9500;
+  --danger:#FF3B30;
+  --info:#5AC8FA;
+  --radius-xl:32px;
+  --radius-lg:24px;
+  --radius-md:18px;
+  --radius-sm:14px;
+  --shadow-soft:0 18px 55px rgba(0,0,0,.07);
+  --shadow-card:0 10px 32px rgba(0,0,0,.055);
+  --glass:rgba(255,255,255,.74);
+  --font-ar:'Tajawal',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+}

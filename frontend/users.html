@@ -3,72 +3,88 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>إدارة المستخدمين</title>
+  <title>إدارة المستخدمين والصلاحيات</title>
   <link rel="stylesheet" href="./css/style.css" />
+  <link rel="stylesheet" href="./css/employees.css" />
 </head>
 <body>
   <div class="app-layout">
     <aside class="sidebar">
-      <div class="sidebar-logo">HR System</div>
+      <div class="sidebar-logo">HR System V2</div>
       <nav class="sidebar-menu">
-        <a href="./dashboard.html" class="" data-role-link="dashboard">لوحة التحكم</a>
-<a href="./users.html" class="active" data-role-link="users">المستخدمون</a>
-<a href="./departments.html" class="" data-role-link="departments">الأقسام</a>
-<a href="./employees.html" class="" data-role-link="employees">الموظفون</a>
-<a href="./attendance.html" class="" data-role-link="attendance">الحضور</a>
-<a href="./salaries.html" class="" data-role-link="salaries">الرواتب</a>
+        <a href="./dashboard.html" data-role-link="dashboard">لوحة التحكم</a>
+        <a href="./users.html" class="active" data-role-link="users">المستخدمون</a>
+        <a href="./departments.html" data-role-link="departments">الأقسام</a>
+        <a href="./employees.html" data-role-link="employees">الموظفون</a>
+        <a href="./attendance.html" data-role-link="attendance">الحضور</a>
+        <a href="./shifts.html" data-role-link="shifts">الشفتات</a>
+        <a href="./leaves.html" data-role-link="leaves">الإجازات</a>
+        <a href="./salaries.html" data-role-link="salaries">الرواتب</a>
+        <a href="./reports.html" data-role-link="reports">التقارير</a>
       </nav>
     </aside>
 
     <main class="main-content">
       <header class="topbar">
         <div>
-          <h1>إدارة المستخدمين</h1>
-          <p id="pageSubtitle">نظام موارد بشرية محلي</p>
+          <h1>إدارة المستخدمين والصلاحيات</h1>
+          <p id="pageSubtitle">أدوار متعددة وصلاحيات تفصيلية لكل مستخدم</p>
         </div>
         <button id="logoutBtn" class="logout-btn">تسجيل الخروج</button>
       </header>
 
+      <section class="content-card" id="createUserSection">
+        <h2>إنشاء مستخدم جديد</h2>
+        <form id="createUserForm" class="form-grid employee-form-grid">
+          <input type="text" id="full_name" placeholder="الاسم الكامل" required />
+          <input type="email" id="email" placeholder="البريد الإلكتروني" required />
+          <input type="password" id="password" placeholder="كلمة المرور" required />
+          <select id="role" required>
+            <option value="">الدور الأساسي</option>
+            <option value="admin">مدير النظام</option>
+            <option value="hr">الموارد البشرية</option>
+            <option value="employee">موظف</option>
+          </select>
+          <button type="submit">إنشاء المستخدم</button>
+        </form>
+        <p id="formMessage" class="inline-message"></p>
+      </section>
 
-<section class="content-card" id="createUserSection">
-  <h2>إنشاء مستخدم جديد</h2>
+      <section class="content-card">
+        <h2>تعديل أدوار وصلاحيات المستخدم</h2>
+        <form id="accessForm" class="form-grid employee-form-grid">
+          <input type="hidden" id="accessUserId" />
+          <input type="text" id="accessUserName" placeholder="المستخدم المختار" readonly />
+          <div class="form-section full-width">
+            <h3>الأدوار</h3>
+            <div class="badge-list permissions-box" id="rolesBox"></div>
+          </div>
+          <div class="form-section full-width">
+            <h3>الصلاحيات الإضافية المباشرة</h3>
+            <div class="permissions-grid" id="permissionsBox"></div>
+          </div>
+          <select id="accessActive"><option value="true">نشط</option><option value="false">معطل</option></select>
+          <button type="submit">حفظ الصلاحيات</button>
+        </form>
+        <p id="accessMessage" class="inline-message"></p>
+      </section>
 
-  <form id="createUserForm" class="form-grid">
-    <input type="text" id="full_name" placeholder="الاسم الكامل" required />
-    <input type="email" id="email" placeholder="البريد الإلكتروني" required />
-    <input type="password" id="password" placeholder="كلمة المرور" required />
-
-    <select id="role" required>
-      <option value="">اختر الدور</option>
-      <option value="admin">Admin</option>
-      <option value="hr">HR</option>
-      <option value="employee">Employee</option>
-    </select>
-
-    <button type="submit">إنشاء المستخدم</button>
-  </form>
-
-  <p id="formMessage"></p>
-</section>
-
-<section class="table-container">
-  <table>
-    <thead>
-      <tr>
-        <th>#</th>
-        <th>الاسم</th>
-        <th>البريد الإلكتروني</th>
-        <th>الدور</th>
-        <th>الحالة</th>
-      </tr>
-    </thead>
-    <tbody id="usersTableBody"></tbody>
-  </table>
-</section>
-
+      <section class="table-container">
+        <div class="section-header"><div><h2>المستخدمون</h2><p id="usersCountText">جاري تحميل البيانات...</p></div></div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th><th>الاسم</th><th>البريد الإلكتروني</th><th>الأدوار</th><th>صلاحيات مباشرة</th><th>الحالة</th><th>إجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="usersTableBody"></tbody>
+          </table>
+        </div>
+      </section>
     </main>
   </div>
   <script src="./js/auth-guard.js"></script>
-  <script src="./js/users.js"></script>
+  <script src="./js/users.js?v=permissions-1"></script>
 </body>
 </html>

@@ -1,13 +1,127 @@
 const pool = require("../db");
 
+const DEFAULT_SHIFT_START = "07:00";
+const ABSENCE_AFTER_HOURS = 3;
+
 const ensureAttendanceSchema = async () => {
   await pool.query(`ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS source VARCHAR(40) DEFAULT 'system'`);
   await pool.query(`ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
+  await pool.query(`ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS leave_request_id INTEGER`);
+  await pool.query(`ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS absence_reason TEXT`);
+};
+
+const ammanNowParts = () => {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Amman",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  const parts = Object.fromEntries(formatter.formatToParts(new Date()).map((part) => [part.type, part.value]));
+  return {
+    date: `${parts.year}-${parts.month}-${parts.day}`,
+    minutes: Number(parts.hour) * 60 + Number(parts.minute),
+  };
+};
+
+const timeToMinutes = (time) => {
+  const [hour, minute] = String(time || DEFAULT_SHIFT_START).split(":").map(Number);
+  return hour * 60 + minute;
+};
+
+const findApprovedLeaveForDate = async (employeeId, date) => {
+  const result = await pool.query(
+    `
+    SELECT id, leave_type, reason
+    FROM leave_requests
+    WHERE employee_id = $1
+      AND status = 'approved'
+      AND $2::date BETWEEN start_date AND end_date
+    ORDER BY id DESC
+    LIMIT 1
+    `,
+    [employeeId, date]
+  );
+  return result.rows[0] || null;
+};
+
+const upsertAutoAttendance = async ({ employeeId, date, status, source, notes, leaveRequestId = null, absenceReason = null }) => {
+  const existing = await pool.query(
+    `SELECT id, check_in, check_out, source FROM attendance_records WHERE employee_id = $1 AND attendance_date = $2 ORDER BY id DESC LIMIT 1`,
+    [employeeId, date]
+  );
+
+  if (existing.rows.length === 0) {
+    await pool.query(
+      `
+      INSERT INTO attendance_records
+      (employee_id, attendance_date, check_in, check_out, status, notes, source, leave_request_id, absence_reason, updated_at)
+      VALUES ($1, $2, NULL, NULL, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP)
+      `,
+      [employeeId, date, status, notes, source, leaveRequestId, absenceReason]
+    );
+    return;
+  }
+
+  const row = existing.rows[0];
+  if (row.check_in || row.check_out) return;
+
+  await pool.query(
+    `
+    UPDATE attendance_records
+    SET status = $1,
+        notes = $2,
+        source = $3,
+        leave_request_id = $4,
+        absence_reason = $5,
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = $6
+    `,
+    [status, notes, source, leaveRequestId, absenceReason, row.id]
+  );
+};
+
+const materializeTodayAttendance = async () => {
+  const { date, minutes } = ammanNowParts();
+  const shiftStart = timeToMinutes(DEFAULT_SHIFT_START);
+  if (minutes < shiftStart) return;
+
+  const employees = await pool.query(`SELECT id FROM employees WHERE COALESCE(is_active, true) = true`);
+
+  for (const employee of employees.rows) {
+    const approvedLeave = await findApprovedLeaveForDate(employee.id, date);
+    if (approvedLeave) {
+      await upsertAutoAttendance({
+        employeeId: employee.id,
+        date,
+        status: "absent",
+        source: "approved_leave",
+        notes: `غياب بعذر - إجازة معتمدة (${approvedLeave.leave_type})${approvedLeave.reason ? ` - ${approvedLeave.reason}` : ""}`,
+        leaveRequestId: approvedLeave.id,
+        absenceReason: "excused_leave",
+      });
+      continue;
+    }
+
+    const status = minutes >= shiftStart + ABSENCE_AFTER_HOURS * 60 ? "absent" : "late";
+    await upsertAutoAttendance({
+      employeeId: employee.id,
+      date,
+      status,
+      source: "auto_monitor",
+      notes: status === "late" ? `تأخر تلقائي: لم يتم تسجيل حضور بعد بداية الدوام ${DEFAULT_SHIFT_START}` : `غياب تلقائي: لم يتم تسجيل حضور بعد ${ABSENCE_AFTER_HOURS} ساعات من بداية الدوام`,
+      absenceReason: status === "absent" ? "unexcused_no_check_in" : "late_no_check_in",
+    });
+  }
 };
 
 const getAttendance = async (req, res) => {
   try {
     await ensureAttendanceSchema();
+    if (req.query.auto !== "0") await materializeTodayAttendance();
     const result = await pool.query(`
       SELECT
         a.id,
@@ -20,6 +134,8 @@ const getAttendance = async (req, res) => {
         a.status,
         a.notes,
         COALESCE(a.source, 'system') AS source,
+        a.leave_request_id,
+        a.absence_reason,
         a.created_at,
         a.updated_at,
         pd.id AS primary_department_id,
@@ -44,7 +160,7 @@ const getAttendance = async (req, res) => {
 const createAttendance = async (req, res) => {
   try {
     await ensureAttendanceSchema();
-    const { employee_id, attendance_date, check_in, check_out, status, notes, source } = req.body;
+    const { employee_id, attendance_date, check_in, check_out, status, notes, source, absence_reason } = req.body;
 
     if (!employee_id || !attendance_date) {
       return res.status(400).json({ error: "الموظف والتاريخ مطلوبان" });
@@ -58,11 +174,11 @@ const createAttendance = async (req, res) => {
     const result = await pool.query(
       `
       INSERT INTO attendance_records
-      (employee_id, attendance_date, check_in, check_out, status, notes, source, updated_at)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP)
+      (employee_id, attendance_date, check_in, check_out, status, notes, source, absence_reason, updated_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP)
       RETURNING *
       `,
-      [employee_id, attendance_date, check_in || null, check_out || null, status || "present", notes || null, source || "system"]
+      [employee_id, attendance_date, check_in || null, check_out || null, status || "present", notes || null, source || "system", absence_reason || null]
     );
 
     res.status(201).json({ message: "تم تسجيل الحضور بنجاح", record: result.rows[0] });
@@ -86,4 +202,4 @@ const deleteAttendance = async (req, res) => {
   }
 };
 
-module.exports = { getAttendance, createAttendance, deleteAttendance };
+module.exports = { getAttendance, createAttendance, deleteAttendance, upsertAutoAttendance, ensureAttendanceSchema };

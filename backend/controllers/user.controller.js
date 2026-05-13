@@ -6,10 +6,35 @@ const {
   ROLE_LABELS,
   ensurePermissionSchema,
   normalizeArray,
-  getUserAccess,
+  ROLE_PERMISSIONS,
 } = require("../services/permission.service");
 
 const allowedRoles = Object.keys(ROLE_LABELS);
+const accessCache = new Map();
+const ACCESS_CACHE_MS = 60 * 1000;
+
+const clearAccessCache = () => accessCache.clear();
+
+const unique = (items) => Array.from(new Set((items || []).flatMap(normalizeArray)));
+
+const calculateAccessFast = async (userId, tokenUser = null) => {
+  const cacheKey = String(userId);
+  const cached = accessCache.get(cacheKey);
+  if (cached && Date.now() - cached.time < ACCESS_CACHE_MS) return cached.value;
+
+  const result = await pool.query(
+    `SELECT id, role, roles, permissions, employee_id, employee_number FROM users WHERE id = $1 LIMIT 1`,
+    [userId]
+  );
+  const dbUser = result.rows[0] || {};
+  const roles = unique([tokenUser?.roles, tokenUser?.role, dbUser.roles, dbUser.role]).filter(Boolean);
+  const directPermissions = unique(dbUser.permissions);
+  const rolePermissions = roles.flatMap((role) => ROLE_PERMISSIONS[role] || []);
+  const permissions = unique([directPermissions, rolePermissions]);
+  const value = { roles, permissions, employee_id: dbUser.employee_id, employee_number: dbUser.employee_number };
+  accessCache.set(cacheKey, { time: Date.now(), value });
+  return value;
+};
 
 const writePermissionLog = async (actorId, targetId, changeType, oldValue, newValue) => {
   await pool.query(
@@ -22,13 +47,16 @@ const writePermissionLog = async (actorId, targetId, changeType, oldValue, newVa
 const getUsers = async (req, res) => {
   try {
     await ensurePermissionSchema();
+    const limit = Math.min(Number(req.query.limit || 150), 500);
+    const offset = Math.max(Number(req.query.offset || 0), 0);
     const result = await pool.query(`
       SELECT u.id, u.full_name, u.email, u.employee_number, u.employee_id, u.role, u.roles, u.permissions, u.is_active, u.created_at,
              e.full_name AS employee_name
       FROM users u
       LEFT JOIN employees e ON e.id = u.employee_id
-      ORDER BY u.id ASC
-    `);
+      ORDER BY u.id DESC
+      LIMIT $1 OFFSET $2
+    `, [limit, offset]);
     const logs = await pool.query(`
       SELECT l.id, l.change_type, l.old_value, l.new_value, l.created_at,
              actor.full_name AS actor_name,
@@ -45,6 +73,8 @@ const getUsers = async (req, res) => {
       permission_definitions: PERMISSION_DEFINITIONS,
       role_labels: ROLE_LABELS,
       permission_logs: logs.rows,
+      limit,
+      offset,
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -83,6 +113,7 @@ const createUser = async (req, res) => {
       [full_name, safeEmail, employee_number || null, employee_id || null, hashedPassword, primaryRole, roles, permissions]
     );
 
+    clearAccessCache();
     await writePermissionLog(req.user?.id, result.rows[0].id, "تم إنشاء مستخدم", null, result.rows[0]);
     res.status(201).json({ message: "تم إنشاء المستخدم بنجاح", user: result.rows[0] });
   } catch (error) {
@@ -128,6 +159,7 @@ const updateUserAccess = async (req, res) => {
       [roles[0], roles, permissions, typeof isActive === "boolean" ? isActive : null, id]
     );
 
+    clearAccessCache();
     await writePermissionLog(req.user?.id, id, "تم تعديل الصلاحيات", oldValue, result.rows[0]);
     res.status(200).json({ message: "تم تحديث صلاحيات المستخدم بنجاح", user: result.rows[0] });
   } catch (error) {
@@ -137,7 +169,7 @@ const updateUserAccess = async (req, res) => {
 
 const getMyAccess = async (req, res) => {
   try {
-    const access = await getUserAccess(req.user.id, req.user);
+    const access = await calculateAccessFast(req.user.id, req.user);
     res.status(200).json({ roles: access.roles, permissions: access.permissions, employee_id: access.employee_id, employee_number: access.employee_number });
   } catch (error) {
     res.status(500).json({ error: error.message });

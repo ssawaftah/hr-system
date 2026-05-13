@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>إدارة الموظفين</title>
   <link rel="stylesheet" href="./css/style.css" />
+  <link rel="stylesheet" href="./css/employees.css" />
 </head>
 <body>
   <div class="app-layout">
@@ -26,59 +27,35 @@
       <header class="topbar">
         <div>
           <h1>إدارة الموظفين</h1>
-          <p id="pageSubtitle">إضافة وتعديل الموظفين وربطهم بالأقسام</p>
+          <p id="pageSubtitle">إضافة، تعديل، بحث، وفلترة بيانات الموظفين</p>
         </div>
         <button id="logoutBtn" class="logout-btn">تسجيل الخروج</button>
       </header>
 
       <section class="content-card">
         <h2 id="employeeFormTitle">إضافة موظف</h2>
-
-        <form id="employeeForm" class="form-grid employee-form-grid">
+        <form id="employeeForm" class="form-grid">
           <input type="hidden" id="employeeId" />
-          <input type="text" id="employee_number" placeholder="رقم الموظف" required />
           <input type="text" id="full_name" placeholder="الاسم الكامل" required />
-          <input type="text" id="national_id" placeholder="الرقم الوطني / الهوية" />
+          <input type="text" id="national_id" placeholder="رقم الموظف" required />
           <input type="text" id="phone" placeholder="رقم الهاتف" />
           <input type="email" id="email" placeholder="البريد الإلكتروني" />
           <input type="text" id="address" placeholder="العنوان" />
           <input type="text" id="job_title" placeholder="المسمى الوظيفي" />
-          <select id="direct_manager_id"><option value="">اختر المدير المباشر</option></select>
+          <select id="department_id"><option value="">اختر القسم</option></select>
           <input type="date" id="hire_date" />
           <select id="employment_type">
             <option value="full_time">دوام كامل</option>
             <option value="part_time">دوام جزئي</option>
             <option value="contract">عقد</option>
           </select>
-          <select id="status">
-            <option value="active">نشط</option>
-            <option value="inactive">غير نشط</option>
-            <option value="suspended">موقوف</option>
-            <option value="resigned">مستقيل</option>
-            <option value="archived">مؤرشف</option>
+          <select id="is_active">
+            <option value="true">نشط</option>
+            <option value="false">غير نشط</option>
           </select>
-          <input type="number" id="basic_salary" min="0" step="0.01" placeholder="الراتب الأساسي" />
-          <select id="social_security_enabled">
-            <option value="true">خصم الضمان مفعل</option>
-            <option value="false">خصم الضمان غير مفعل</option>
-          </select>
-          <input type="number" id="social_security_rate" min="0" step="0.01" placeholder="نسبة الضمان" value="7.5" />
-
-          <div class="form-section full-width">
-            <div class="section-header compact-header">
-              <div>
-                <h3>الأقسام</h3>
-                <p>يمكن ربط الموظف بأكثر من قسم مع تحديد قسم أساسي واحد.</p>
-              </div>
-              <button type="button" id="addDepartmentMembershipBtn" class="secondary-btn small-btn">إضافة قسم</button>
-            </div>
-            <div id="departmentMemberships" class="membership-list"></div>
-          </div>
-
           <button type="submit">حفظ</button>
           <button type="button" id="cancelEditBtn" class="secondary-btn">إلغاء التعديل</button>
         </form>
-
         <p id="formMessage" class="inline-message"></p>
       </section>
 
@@ -88,40 +65,30 @@
             <h2>قائمة الموظفين</h2>
             <p id="employeesCountText">جاري تحميل البيانات...</p>
           </div>
-
           <div class="actions-row">
             <button id="refreshEmployeesBtn" class="secondary-btn">تحديث</button>
             <button id="exportEmployeesBtn" class="secondary-btn">تصدير CSV</button>
           </div>
         </div>
-
         <div class="filters-grid">
           <input type="text" id="employeeSearchInput" placeholder="بحث بالاسم، رقم الموظف، الهاتف، البريد، أو المسمى" />
-
-          <select id="departmentFilter">
-            <option value="">كل الأقسام</option>
-          </select>
-
+          <select id="departmentFilter"><option value="">كل الأقسام</option></select>
           <select id="statusFilter">
             <option value="">كل الحالات</option>
             <option value="active">نشط</option>
             <option value="inactive">غير نشط</option>
-            <option value="suspended">موقوف</option>
-            <option value="resigned">مستقيل</option>
-            <option value="archived">مؤرشف</option>
           </select>
         </div>
-
         <div class="table-scroll">
           <table>
             <thead>
               <tr>
                 <th>#</th>
-                <th>رقم الموظف</th>
                 <th>الاسم</th>
+                <th>الهاتف</th>
+                <th>البريد</th>
                 <th>المسمى</th>
-                <th>القسم الأساسي</th>
-                <th>الأقسام الإضافية</th>
+                <th>القسم</th>
                 <th>الحالة</th>
                 <th>الإجراءات</th>
               </tr>

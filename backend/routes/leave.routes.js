@@ -2,21 +2,21 @@ const express = require("express");
 const router = express.Router();
 
 const {
-  getLeaves,
-  createLeave,
-  updateLeave,
-  updateLeaveStatus,
-  deleteLeave,
-} = require("../controllers/leave.controller");
+  getRequests,
+  getRequestById,
+  createRequest,
+  actOnRequest,
+  deleteRequest,
+} = require("../controllers/request.controller");
 
 const authMiddleware = require("../middlewares/auth.middleware");
 const permissionMiddleware = require("../middlewares/permission.middleware");
 
-router.get("/", authMiddleware, permissionMiddleware("leaves.view"), getLeaves);
-router.post("/", authMiddleware, permissionMiddleware("leaves.create"), createLeave);
-router.put("/:id", authMiddleware, permissionMiddleware("leaves.update"), updateLeave);
-router.patch("/:id", authMiddleware, permissionMiddleware("leaves.approve"), updateLeaveStatus);
-router.put("/:id/status", authMiddleware, permissionMiddleware("leaves.approve"), updateLeaveStatus);
-router.delete("/:id", authMiddleware, permissionMiddleware("leaves.delete"), deleteLeave);
+router.get("/", authMiddleware, permissionMiddleware("requests.view.self", "requests.view.department", "requests.view.all", "requests.manage"), getRequests);
+router.get("/:id", authMiddleware, permissionMiddleware("requests.view.self", "requests.view.department", "requests.view.all", "requests.manage"), getRequestById);
+router.post("/", authMiddleware, permissionMiddleware("requests.create.self", "requests.manage"), createRequest);
+router.patch("/:id/action", authMiddleware, permissionMiddleware("requests.cancel.self_pending", "requests.approve.department", "requests.approve.all", "requests.reject.department", "requests.reject.all", "requests.cancel.department", "requests.cancel.all", "requests.request_info", "requests.comment", "requests.manage"), actOnRequest);
+router.put("/:id/action", authMiddleware, permissionMiddleware("requests.cancel.self_pending", "requests.approve.department", "requests.approve.all", "requests.reject.department", "requests.reject.all", "requests.cancel.department", "requests.cancel.all", "requests.request_info", "requests.comment", "requests.manage"), actOnRequest);
+router.delete("/:id", authMiddleware, permissionMiddleware("requests.manage"), deleteRequest);
 
 module.exports = router;

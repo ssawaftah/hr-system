@@ -15,6 +15,7 @@ const leaveRoutes = require("./routes/leave.routes");
 const reportRoutes = require("./routes/report.routes");
 const shiftRoutes = require("./routes/shift.routes");
 const permissionRoutes = require("./routes/job-title.routes");
+const announcementRoutes = require("./routes/announcement.routes");
 
 const app = express();
 let startupReady = false;
@@ -59,6 +60,31 @@ const ensureStartupSchema = async () => {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS announcements (
+        id SERIAL PRIMARY KEY,
+        title VARCHAR(220) NOT NULL,
+        content TEXT NOT NULL,
+        type VARCHAR(30) NOT NULL DEFAULT 'general',
+        target_type VARCHAR(30) NOT NULL DEFAULT 'all',
+        target_department_id INTEGER,
+        target_department_name VARCHAR(160),
+        target_employee_id INTEGER,
+        target_employee_name VARCHAR(160),
+        publisher_employee_id INTEGER,
+        publisher_name VARCHAR(160),
+        publisher_job_title VARCHAR(160),
+        status VARCHAR(30) DEFAULT 'published',
+        start_date DATE NOT NULL DEFAULT CURRENT_DATE,
+        end_date DATE,
+        is_active BOOLEAN DEFAULT true,
+        created_by_user_id INTEGER,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        published_at TIMESTAMP,
+        deleted_at TIMESTAMP
+      )
+    `);
     await pool.query(`INSERT INTO job_titles (name, code, description, default_permissions, status) VALUES ('عامل','worker','صلاحيات موظف أساسية',ARRAY['dashboard.view','employees.view.self','requests.view.self','requests.create.self','attendance.view.self','attendance.check.self'],'active') ON CONFLICT (name) DO NOTHING`);
     await pool.query(`INSERT INTO job_titles (name, code, description, default_permissions, status) VALUES ('مدير إنتاج','production_manager','صلاحيات مدير إنتاج افتراضية',ARRAY['dashboard.view','employees.view','requests.view.department','requests.approve.department','attendance.view.department','reports.view.department'],'active') ON CONFLICT (name) DO NOTHING`);
     await pool.query(`INSERT INTO job_titles (name, code, description, default_permissions, status) VALUES ('موظف مالية','finance','صلاحيات مالية ورواتب',ARRAY['dashboard.view','finance.view','salaries.view','finance.payroll_slips.view','finance.payroll_slips.create'],'active') ON CONFLICT (name) DO NOTHING`);
@@ -80,6 +106,10 @@ const ensureStartupSchema = async () => {
     await pool.query(`CREATE INDEX IF NOT EXISTS employee_requests_department_idx ON employee_requests(department_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS employee_requests_status_updated_idx ON employee_requests(status, updated_at DESC)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS employee_request_logs_request_idx ON employee_request_action_logs(request_id, id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS announcements_visibility_idx ON announcements(status, is_active, start_date, end_date)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS announcements_department_idx ON announcements(target_department_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS announcements_employee_idx ON announcements(target_employee_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS announcements_publisher_idx ON announcements(publisher_employee_id)`);
     startupReady = true;
   })().catch((error) => {
     startupReady = false;
@@ -101,6 +131,7 @@ app.use("/api/leaves", leaveRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/shifts", shiftRoutes);
 app.use("/api/permissions", permissionRoutes);
+app.use("/api/announcements", announcementRoutes);
 
 app.get("/", async (req, res) => {
   try {

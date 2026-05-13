@@ -50,12 +50,11 @@ const injectStylesheet = (href) => {
   document.head.appendChild(el);
 };
 const ensureUxFixes = () => {
-  injectStylesheet("./css/ux-fixes.css?v=enterprise-redesign-3");
-  injectStylesheet("./css/enterprise-redesign.css?v=enterprise-redesign-3");
+  injectStylesheet("./css/app.css?v=clean-apple-1");
   document.documentElement.lang = "ar";
   document.documentElement.dir = "rtl";
   document.body.dir = "rtl";
-  document.body.classList.add("enterprise-mode");
+  document.body.classList.add("apple-system-ui");
 };
 const closeSidebar = () => {
   document.querySelector(".app-layout")?.classList.remove("sidebar-open");
@@ -99,23 +98,8 @@ const applyActionPermissions = () => {
     if (permissions.length && !hasAnyPermission(permissions)) el.style.display = "none";
   });
 };
-const wrapField = (field) => {
-  if (!field || field.closest(".field-shell") || field.type === "hidden" || field.closest("label") || field.classList.contains("skip-field-wrap")) return;
-  const placeholder = field.getAttribute("placeholder") || field.getAttribute("aria-label") || "الحقل";
-  const wrapper = document.createElement("div");
-  wrapper.className = field.classList.contains("full-width") ? "field-shell full-width" : "field-shell";
-  const label = document.createElement("label");
-  label.className = "field-label";
-  label.textContent = placeholder;
-  if (field.id) label.setAttribute("for", field.id);
-  field.parentNode.insertBefore(wrapper, field);
-  wrapper.appendChild(label);
-  wrapper.appendChild(field);
-  field.classList.remove("full-width");
-};
 const enhanceTables = () => {
   document.querySelectorAll("table").forEach((table) => {
-    table.classList.add("erp-card-table");
     const headers = Array.from(table.querySelectorAll("thead th")).map((th) => th.textContent.trim());
     table.querySelectorAll("tbody tr").forEach((tr) => Array.from(tr.children).forEach((td, index) => td.setAttribute("data-label", headers[index] || "")));
     if (table.parentElement?.classList.contains("table-scroll")) return;
@@ -128,8 +112,6 @@ const enhanceTables = () => {
 const enhancePageStructure = () => {
   document.querySelectorAll(".content-card, .table-container").forEach((card) => card.classList.add("ui-card"));
   document.querySelectorAll("form").forEach((form) => form.classList.add("ui-form"));
-  document.querySelectorAll("form input, form select, form textarea").forEach(wrapField);
-  document.querySelectorAll(".section-header, .topbar > div:first-child").forEach((el) => el.classList.add("erp-surface-title"));
   enhanceTables();
 };
 const setupResponsiveShell = () => {
@@ -145,8 +127,6 @@ const setupResponsiveShell = () => {
     backdrop.addEventListener("click", closeSidebar);
     document.body.appendChild(backdrop);
   }
-  const titleBlock = Array.from(topbar.children).find((child) => child.tagName === "DIV" && !child.classList.contains("topbar-tools"));
-  titleBlock?.classList.add("topbar-title");
   if (!topbar.querySelector(".mobile-menu-btn")) {
     const menuButton = document.createElement("button");
     menuButton.className = "secondary-btn mobile-menu-btn";

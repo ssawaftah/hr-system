@@ -1,1 +1,146 @@
-body.dashboard-page .app-layout{padding-top:92px!important}body.dashboard-page header.topbar.dashboard-header{position:fixed!important;top:14px!important;right:20px!important;left:20px!important;z-index:90!important;width:auto!important;margin:0!important;min-height:62px!important;padding:8px 10px!important;display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;align-items:center!important;gap:12px!important;border-radius:999px!important}.dashboard-page .dashboard-header p{display:none!important}.dashboard-page .dashboard-header h1{font-size:19px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}.dashboard-page .dashboard-header .header-icon-btn span{display:inline!important}.dashboard-page .dashboard-header .logout-btn{display:inline-flex!important;width:auto!important}.dashboard-page .smart-shortcuts .shortcut-copy{display:flex!important;flex-direction:column!important;align-items:flex-start!important;gap:4px!important}.dashboard-page .smart-shortcuts .shortcut-copy strong,.dashboard-page .smart-shortcuts .shortcut-copy small{display:block!important;white-space:normal!important}@media(max-width:640px){.dashboard-page .dashboard-header .header-icon-btn{width:44px!important;padding:0!important}.dashboard-page .dashboard-header .header-icon-btn span{display:none!important}}
+/* Final dashboard header repair: compact fixed bar, not a giant card */
+body.dashboard-page .app-layout{padding-top:92px!important}
+body.dashboard-page .main-content.dashboard-main{padding-top:0!important}
+
+body.dashboard-page header.topbar.dashboard-header,
+body.dashboard-page header.topbar.dashboard-header.refined-dashboard-header{
+  position:fixed!important;
+  top:14px!important;
+  right:20px!important;
+  left:20px!important;
+  z-index:90!important;
+  width:auto!important;
+  min-height:62px!important;
+  height:62px!important;
+  margin:0!important;
+  padding:8px 10px!important;
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) auto!important;
+  align-items:center!important;
+  gap:10px!important;
+  border-radius:999px!important;
+  border:1px solid rgba(229,229,234,.86)!important;
+  background:rgba(255,255,255,.88)!important;
+  box-shadow:0 14px 44px rgba(0,0,0,.08)!important;
+  backdrop-filter:blur(24px)!important;
+  overflow:hidden!important;
+}
+
+body.dashboard-page .dashboard-header .header-title-area,
+body.dashboard-page .refined-dashboard-header .header-title-area{
+  display:flex!important;
+  flex-direction:column!important;
+  justify-content:center!important;
+  align-items:flex-start!important;
+  gap:0!important;
+  min-width:0!important;
+  padding-inline-start:12px!important;
+}
+
+body.dashboard-page .dashboard-header .page-kicker,
+body.dashboard-page .refined-dashboard-header .page-kicker{
+  display:none!important;
+}
+
+body.dashboard-page .dashboard-header h1,
+body.dashboard-page .refined-dashboard-header h1{
+  display:block!important;
+  margin:0!important;
+  color:var(--text)!important;
+  font-size:18px!important;
+  font-weight:900!important;
+  line-height:1.2!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+
+body.dashboard-page .dashboard-header p,
+body.dashboard-page .refined-dashboard-header p{display:none!important}
+
+body.dashboard-page .dashboard-header .header-actions,
+body.dashboard-page .dashboard-header .refined-header-actions{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-end!important;
+  gap:8px!important;
+  flex-shrink:0!important;
+}
+
+body.dashboard-page .dashboard-header .header-icon-btn,
+body.dashboard-page .refined-dashboard-header .header-icon-btn{
+  width:44px!important;
+  min-width:44px!important;
+  height:44px!important;
+  min-height:44px!important;
+  padding:0!important;
+  border-radius:50%!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  background:#fff!important;
+  color:var(--primary)!important;
+  border:1px solid var(--border)!important;
+  box-shadow:var(--shadow-soft)!important;
+}
+
+body.dashboard-page .dashboard-header .header-icon-btn span,
+body.dashboard-page .refined-dashboard-header .header-icon-btn span{display:none!important}
+
+body.dashboard-page .dashboard-header .header-icon-btn .app-icon,
+body.dashboard-page .refined-dashboard-header .header-icon-btn .app-icon{width:22px!important;height:22px!important;color:var(--primary)!important}
+
+body.dashboard-page .dashboard-header .logout-btn,
+body.dashboard-page .dashboard-header .refined-logout-btn,
+body.dashboard-page .refined-dashboard-header .logout-btn,
+body.dashboard-page .refined-dashboard-header .refined-logout-btn{
+  display:inline-flex!important;
+  width:44px!important;
+  min-width:44px!important;
+  height:44px!important;
+  min-height:44px!important;
+  padding:0!important;
+  border-radius:50%!important;
+  background:#fff!important;
+  color:var(--danger)!important;
+  border:1px solid #ffd6d6!important;
+  box-shadow:var(--shadow-soft)!important;
+  font-size:0!important;
+  overflow:hidden!important;
+  position:relative!important;
+}
+
+body.dashboard-page .dashboard-header .logout-btn::before,
+body.dashboard-page .dashboard-header .refined-logout-btn::before{
+  content:"⏻";
+  font-size:20px;
+  line-height:1;
+  color:var(--danger);
+}
+
+body.dashboard-page .smart-shortcuts a{display:grid!important;grid-template-columns:46px minmax(0,1fr) auto!important;align-items:center!important;gap:14px!important}
+body.dashboard-page .smart-shortcuts .shortcut-copy,
+body.dashboard-page .smart-shortcuts a>span:not(.shortcut-icon):not(.shortcut-copy){display:flex!important;flex-direction:column!important;align-items:flex-start!important;gap:4px!important;min-width:0!important;text-align:right!important}
+body.dashboard-page .smart-shortcuts .shortcut-copy strong,
+body.dashboard-page .smart-shortcuts .shortcut-copy small,
+body.dashboard-page .smart-shortcuts a>span:not(.shortcut-icon):not(.shortcut-copy) strong,
+body.dashboard-page .smart-shortcuts a>span:not(.shortcut-icon):not(.shortcut-copy) small{display:block!important;white-space:normal!important}
+
+@media(max-width:1000px){
+  body.dashboard-page .app-layout{padding-top:82px!important}
+  body.dashboard-page header.topbar.dashboard-header,
+  body.dashboard-page header.topbar.dashboard-header.refined-dashboard-header{top:10px!important;right:12px!important;left:12px!important;height:58px!important;min-height:58px!important;padding:7px 8px!important}
+  body.dashboard-page .dashboard-header h1,
+  body.dashboard-page .refined-dashboard-header h1{font-size:17px!important}
+}
+
+@media(max-width:420px){
+  body.dashboard-page header.topbar.dashboard-header,
+  body.dashboard-page header.topbar.dashboard-header.refined-dashboard-header{grid-template-columns:minmax(0,1fr) auto!important}
+  body.dashboard-page .dashboard-header .header-actions,
+  body.dashboard-page .dashboard-header .refined-header-actions{gap:6px!important}
+  body.dashboard-page .dashboard-header .header-icon-btn,
+  body.dashboard-page .refined-dashboard-header .header-icon-btn,
+  body.dashboard-page .dashboard-header .logout-btn,
+  body.dashboard-page .dashboard-header .refined-logout-btn{width:42px!important;min-width:42px!important;height:42px!important;min-height:42px!important}
+}

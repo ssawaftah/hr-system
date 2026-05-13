@@ -1,253 +1,37 @@
-const tableBody = document.getElementById("attendanceTableBody");
-const form = document.getElementById("attendanceForm");
-const formMessage = document.getElementById("formMessage");
-const employeeSelect = document.getElementById("employee_id");
-const attendanceSearchInput = document.getElementById("attendanceSearchInput");
-const attendanceEmployeeFilter = document.getElementById("attendanceEmployeeFilter");
-const attendanceStatusFilter = document.getElementById("attendanceStatusFilter");
-const attendanceFromDate = document.getElementById("attendanceFromDate");
-const attendanceToDate = document.getElementById("attendanceToDate");
-const refreshAttendanceBtn = document.getElementById("refreshAttendanceBtn");
-const exportAttendanceBtn = document.getElementById("exportAttendanceBtn");
-const attendanceCountText = document.getElementById("attendanceCountText");
-
-let attendanceRecords = [];
-let employees = [];
-
-const statusLabels = {
-  present: "حاضر",
-  absent: "غائب",
-  late: "متأخر",
-  leave: "إجازة",
-};
-
-const statusClasses = {
-  present: "active-badge",
-  absent: "inactive-badge",
-  late: "warning-badge",
-  leave: "info-badge",
-};
-
-const showMessage = (message, type = "success") => {
-  formMessage.textContent = message;
-  formMessage.className = `inline-message ${type === "success" ? "success-message" : "error-message"}`;
-
-  if (message) {
-    setTimeout(() => {
-      formMessage.textContent = "";
-      formMessage.className = "inline-message";
-    }, 4000);
-  }
-};
-
-const initAttendance = async () => {
-  const user = await loadLoggedUser();
-
-  if (!user || user.role === "employee") {
-    window.location.href = "./dashboard.html";
-    return;
-  }
-
-  await loadEmployees();
-  await loadAttendance();
-};
-
-const loadEmployees = async () => {
-  const response = await fetch(`${API_BASE_URL}/employees`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) return;
-
-  employees = data.employees;
-  employeeSelect.innerHTML = `<option value="">اختر الموظف</option>`;
-  attendanceEmployeeFilter.innerHTML = `<option value="">كل الموظفين</option>`;
-
-  employees.forEach((employee) => {
-    employeeSelect.innerHTML += `<option value="${employee.id}">${employee.full_name}</option>`;
-    attendanceEmployeeFilter.innerHTML += `<option value="${employee.id}">${employee.full_name}</option>`;
-  });
-};
-
-const loadAttendance = async () => {
-  attendanceCountText.textContent = "جاري تحميل البيانات...";
-
-  const response = await fetch(`${API_BASE_URL}/attendance`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    tableBody.innerHTML = `<tr><td colspan="8">${data.error}</td></tr>`;
-    attendanceCountText.textContent = "تعذر تحميل البيانات";
-    return;
-  }
-
-  attendanceRecords = data.attendance;
-  renderAttendance();
-};
-
-const formatDate = (date) => {
-  return date ? date.split("T")[0] : "-";
-};
-
-const getFilteredAttendance = () => {
-  const searchValue = attendanceSearchInput.value.trim().toLowerCase();
-  const selectedEmployee = attendanceEmployeeFilter.value;
-  const selectedStatus = attendanceStatusFilter.value;
-  const fromDate = attendanceFromDate.value;
-  const toDate = attendanceToDate.value;
-
-  return attendanceRecords.filter((record) => {
-    const recordDate = formatDate(record.attendance_date);
-    const searchableText = [record.employee_name, record.notes, record.status]
-      .filter(Boolean)
-      .join(" ")
-      .toLowerCase();
-
-    const matchesSearch = !searchValue || searchableText.includes(searchValue);
-    const matchesEmployee = !selectedEmployee || String(record.employee_id) === selectedEmployee;
-    const matchesStatus = !selectedStatus || record.status === selectedStatus;
-    const matchesFromDate = !fromDate || recordDate >= fromDate;
-    const matchesToDate = !toDate || recordDate <= toDate;
-
-    return matchesSearch && matchesEmployee && matchesStatus && matchesFromDate && matchesToDate;
-  });
-};
-
-const renderAttendance = () => {
-  tableBody.innerHTML = "";
-
-  const filteredRecords = getFilteredAttendance();
-  attendanceCountText.textContent = `عرض ${filteredRecords.length} من أصل ${attendanceRecords.length} سجل`;
-
-  if (filteredRecords.length === 0) {
-    tableBody.innerHTML = `
-      <tr>
-        <td colspan="8">لا توجد سجلات مطابقة للبحث أو الفلاتر الحالية</td>
-      </tr>
-    `;
-    return;
-  }
-
-  filteredRecords.forEach((record) => {
-    const row = document.createElement("tr");
-    const statusLabel = statusLabels[record.status] || record.status;
-    const statusClass = statusClasses[record.status] || "info-badge";
-
-    row.innerHTML = `
-      <td>${record.id}</td>
-      <td>${record.employee_name}</td>
-      <td>${formatDate(record.attendance_date)}</td>
-      <td>${record.check_in || "-"}</td>
-      <td>${record.check_out || "-"}</td>
-      <td>
-        <span class="status-badge ${statusClass}">${statusLabel}</span>
-      </td>
-      <td>${record.notes || "-"}</td>
-      <td>
-        <div class="row-actions">
-          <button class="danger-btn small-btn" onclick="deleteAttendance(${record.id})">حذف</button>
-        </div>
-      </td>
-    `;
-
-    tableBody.appendChild(row);
-  });
-};
-
-form.addEventListener("submit", async (e) => {
-  e.preventDefault();
-
-  const body = {
-    employee_id: document.getElementById("employee_id").value,
-    attendance_date: document.getElementById("attendance_date").value,
-    check_in: document.getElementById("check_in").value || null,
-    check_out: document.getElementById("check_out").value || null,
-    status: document.getElementById("status").value,
-    notes: document.getElementById("notes").value.trim(),
-  };
-
-  const response = await fetch(`${API_BASE_URL}/attendance`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    showMessage(data.error || "تعذر حفظ سجل الحضور", "error");
-    return;
-  }
-
-  showMessage(data.message || "تم حفظ سجل الحضور بنجاح", "success");
-  form.reset();
-  await loadAttendance();
-});
-
-const deleteAttendance = async (id) => {
-  if (!confirm("هل أنت متأكد من حذف سجل الحضور؟")) return;
-
-  const response = await fetch(`${API_BASE_URL}/attendance/${id}`, {
-    method: "DELETE",
-    headers: { Authorization: `Bearer ${token}` },
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    showMessage(data.error || "تعذر حذف سجل الحضور", "error");
-    return;
-  }
-
-  showMessage(data.message || "تم حذف سجل الحضور بنجاح", "success");
-  await loadAttendance();
-};
-
-const escapeCsvValue = (value) => {
-  const stringValue = String(value ?? "");
-  return `"${stringValue.replace(/"/g, '""')}"`;
-};
-
-const exportAttendanceToCSV = () => {
-  const filteredRecords = getFilteredAttendance();
-
-  const rows = [
-    ["id", "employee", "date", "check_in", "check_out", "status", "notes"],
-    ...filteredRecords.map((record) => [
-      record.id,
-      record.employee_name,
-      formatDate(record.attendance_date),
-      record.check_in || "",
-      record.check_out || "",
-      statusLabels[record.status] || record.status,
-      record.notes || "",
-    ]),
-  ];
-
-  const csv = rows.map((row) => row.map(escapeCsvValue).join(",")).join("\n");
-  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = "attendance.csv";
-  link.click();
-  URL.revokeObjectURL(url);
-};
-
-attendanceSearchInput.addEventListener("input", renderAttendance);
-attendanceEmployeeFilter.addEventListener("change", renderAttendance);
-attendanceStatusFilter.addEventListener("change", renderAttendance);
-attendanceFromDate.addEventListener("change", renderAttendance);
-attendanceToDate.addEventListener("change", renderAttendance);
-refreshAttendanceBtn.addEventListener("click", loadAttendance);
-exportAttendanceBtn.addEventListener("click", exportAttendanceToCSV);
-
+const tableBody=document.getElementById('attendanceTableBody');
+const form=document.getElementById('attendanceForm');
+const formMessage=document.getElementById('formMessage');
+const employeeSelect=document.getElementById('employee_id');
+const searchInput=document.getElementById('attendanceSearchInput');
+const employeeFilter=document.getElementById('attendanceEmployeeFilter');
+const mainDepFilter=document.getElementById('attendanceMainDepartmentFilter');
+const subDepFilter=document.getElementById('attendanceSubDepartmentFilter');
+const statusFilter=document.getElementById('attendanceStatusFilter');
+const monthFilter=document.getElementById('attendanceMonthFilter');
+const fromDate=document.getElementById('attendanceFromDate');
+const toDate=document.getElementById('attendanceToDate');
+const refreshBtn=document.getElementById('refreshAttendanceBtn');
+const exportBtn=document.getElementById('exportAttendanceBtn');
+const countText=document.getElementById('attendanceCountText');
+const lastBox=document.getElementById('lastMovementBox');
+const cards={total:document.getElementById('totalAttendanceCard'),present:document.getElementById('presentAttendanceCard'),late:document.getElementById('lateAttendanceCard'),absent:document.getElementById('absentAttendanceCard')};
+let records=[];let employees=[];
+const labels={present:'حاضر',absent:'غائب',late:'متأخر',leave:'إجازة',early_leave:'خروج مبكر'};
+const classes={present:'active-badge',absent:'inactive-badge',late:'warning-badge',leave:'info-badge',early_leave:'warning-badge'};
+function showMessage(t,b){formMessage.textContent=t;formMessage.className='inline-message '+(b?'error-message':'success-message')}
+function fmt(d){return d?String(d).split('T')[0]:'-'}
+async function initAttendance(){let u=await loadLoggedUser();if(!u||u.role==='employee'){location.href='./dashboard.html';return}document.getElementById('attendance_date').value=new Date().toISOString().split('T')[0];await loadEmployees();await loadAttendance()}
+async function loadEmployees(){let r=await fetch(`${API_BASE_URL}/employees`,{headers:{Authorization:`Bearer ${token}`}});let d=await r.json();if(!r.ok)return;employees=d.employees||[];employeeSelect.innerHTML='<option value="">اختر الموظف</option>';employeeFilter.innerHTML='<option value="">كل الموظفين</option>';employees.forEach(e=>{let label=`${e.full_name} - ${e.primary_department?.department_name||e.department_name||'بدون قسم'}`;employeeSelect.innerHTML+=`<option value="${e.id}">${label}</option>`;employeeFilter.innerHTML+=`<option value="${e.id}">${label}</option>`});renderDepartmentFilters()}
+function renderDepartmentFilters(){let main=new Map(),sub=new Map();employees.forEach(e=>{if(e.primary_department)main.set(String(e.primary_department.department_id),e.primary_department.department_name);(e.additional_departments||[]).forEach(x=>sub.set(String(x.department_id),x.department_name))});mainDepFilter.innerHTML='<option value="">كل الأقسام الرئيسية</option>'+Array.from(main).map(([id,name])=>`<option value="${id}">${name}</option>`).join('');subDepFilter.innerHTML='<option value="">كل الأقسام الفرعية</option>'+Array.from(sub).map(([id,name])=>`<option value="${id}">${name}</option>`).join('')}
+async function loadAttendance(){countText.textContent='جاري تحميل البيانات...';let r=await fetch(`${API_BASE_URL}/attendance`,{headers:{Authorization:`Bearer ${token}`}});let d=await r.json();if(!r.ok){tableBody.innerHTML=`<tr><td colspan="11">${d.error||'تعذر تحميل البيانات'}</td></tr>`;countText.textContent='تعذر تحميل البيانات';return}records=d.attendance||[];renderAttendance()}
+function filtered(){let q=searchInput.value.trim().toLowerCase(),emp=employeeFilter.value,main=mainDepFilter.value,sub=subDepFilter.value,st=statusFilter.value,month=monthFilter.value,from=fromDate.value,to=toDate.value;return records.filter(r=>{let date=fmt(r.attendance_date);let text=[r.employee_name,r.notes,r.status,r.primary_department_name,r.sub_department_name].filter(Boolean).join(' ').toLowerCase();return(!q||text.includes(q))&&(!emp||String(r.employee_id)===emp)&&(!main||String(r.primary_department_id)===main)&&(!sub||String(r.sub_department_id)===sub)&&(!st||r.status===st)&&(!month||date.startsWith(month))&&(!from||date>=from)&&(!to||date<=to)})}
+function renderCards(list){cards.total.textContent=list.length;cards.present.textContent=list.filter(r=>r.status==='present').length;cards.late.textContent=list.filter(r=>r.status==='late').length;cards.absent.textContent=list.filter(r=>r.status==='absent').length}
+function renderLastMovement(list){let empId=employeeFilter.value||employeeSelect.value;if(!empId){lastBox.innerHTML='<div><strong>الموظف:</strong> اختر موظفًا لعرض آخر حركة</div><div><strong>آخر تاريخ:</strong> -</div><div><strong>الدخول:</strong> -</div><div><strong>الخروج:</strong> -</div><div><strong>الحالة:</strong> -</div><div><strong>المصدر:</strong> -</div>';return}let empRecords=records.filter(r=>String(r.employee_id)===String(empId)).sort((a,b)=>String(b.attendance_date).localeCompare(String(a.attendance_date))||b.id-a.id);let r=empRecords[0];if(!r){lastBox.innerHTML='<div><strong>الموظف:</strong> لا توجد حركات لهذا الموظف</div><div><strong>آخر تاريخ:</strong> -</div><div><strong>الدخول:</strong> -</div><div><strong>الخروج:</strong> -</div><div><strong>الحالة:</strong> -</div><div><strong>المصدر:</strong> -</div>';return}lastBox.innerHTML=`<div><strong>الموظف:</strong> ${r.employee_name}</div><div><strong>آخر تاريخ:</strong> ${fmt(r.attendance_date)}</div><div><strong>الدخول:</strong> ${r.check_in||'-'}</div><div><strong>الخروج:</strong> ${r.check_out||'-'}</div><div><strong>الحالة:</strong> ${labels[r.status]||r.status}</div><div><strong>المصدر:</strong> ${sourceLabel(r.source)}</div>`}
+function sourceLabel(s){return{system:'النظام',fingerprint:'البصمة',manual:'إدخال يدوي'}[s]||s||'النظام'}
+function renderAttendance(){let list=filtered();countText.textContent=`عرض ${list.length} من أصل ${records.length} سجل`;renderCards(list);renderLastMovement(list);if(!list.length){tableBody.innerHTML='<tr><td colspan="11">لا توجد سجلات مطابقة</td></tr>';return}tableBody.innerHTML='';list.forEach(r=>{let tr=document.createElement('tr');tr.innerHTML=`<td>${r.id}</td><td>${r.employee_name}</td><td>${r.primary_department_name||'-'}</td><td>${r.sub_department_name||'-'}</td><td>${fmt(r.attendance_date)}</td><td>${r.check_in||'-'}</td><td>${r.check_out||'-'}</td><td><span class="status-badge ${classes[r.status]||'info-badge'}">${labels[r.status]||r.status}</span></td><td>${sourceLabel(r.source)}</td><td>${r.notes||'-'}</td><td><div class="row-actions"><button class="danger-btn small-btn" onclick="deleteAttendance(${r.id})">حذف</button></div></td>`;tableBody.appendChild(tr)})}
+form.addEventListener('submit',async e=>{e.preventDefault();let body={employee_id:employeeSelect.value,attendance_date:document.getElementById('attendance_date').value,check_in:document.getElementById('check_in').value||null,check_out:document.getElementById('check_out').value||null,status:document.getElementById('status').value,source:document.getElementById('source').value,notes:document.getElementById('notes').value.trim()};if(!body.employee_id||!body.attendance_date){showMessage('الموظف والتاريخ مطلوبان',true);return}let r=await fetch(`${API_BASE_URL}/attendance`,{method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify(body)});let d=await r.json();if(!r.ok){showMessage(d.error||'تعذر حفظ سجل الحضور',true);return}showMessage(d.message||'تم حفظ سجل الحضور');form.reset();document.getElementById('attendance_date').value=new Date().toISOString().split('T')[0];await loadAttendance()});
+async function deleteAttendance(id){if(!confirm('هل أنت متأكد من حذف سجل الحضور؟'))return;let r=await fetch(`${API_BASE_URL}/attendance/${id}`,{method:'DELETE',headers:{Authorization:`Bearer ${token}`}});let d=await r.json();showMessage(d.message||d.error,!r.ok);await loadAttendance()}
+function exportCSV(){let rows=[['id','employee','main_department','sub_department','date','check_in','check_out','status','source','notes'],...filtered().map(r=>[r.id,r.employee_name,r.primary_department_name||'',r.sub_department_name||'',fmt(r.attendance_date),r.check_in||'',r.check_out||'',labels[r.status]||r.status,sourceLabel(r.source),r.notes||''])];let csv=rows.map(row=>row.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\n');let blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});let url=URL.createObjectURL(blob);let a=document.createElement('a');a.href=url;a.download='attendance.csv';a.click();URL.revokeObjectURL(url)}
+[searchInput,employeeFilter,mainDepFilter,subDepFilter,statusFilter,monthFilter,fromDate,toDate].forEach(el=>{el.addEventListener('input',renderAttendance);el.addEventListener('change',renderAttendance)});
+employeeSelect.addEventListener('change',()=>renderLastMovement(records));refreshBtn.addEventListener('click',loadAttendance);exportBtn.addEventListener('click',exportCSV);
 initAttendance();

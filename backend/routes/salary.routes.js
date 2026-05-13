@@ -10,15 +10,13 @@ const {
 } = require("../controllers/salary.controller");
 
 const authMiddleware = require("../middlewares/auth.middleware");
-const roleMiddleware = require("../middlewares/role.middleware");
+const permissionMiddleware = require("../middlewares/permission.middleware");
 
-// Salaries are sensitive financial records.
-// Until a dedicated finance role is added, only admin can access them.
-router.get("/", authMiddleware, roleMiddleware("admin"), getSalaries);
-router.get("/preview", authMiddleware, roleMiddleware("admin"), getSalaryPreview);
-router.post("/", authMiddleware, roleMiddleware("admin"), createSalary);
-router.patch("/:id/status", authMiddleware, roleMiddleware("admin"), updateSalaryStatus);
-router.put("/:id/status", authMiddleware, roleMiddleware("admin"), updateSalaryStatus);
-router.delete("/:id", authMiddleware, roleMiddleware("admin"), deleteSalary);
+router.get("/", authMiddleware, permissionMiddleware("salaries.view"), getSalaries);
+router.get("/preview", authMiddleware, permissionMiddleware("salaries.view"), getSalaryPreview);
+router.post("/", authMiddleware, permissionMiddleware("salaries.create"), createSalary);
+router.patch("/:id/status", authMiddleware, permissionMiddleware("salaries.review", "salaries.approve", "salaries.publish"), updateSalaryStatus);
+router.put("/:id/status", authMiddleware, permissionMiddleware("salaries.review", "salaries.approve", "salaries.publish"), updateSalaryStatus);
+router.delete("/:id", authMiddleware, permissionMiddleware("salaries.delete"), deleteSalary);
 
 module.exports = router;

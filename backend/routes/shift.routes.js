@@ -10,12 +10,12 @@ const {
 } = require("../controllers/shift.controller");
 
 const authMiddleware = require("../middlewares/auth.middleware");
-const roleMiddleware = require("../middlewares/role.middleware");
+const permissionMiddleware = require("../middlewares/permission.middleware");
 
-router.get("/", authMiddleware, roleMiddleware("admin", "hr"), getShifts);
-router.post("/", authMiddleware, roleMiddleware("admin", "hr"), createShift);
-router.put("/:id", authMiddleware, roleMiddleware("admin", "hr"), updateShift);
-router.delete("/:id", authMiddleware, roleMiddleware("admin", "hr"), deleteShift);
-router.post("/assign", authMiddleware, roleMiddleware("admin", "hr"), assignShift);
+router.get("/", authMiddleware, permissionMiddleware("shifts.view"), getShifts);
+router.post("/", authMiddleware, permissionMiddleware("shifts.manage"), createShift);
+router.put("/:id", authMiddleware, permissionMiddleware("shifts.manage"), updateShift);
+router.delete("/:id", authMiddleware, permissionMiddleware("shifts.manage"), deleteShift);
+router.post("/assign", authMiddleware, permissionMiddleware("shifts.manage"), assignShift);
 
 module.exports = router;

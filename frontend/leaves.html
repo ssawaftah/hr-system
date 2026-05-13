@@ -5,20 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>إدارة الإجازات</title>
   <link rel="stylesheet" href="./css/style.css" />
+  <link rel="stylesheet" href="./css/employees.css" />
 </head>
 <body>
   <div class="app-layout">
     <aside class="sidebar">
       <div class="sidebar-logo">HR System V2</div>
       <nav class="sidebar-menu">
-        <a href="./dashboard.html" class="" data-role-link="dashboard">لوحة التحكم</a>
-        <a href="./users.html" class="" data-role-link="users">المستخدمون</a>
-        <a href="./departments.html" class="" data-role-link="departments">الأقسام</a>
-        <a href="./employees.html" class="" data-role-link="employees">الموظفون</a>
-        <a href="./attendance.html" class="" data-role-link="attendance">الحضور</a>
+        <a href="./dashboard.html" data-role-link="dashboard">لوحة التحكم</a>
+        <a href="./users.html" data-role-link="users">المستخدمون</a>
+        <a href="./departments.html" data-role-link="departments">الأقسام</a>
+        <a href="./employees.html" data-role-link="employees">الموظفون</a>
+        <a href="./attendance.html" data-role-link="attendance">الحضور</a>
         <a href="./leaves.html" class="active" data-role-link="leaves">الإجازات</a>
-        <a href="./salaries.html" class="" data-role-link="salaries">الرواتب</a>
-        <a href="./reports.html" class="" data-role-link="reports">التقارير</a>
+        <a href="./salaries.html" data-role-link="salaries">الرواتب</a>
+        <a href="./reports.html" data-role-link="reports">التقارير</a>
       </nav>
     </aside>
 
@@ -26,30 +27,38 @@
       <header class="topbar">
         <div>
           <h1>إدارة الإجازات</h1>
-          <p id="pageSubtitle">إنشاء ومراجعة واعتماد طلبات الإجازات</p>
+          <p id="pageSubtitle">دورة عمل كاملة لإنشاء ومراجعة واعتماد الإجازات</p>
         </div>
         <button id="logoutBtn" class="logout-btn">تسجيل الخروج</button>
       </header>
 
-      <section class="content-card">
-        <h2>طلب إجازة</h2>
+      <section class="profile-summary-grid">
+        <div class="summary-card"><span>إجمالي الطلبات</span><strong id="leavesTotalCard">0</strong></div>
+        <div class="summary-card"><span>قيد الانتظار</span><strong id="leavesPendingCard">0</strong></div>
+        <div class="summary-card"><span>مقبولة</span><strong id="leavesApprovedCard">0</strong></div>
+        <div class="summary-card"><span>مرفوضة / ملغاة</span><strong id="leavesRejectedCard">0</strong></div>
+      </section>
 
-        <form id="leaveForm" class="form-grid">
-          <select id="employee_id" required>
-            <option value="">اختر الموظف</option>
-          </select>
+      <section class="content-card">
+        <h2 id="leaveFormTitle">طلب إجازة</h2>
+        <form id="leaveForm" class="form-grid employee-form-grid">
+          <input type="hidden" id="leaveId" />
+          <select id="employee_id" required><option value="">اختر الموظف</option></select>
           <select id="leave_type">
             <option value="annual">سنوية</option>
             <option value="sick">مرضية</option>
             <option value="unpaid">بدون راتب</option>
+            <option value="emergency">طارئة</option>
             <option value="other">أخرى</option>
           </select>
           <input type="date" id="start_date" required />
           <input type="date" id="end_date" required />
-          <input type="text" id="reason" placeholder="السبب" />
+          <input type="number" id="days_preview" placeholder="عدد الأيام" readonly />
+          <input type="text" id="reason" placeholder="سبب الإجازة" />
+          <input type="text" id="admin_notes" placeholder="ملاحظات إدارية" />
           <button type="submit">حفظ الطلب</button>
+          <button type="button" id="cancelLeaveEditBtn" class="secondary-btn">إلغاء التعديل</button>
         </form>
-
         <p id="formMessage" class="inline-message"></p>
       </section>
 
@@ -59,7 +68,6 @@
             <h2>طلبات الإجازات</h2>
             <p id="leavesCountText">جاري تحميل البيانات...</p>
           </div>
-
           <div class="actions-row">
             <button id="refreshLeavesBtn" class="secondary-btn">تحديث</button>
             <button id="exportLeavesBtn" class="secondary-btn">تصدير CSV</button>
@@ -67,27 +75,26 @@
         </div>
 
         <div class="filters-grid attendance-filters-grid">
-          <input type="text" id="leaveSearchInput" placeholder="بحث باسم الموظف أو السبب" />
-
-          <select id="leaveEmployeeFilter">
-            <option value="">كل الموظفين</option>
-          </select>
-
+          <input type="text" id="leaveSearchInput" placeholder="بحث باسم الموظف أو السبب أو الملاحظات" />
+          <select id="leaveEmployeeFilter"><option value="">كل الموظفين</option></select>
+          <select id="leaveMainDepartmentFilter"><option value="">كل الأقسام الرئيسية</option></select>
+          <select id="leaveSubDepartmentFilter"><option value="">كل الأقسام الفرعية</option></select>
           <select id="leaveStatusFilter">
             <option value="">كل الحالات</option>
             <option value="pending">قيد الانتظار</option>
             <option value="approved">مقبولة</option>
             <option value="rejected">مرفوضة</option>
+            <option value="cancelled">ملغاة</option>
           </select>
-
           <select id="leaveTypeFilter">
             <option value="">كل الأنواع</option>
             <option value="annual">سنوية</option>
             <option value="sick">مرضية</option>
             <option value="unpaid">بدون راتب</option>
+            <option value="emergency">طارئة</option>
             <option value="other">أخرى</option>
           </select>
-
+          <input type="month" id="leaveMonthFilter" title="الشهر" />
           <input type="date" id="leaveFromDate" title="من تاريخ" />
           <input type="date" id="leaveToDate" title="إلى تاريخ" />
         </div>
@@ -98,12 +105,15 @@
               <tr>
                 <th>#</th>
                 <th>الموظف</th>
+                <th>القسم الرئيسي</th>
+                <th>القسم الفرعي</th>
                 <th>النوع</th>
                 <th>من</th>
                 <th>إلى</th>
                 <th>الأيام</th>
                 <th>السبب</th>
                 <th>الحالة</th>
+                <th>سبب القرار</th>
                 <th>إجراءات</th>
               </tr>
             </thead>

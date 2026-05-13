@@ -1,47 +1,20 @@
-const normalizeRoles = (roles) => {
-  if (!roles) return [];
-
-  if (Array.isArray(roles)) {
-    return roles.flatMap((role) => normalizeRoles(role));
-  }
-
-  return String(roles)
-    .split(",")
-    .map((role) => role.trim())
-    .filter(Boolean);
-};
+const { getUserAccess, normalizeArray } = require("../services/permission.service");
 
 const roleMiddleware = (...allowedRoles) => {
-  const normalizedAllowedRoles = normalizeRoles(allowedRoles);
-
-  return (req, res, next) => {
-    if (!req.user) {
-      return res.status(401).json({
-        error: "Authentication required",
-      });
+  const normalizedAllowedRoles = normalizeArray(allowedRoles);
+  return async (req, res, next) => {
+    try {
+      if (!req.user) return res.status(401).json({ error: "Authentication required" });
+      const access = await getUserAccess(req.user.id, req.user);
+      req.user.roles = access.roles;
+      req.user.permissions = access.permissions;
+      if (access.roles.includes("admin")) return next();
+      const hasRole = access.roles.some((role) => normalizedAllowedRoles.includes(role));
+      if (!hasRole) return res.status(403).json({ error: "Permission required" });
+      next();
+    } catch (error) {
+      res.status(500).json({ error: error.message });
     }
-
-    const userRoles = normalizeRoles(req.user.roles || req.user.role);
-
-    if (userRoles.length === 0) {
-      return res.status(403).json({
-        error: "Access denied. User role not found",
-      });
-    }
-
-    if (userRoles.includes("admin")) {
-      return next();
-    }
-
-    const hasPermission = userRoles.some((role) => normalizedAllowedRoles.includes(role));
-
-    if (!hasPermission) {
-      return res.status(403).json({
-        error: "Access denied. You do not have permission",
-      });
-    }
-
-    next();
   };
 };
 

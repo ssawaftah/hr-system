@@ -43,7 +43,7 @@
         <h2 id="leaveFormTitle">طلب إجازة</h2>
         <form id="leaveForm" class="form-grid employee-form-grid">
           <input type="hidden" id="leaveId" />
-          <select id="employee_id" required><option value="">اختر الموظف</option></select>
+          <select id="employee_id" required><option value="">جاري تحميل الموظفين...</option></select>
           <select id="leave_type">
             <option value="annual">سنوية</option>
             <option value="sick">مرضية</option>
@@ -117,13 +117,13 @@
                 <th>إجراءات</th>
               </tr>
             </thead>
-            <tbody id="leavesTableBody"></tbody>
+            <tbody id="leavesTableBody"><tr><td colspan="12">جاري تحميل البيانات...</td></tr></tbody>
           </table>
         </div>
       </section>
     </main>
   </div>
   <script src="./js/auth-guard.js"></script>
-  <script src="./js/leaves.js"></script>
+  <script src="./js/leaves.js?v=20260513-2"></script>
 </body>
 </html>

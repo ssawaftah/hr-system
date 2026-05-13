@@ -3,22 +3,33 @@ const employeeId = params.get("id");
 
 const employeeName = document.getElementById("employeeName");
 const employeeMeta = document.getElementById("employeeMeta");
-const employeeDetails = document.getElementById("employeeDetails");
+const employeeAvatar = document.getElementById("employeeAvatar");
+const employeeStatusBadge = document.getElementById("employeeStatusBadge");
+const personalDetails = document.getElementById("personalDetails");
+const loginDetails = document.getElementById("loginDetails");
+const jobDetails = document.getElementById("jobDetails");
+const financialDetails = document.getElementById("financialDetails");
+const permissionsDetails = document.getElementById("permissionsDetails");
 const attendanceBody = document.getElementById("attendanceBody");
 const salariesBody = document.getElementById("salariesBody");
 const leavesBody = document.getElementById("leavesBody");
 const auditBody = document.getElementById("auditBody");
 const editEmployeeBtn = document.getElementById("editEmployeeBtn");
+const managePermissionsBtn = document.getElementById("managePermissionsBtn");
 const summaryStatus = document.getElementById("summaryStatus");
 const summaryMainDepartment = document.getElementById("summaryMainDepartment");
 const summarySubDepartment = document.getElementById("summarySubDepartment");
 const summarySalary = document.getElementById("summarySalary");
 
 let loadedEmployee = null;
+let currentUser = null;
+
+const roleLabels = { employee: "موظف", manager: "مدير قسم", hr: "الموارد البشرية", finance: "المالية", admin: "مدير النظام" };
+const accountStatusLabels = { active: "نشط", disabled: "معطل", locked: "مقفل" };
 
 const initEmployeeProfile = async () => {
-  const user = await loadLoggedUser();
-  if (!user || user.role === "employee") {
+  currentUser = await loadLoggedUser();
+  if (!currentUser || (!hasAnyPermission(["employees.view"]) && !hasAnyPermission(["employees.view.self"]))) {
     window.location.href = "./dashboard.html";
     return;
   }
@@ -33,9 +44,11 @@ const initEmployeeProfile = async () => {
 const formatDate = (date) => date ? String(date).split("T")[0] : "-";
 const formatMoney = (value) => Number(value || 0).toLocaleString("ar-JO", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const employmentTypeLabel = (value) => ({ full_time: "دوام كامل", part_time: "دوام جزئي", contract: "عقد" }[value] || value || "-");
-const statusText = (value, isActive) => ({ active: "نشط", inactive: "غير نشط", suspended: "موقوف", resigned: "مستقيل", archived: "مؤرشف" }[value] || (isActive ? "نشط" : "غير نشط"));
-const leaveLabel = (value) => ({ annual: "سنوية", sick: "مرضية", unpaid: "بدون راتب", other: "أخرى" }[value] || value || "-");
-const requestStatusLabel = (value) => ({ pending: "قيد الانتظار", approved: "مقبولة", rejected: "مرفوضة", draft: "مسودة", cancelled: "ملغاة", active: "نشط", absent: "غائب", late: "متأخر", present: "حاضر", paid: "مدفوع", unpaid: "غير مدفوع" }[value] || value || "-");
+const statusText = (value, isActive) => ({ active: "نشط", inactive: "غير نشط", suspended: "موقوف", resigned: "مستقيل", terminated: "منتهي", archived: "مؤرشف" }[value] || (isActive ? "نشط" : "غير نشط"));
+const leaveLabel = (value) => ({ annual: "سنوية", sick: "مرضية", unpaid: "بدون راتب", emergency: "طارئة", other: "أخرى" }[value] || value || "-");
+const requestStatusLabel = (value) => ({ pending: "قيد الانتظار", approved: "مقبولة", rejected: "مرفوضة", draft: "مسودة", cancelled: "ملغاة", needs_info: "يحتاج معلومات", active: "نشط", absent: "غائب", late: "متأخر", present: "حاضر", paid: "مدفوع", unpaid: "غير مدفوع", published: "منشور" }[value] || value || "-");
+const initials = (name = "") => name.trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join("") || "م";
+const badge = (text, tone = "") => `<span class="mini-badge ${tone}">${text}</span>`;
 
 const calculateDays = (startDate, endDate) => {
   if (!startDate || !endDate) return "-";
@@ -52,19 +65,16 @@ const getMainAndSubDepartments = (employee) => {
   return {
     main: primary?.department_name || employee.department_name || "-",
     sub: secondary?.department_name || "-",
-    all: memberships.length ? memberships.map((item) => `${item.department_name}${item.is_primary ? " - رئيسي" : " - فرعي"}`).join("، ") : (primary?.department_name || employee.department_name || "-"),
+    all: memberships.length ? memberships.map((item) => `${item.department_name}${item.is_primary ? " - رئيسي" : " - إضافي"}`).join("، ") : (primary?.department_name || employee.department_name || "-"),
   };
 };
 
-const fillEmpty = (tbody, colspan, text) => {
-  tbody.innerHTML = `<tr><td colspan="${colspan}">${text}</td></tr>`;
-};
+const detailItem = (label, value) => `<div class="detail-item"><small>${label}</small><strong>${value || "-"}</strong></div>`;
+const fillEmpty = (tbody, colspan, text) => { tbody.innerHTML = `<tr><td colspan="${colspan}">${text}</td></tr>`; };
 
 const loadEmployee = async () => {
   employeeName.textContent = "جاري التحميل...";
-  const response = await fetch(`${API_BASE_URL}/employees/${employeeId}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  const response = await fetch(`${API_BASE_URL}/employees/${employeeId}`, { headers: { Authorization: `Bearer ${token}` } });
   const data = await response.json();
   if (!response.ok) {
     employeeName.textContent = data.error || "تعذر تحميل بيانات الموظف";
@@ -76,32 +86,62 @@ const loadEmployee = async () => {
   const employee = loadedEmployee;
   const departmentInfo = getMainAndSubDepartments(employee);
   const status = statusText(employee.status, employee.is_active);
+  const loginEnabled = employee.is_login_enabled !== false && employee.account_status !== "disabled" && employee.account_status !== "locked";
+  const roles = employee.roles || employee.account?.roles || ["employee"];
+  const permissions = employee.permissions || employee.account?.permissions || [];
 
-  employeeName.textContent = employee.full_name;
-  employeeMeta.textContent = `${employee.job_title || "بدون مسمى"} • ${departmentInfo.main}${departmentInfo.sub !== "-" ? " / " + departmentInfo.sub : ""}`;
+  employeeAvatar.textContent = initials(employee.full_name);
+  employeeName.textContent = employee.full_name || "موظف بدون اسم";
+  employeeMeta.textContent = `${employee.job_title || employee.job_title_name || "بدون مسمى"} • ${departmentInfo.main}${departmentInfo.sub !== "-" ? " / " + departmentInfo.sub : ""}`;
+  employeeStatusBadge.outerHTML = badge(status, employee.is_active ? "status-active" : "status-inactive");
   summaryStatus.textContent = status;
   summaryMainDepartment.textContent = departmentInfo.main;
   summarySubDepartment.textContent = departmentInfo.sub;
   summarySalary.textContent = `${formatMoney(employee.basic_salary)} د.أ`;
 
-  employeeDetails.innerHTML = `
-    <div><strong>رقم الموظف:</strong> ${employee.employee_number || employee.national_id || employee.id}</div>
-    <div><strong>الاسم الكامل:</strong> ${employee.full_name}</div>
-    <div><strong>الهاتف:</strong> ${employee.phone || "-"}</div>
-    <div><strong>البريد الإلكتروني:</strong> ${employee.email || "-"}</div>
-    <div><strong>العنوان:</strong> ${employee.address || "-"}</div>
-    <div><strong>المسمى الوظيفي:</strong> ${employee.job_title || "-"}</div>
-    <div><strong>القسم الرئيسي:</strong> ${departmentInfo.main}</div>
-    <div><strong>القسم الفرعي:</strong> ${departmentInfo.sub}</div>
-    <div><strong>كل الأقسام:</strong> ${departmentInfo.all}</div>
-    <div><strong>تاريخ التعيين:</strong> ${formatDate(employee.hire_date)}</div>
-    <div><strong>نوع التوظيف:</strong> ${employmentTypeLabel(employee.employment_type)}</div>
-    <div><strong>الحالة:</strong> ${status}</div>
-    <div><strong>الراتب الأساسي:</strong> ${formatMoney(employee.basic_salary)} د.أ</div>
-    <div><strong>خصم الضمان:</strong> ${employee.social_security_enabled ? "مفعل" : "غير مفعل"}</div>
-    <div><strong>نسبة الضمان:</strong> ${employee.social_security_rate || 0}%</div>
-    <div><strong>تاريخ الإنشاء:</strong> ${formatDate(employee.created_at)}</div>
-    <div><strong>آخر تعديل:</strong> ${formatDate(employee.updated_at)}</div>
+  if (managePermissionsBtn && !hasAnyPermission(["employees.manage_permissions", "permissions.view", "permissions.manage"])) managePermissionsBtn.style.display = "none";
+  if (editEmployeeBtn && !hasAnyPermission(["employees.update"])) editEmployeeBtn.style.display = "none";
+
+  personalDetails.innerHTML = [
+    detailItem("الاسم الكامل", employee.full_name),
+    detailItem("رقم الموظف", employee.employee_number || employee.national_id || employee.id),
+    detailItem("الرقم الوطني", employee.national_id),
+    detailItem("الهاتف", employee.phone),
+    detailItem("البريد الإلكتروني", employee.email),
+    detailItem("العنوان", employee.address),
+    detailItem("تاريخ الميلاد", formatDate(employee.date_of_birth)),
+    detailItem("تاريخ الإنشاء", formatDate(employee.created_at)),
+  ].join("");
+
+  loginDetails.innerHTML = [
+    detailItem("حالة الدخول", loginEnabled ? badge("الدخول مفعّل", "status-active") : badge("الدخول معطّل", "status-inactive")),
+    detailItem("حالة الحساب", accountStatusLabels[employee.account_status] || employee.account_status || "نشط"),
+    detailItem("آخر تسجيل دخول", formatDate(employee.last_login_at)),
+    detailItem("آخر تعديل", formatDate(employee.updated_at)),
+  ].join("");
+
+  jobDetails.innerHTML = [
+    detailItem("المسمى الوظيفي", employee.job_title || employee.job_title_name),
+    detailItem("القسم الأساسي", departmentInfo.main),
+    detailItem("القسم الإضافي", departmentInfo.sub),
+    detailItem("كل الأقسام", departmentInfo.all),
+    detailItem("تاريخ التعيين", formatDate(employee.hire_date)),
+    detailItem("نوع التوظيف", employmentTypeLabel(employee.employment_type)),
+    detailItem("الحالة الوظيفية", status),
+    detailItem("المدير المباشر", employee.direct_manager_name || "-"),
+  ].join("");
+
+  financialDetails.innerHTML = [
+    detailItem("الراتب الأساسي", `${formatMoney(employee.basic_salary)} د.أ`),
+    detailItem("خصم الضمان", employee.social_security_enabled ? "مفعل" : "غير مفعل"),
+    detailItem("نسبة الضمان", `${employee.social_security_rate || 0}%`),
+    detailItem("ملاحظة", "التعديل يؤثر على الكشوف المستقبلية فقط"),
+  ].join("");
+
+  permissionsDetails.innerHTML = `
+    <div class="role-pills">${roles.map((role) => badge(roleLabels[role] || role)).join("") || badge("لا توجد أدوار")}</div>
+    <div style="height:10px"></div>
+    <div class="department-pills">${permissions.length ? permissions.slice(0, 12).map((permission) => badge(permission)).join("") : badge("لا توجد صلاحيات مباشرة")}${permissions.length > 12 ? badge(`+${permissions.length - 12}`) : ""}</div>
   `;
 
   renderAttendance(data.attendance || []);
@@ -113,23 +153,23 @@ const loadEmployee = async () => {
 const renderAttendance = (rows) => {
   attendanceBody.innerHTML = "";
   if (!rows.length) return fillEmpty(attendanceBody, 5, "لا توجد سجلات حضور لهذا الموظف");
-  rows.forEach((row) => {
+  rows.slice(0, 8).forEach((row) => {
     attendanceBody.innerHTML += `<tr><td>${formatDate(row.attendance_date || row.date)}</td><td>${row.check_in || "-"}</td><td>${row.check_out || "-"}</td><td>${requestStatusLabel(row.status)}</td><td>${row.source || row.record_source || "النظام"}</td></tr>`;
   });
 };
 
 const renderLeaves = (rows) => {
   leavesBody.innerHTML = "";
-  if (!rows.length) return fillEmpty(leavesBody, 5, "لا توجد طلبات إجازة لهذا الموظف");
-  rows.forEach((row) => {
-    leavesBody.innerHTML += `<tr><td>${leaveLabel(row.leave_type)}</td><td>${formatDate(row.start_date)}</td><td>${formatDate(row.end_date)}</td><td>${calculateDays(row.start_date, row.end_date)}</td><td>${requestStatusLabel(row.status)}</td></tr>`;
+  if (!rows.length) return fillEmpty(leavesBody, 5, "لا توجد طلبات لهذا الموظف");
+  rows.slice(0, 8).forEach((row) => {
+    leavesBody.innerHTML += `<tr><td>${leaveLabel(row.leave_type || row.request_type)}</td><td>${formatDate(row.start_date)}</td><td>${formatDate(row.end_date)}</td><td>${calculateDays(row.start_date, row.end_date)}</td><td>${requestStatusLabel(row.status)}</td></tr>`;
   });
 };
 
 const renderSalaries = (rows) => {
   salariesBody.innerHTML = "";
   if (!rows.length) return fillEmpty(salariesBody, 5, "لا توجد سجلات رواتب لهذا الموظف");
-  rows.forEach((row) => {
+  rows.slice(0, 8).forEach((row) => {
     salariesBody.innerHTML += `<tr><td>${row.salary_month || row.month || "-"}</td><td>${formatMoney(row.gross_salary || row.total_salary || 0)}</td><td>${formatMoney(row.total_deductions || row.deductions || 0)}</td><td>${formatMoney(row.net_salary || 0)}</td><td>${requestStatusLabel(row.status)}</td></tr>`;
   });
 };
@@ -137,8 +177,8 @@ const renderSalaries = (rows) => {
 const renderAudit = (rows) => {
   auditBody.innerHTML = "";
   if (!rows.length) return fillEmpty(auditBody, 3, "لا توجد تعديلات مسجلة على هذا الموظف");
-  rows.forEach((row) => {
-    auditBody.innerHTML += `<tr><td>${row.action || "-"}</td><td>${formatDate(row.created_at)}</td><td>${row.actor_user_id || "النظام"}</td></tr>`;
+  rows.slice(0, 8).forEach((row) => {
+    auditBody.innerHTML += `<tr><td>${row.action || row.change_type || "-"}</td><td>${formatDate(row.created_at)}</td><td>${row.actor_name || row.actor_user_id || "النظام"}</td></tr>`;
   });
 };
 

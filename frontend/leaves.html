@@ -24,7 +24,7 @@
       </nav>
     </aside>
 
-    <main class="main-content">
+    <main class="main-content requests-page">
       <header class="topbar">
         <div>
           <h1>الطلبات</h1>
@@ -33,32 +33,32 @@
         <button id="logoutBtn" class="logout-btn">تسجيل الخروج</button>
       </header>
 
-      <section class="profile-summary-grid">
+      <section class="profile-summary-grid requests-summary-grid">
         <div class="summary-card"><span>إجمالي الطلبات</span><strong id="requestsTotalCard">0</strong></div>
         <div class="summary-card"><span>قيد الانتظار</span><strong id="requestsPendingCard">0</strong></div>
         <div class="summary-card"><span>يحتاج معلومات</span><strong id="requestsInfoCard">0</strong></div>
         <div class="summary-card"><span>مغلقة</span><strong id="requestsClosedCard">0</strong></div>
       </section>
 
-      <section class="content-card">
+      <section class="content-card requests-create-card">
         <div class="section-header">
           <div>
             <h2>إنشاء طلب</h2>
-            <p>اختر نوع الطلب، وسيظهر النموذج في نافذة سريعة وقابلة للتمرير.</p>
+            <p>اختر نوع الطلب، وسيظهر النموذج في نافذة مرتبة وسريعة.</p>
           </div>
         </div>
         <div id="requestTypeCards" class="request-type-grid">
-          <button type="button" class="request-type-card" data-type="leave"><span class="card-icon">☀</span><strong>طلب إجازة</strong><small>إجازة سنوية أو مرضية أو طارئة</small></button>
-          <button type="button" class="request-type-card" data-type="exit"><span class="card-icon">↗</span><strong>طلب مغادرة</strong><small>مغادرة مبكرة أو مؤقتة</small></button>
-          <button type="button" class="request-type-card" data-type="advance"><span class="card-icon">◈</span><strong>طلب سلفة</strong><small>طلب مالي للمراجعة فقط</small></button>
-          <button type="button" class="request-type-card" data-type="resignation"><span class="card-icon">✎</span><strong>طلب استقالة</strong><small>تقديم استقالة مع التفاصيل</small></button>
-          <button type="button" class="request-type-card" data-type="complaint"><span class="card-icon">!</span><strong>شكوى</strong><small>شكوى عادية أو سرية</small></button>
-          <button type="button" class="request-type-card" data-type="custom"><span class="card-icon">＋</span><strong>طلب مخصص</strong><small>أي طلب غير مصنف</small></button>
+          <button type="button" class="request-type-card" data-type="leave"><span class="card-icon">☀</span><span><strong>طلب إجازة</strong><small>إجازة سنوية أو مرضية أو طارئة</small></span></button>
+          <button type="button" class="request-type-card" data-type="exit"><span class="card-icon">↗</span><span><strong>طلب مغادرة</strong><small>مغادرة مبكرة أو مؤقتة</small></span></button>
+          <button type="button" class="request-type-card" data-type="advance"><span class="card-icon">◈</span><span><strong>طلب سلفة</strong><small>طلب مالي للمراجعة فقط</small></span></button>
+          <button type="button" class="request-type-card" data-type="resignation"><span class="card-icon">✎</span><span><strong>طلب استقالة</strong><small>تقديم استقالة مع التفاصيل</small></span></button>
+          <button type="button" class="request-type-card" data-type="complaint"><span class="card-icon">!</span><span><strong>شكوى</strong><small>شكوى عادية أو سرية</small></span></button>
+          <button type="button" class="request-type-card" data-type="custom"><span class="card-icon">＋</span><span><strong>طلب مخصص</strong><small>أي طلب غير مصنف</small></span></button>
         </div>
         <p id="formMessage" class="inline-message"></p>
       </section>
 
-      <section class="table-container">
+      <section class="table-container requests-list-section">
         <div class="section-header">
           <div>
             <h2>قائمة الطلبات</h2>
@@ -70,7 +70,7 @@
           </div>
         </div>
 
-        <div class="filters-grid attendance-filters-grid">
+        <div class="filters-grid attendance-filters-grid request-filter-bar">
           <input type="text" id="requestSearchInput" placeholder="بحث بالموظف أو رقم الموظف أو تفاصيل الطلب" />
           <select id="requestEmployeeFilter"><option value="">كل الموظفين</option></select>
           <select id="requestTypeFilter"><option value="">كل أنواع الطلبات</option></select>
@@ -79,7 +79,7 @@
           <input type="date" id="requestToDate" title="إلى تاريخ" />
         </div>
 
-        <div class="table-scroll">
+        <div class="table-scroll request-table-wrap">
           <table>
             <thead>
               <tr>
@@ -97,6 +97,7 @@
             <tbody id="requestsTableBody"><tr><td colspan="9">جاري تحميل البيانات...</td></tr></tbody>
           </table>
         </div>
+        <div id="requestsCardsList" class="request-list-cards"></div>
       </section>
     </main>
   </div>
@@ -107,13 +108,19 @@
         <div><h2 id="requestFormTitle">إنشاء طلب</h2><p id="requestFormHelp">املأ البيانات المطلوبة ثم أرسل الطلب.</p></div>
         <button type="button" class="secondary-btn small-btn" id="closeRequestModalBtn">إغلاق</button>
       </div>
-      <form id="requestForm" class="form-grid employee-form-grid request-modal-form">
+      <form id="requestForm" class="request-modal-form">
         <input type="hidden" id="request_type" />
-        <select id="employee_id"><option value="">موظفي الحالي</option></select>
-        <div id="dynamicRequestFields" class="full-width request-dynamic-fields"></div>
-        <button type="submit" id="submitRequestBtn">إرسال الطلب</button>
-        <button type="button" id="saveDraftBtn" class="secondary-btn">حفظ كمسودة</button>
-        <button type="button" id="resetRequestBtn" class="secondary-btn">إلغاء</button>
+        <div class="request-field full-width" id="employeeSelectField">
+          <label for="employee_id">الموظف</label>
+          <select id="employee_id"><option value="">موظفي الحالي</option></select>
+          <small>يظهر اختيار الموظف للمستخدمين المخولين فقط.</small>
+        </div>
+        <div id="dynamicRequestFields" class="request-dynamic-fields"></div>
+        <div class="request-modal-footer">
+          <button type="submit" id="submitRequestBtn">إرسال الطلب</button>
+          <button type="button" id="saveDraftBtn" class="secondary-btn">حفظ كمسودة</button>
+          <button type="button" id="resetRequestBtn" class="secondary-btn">إلغاء</button>
+        </div>
       </form>
     </div>
   </div>
@@ -124,21 +131,23 @@
         <div><h2>تفاصيل الطلب</h2><p id="requestDetailsSubtitle">جاري تحميل التفاصيل...</p></div>
         <button type="button" class="secondary-btn small-btn" id="closeDetailsBtn">إغلاق</button>
       </div>
-      <input type="hidden" id="selectedRequestId" />
-      <div id="requestDetailsBox" class="details-grid request-details-grid"><div class="full-width empty-state">جاري تحميل التفاصيل...</div></div>
-      <div class="actions-row request-actions-row">
-        <button type="button" id="approveRequestBtn">موافقة</button>
-        <button type="button" id="rejectRequestBtn" class="danger-btn">رفض</button>
-        <button type="button" id="requestInfoBtn" class="secondary-btn">طلب معلومات</button>
-        <button type="button" id="respondInfoBtn" class="secondary-btn">الرد على طلب المعلومات</button>
-        <button type="button" id="cancelRequestBtn" class="danger-btn">إلغاء الطلب</button>
-      </div>
-      <h3 class="timeline-title">سجل الإجراءات</h3>
-      <div class="table-scroll request-log-scroll">
-        <table>
-          <thead><tr><th>#</th><th>الإجراء</th><th>منفذ الإجراء</th><th>التفاصيل</th><th>التاريخ</th></tr></thead>
-          <tbody id="requestLogsBody"><tr><td colspan="5">جاري تحميل السجل...</td></tr></tbody>
-        </table>
+      <div class="modal-body">
+        <input type="hidden" id="selectedRequestId" />
+        <div id="requestDetailsBox" class="request-details-grid"><div class="full-width empty-state">جاري تحميل التفاصيل...</div></div>
+        <div class="actions-card">
+          <h3>الإجراءات المتاحة</h3>
+          <div class="actions-row request-actions-row">
+            <button type="button" id="approveRequestBtn">موافقة</button>
+            <button type="button" id="rejectRequestBtn" class="danger-btn">رفض</button>
+            <button type="button" id="requestInfoBtn" class="secondary-btn">طلب معلومات</button>
+            <button type="button" id="respondInfoBtn" class="secondary-btn">الرد على طلب المعلومات</button>
+            <button type="button" id="cancelRequestBtn" class="danger-btn">إلغاء الطلب</button>
+          </div>
+        </div>
+        <div class="timeline-card">
+          <h3 class="timeline-title">سجل الإجراءات</h3>
+          <div id="requestTimelineList" class="timeline-list"><div class="empty-state">جاري تحميل السجل...</div></div>
+        </div>
       </div>
     </div>
   </div>
@@ -149,9 +158,12 @@
         <div><h2 id="actionModalTitle">تنفيذ إجراء</h2><p id="actionModalHelp">اكتب الملاحظة المطلوبة إن وجدت.</p></div>
         <button type="button" class="secondary-btn small-btn" id="closeActionModalBtn">إغلاق</button>
       </div>
-      <textarea id="actionNoteInput" placeholder="اكتب هنا"></textarea>
-      <p id="actionModalMessage" class="inline-message"></p>
-      <div class="actions-row">
+      <div class="action-modal-body">
+        <label for="actionNoteInput" id="actionNoteLabel">الملاحظة</label>
+        <textarea id="actionNoteInput" placeholder="اكتب هنا"></textarea>
+        <p id="actionModalMessage" class="inline-message"></p>
+      </div>
+      <div class="actions-row action-modal-footer">
         <button type="button" id="confirmActionBtn">تأكيد</button>
         <button type="button" id="cancelActionModalBtn" class="secondary-btn">إلغاء</button>
       </div>
@@ -159,6 +171,6 @@
   </div>
 
   <script src="./js/auth-guard.js"></script>
-  <script src="./js/leaves.js?v=requests-fast-2"></script>
+  <script src="./js/leaves.js?v=requests-ui-clean-1"></script>
 </body>
 </html>

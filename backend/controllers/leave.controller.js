@@ -133,6 +133,9 @@ const updateLeaveStatus = async (req, res) => {
       return res.status(400).json({ error: "يرجى كتابة سبب الرفض أو الإلغاء" });
     }
 
+    const decidedAt = status === "pending" ? null : new Date();
+    const decidedBy = status === "pending" ? null : (req.user?.id || null);
+
     const result = await pool.query(
       `
       UPDATE leave_requests
@@ -140,12 +143,12 @@ const updateLeaveStatus = async (req, res) => {
           admin_notes = $2,
           decision_reason = $3,
           decided_by = $4,
-          decided_at = CASE WHEN $1 = 'pending' THEN NULL ELSE CURRENT_TIMESTAMP END,
+          decided_at = $5,
           updated_at = CURRENT_TIMESTAMP
-      WHERE id = $5
+      WHERE id = $6
       RETURNING *
       `,
-      [status, admin_notes || null, decision_reason || null, req.user?.id || null, id]
+      [status, admin_notes || null, decision_reason || null, decidedBy, decidedAt, id]
     );
 
     if (result.rows.length === 0) return res.status(404).json({ error: "طلب الإجازة غير موجود" });

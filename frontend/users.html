@@ -3,9 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>إدارة المستخدمين والصلاحيات</title>
+  <title>إدارة الصلاحيات</title>
   <link rel="stylesheet" href="./css/style.css" />
   <link rel="stylesheet" href="./css/employees.css" />
+  <link rel="stylesheet" href="./css/permissions.css" />
 </head>
 <body>
   <div class="app-layout">
@@ -13,12 +14,12 @@
       <div class="sidebar-logo">HR System V2</div>
       <nav class="sidebar-menu">
         <a href="./dashboard.html" data-role-link="dashboard">لوحة التحكم</a>
-        <a href="./users.html" class="active" data-role-link="users">المستخدمون</a>
+        <a href="./users.html" class="active" data-role-link="users">الصلاحيات</a>
         <a href="./departments.html" data-role-link="departments">الأقسام</a>
         <a href="./employees.html" data-role-link="employees">الموظفون</a>
         <a href="./attendance.html" data-role-link="attendance">الحضور</a>
         <a href="./shifts.html" data-role-link="shifts">الشفتات</a>
-        <a href="./leaves.html" data-role-link="leaves">الإجازات</a>
+        <a href="./leaves.html" data-role-link="leaves">الطلبات</a>
         <a href="./salaries.html" data-role-link="salaries">الرواتب</a>
         <a href="./reports.html" data-role-link="reports">التقارير</a>
       </nav>
@@ -27,64 +28,94 @@
     <main class="main-content">
       <header class="topbar">
         <div>
-          <h1>إدارة المستخدمين والصلاحيات</h1>
-          <p id="pageSubtitle">أدوار متعددة وصلاحيات تفصيلية لكل مستخدم</p>
+          <h1>إدارة الصلاحيات</h1>
+          <p id="pageSubtitle">إدارة المسميات الوظيفية كقوالب صلاحيات، وتخصيص صلاحيات الموظفين بشكل واضح وآمن</p>
         </div>
         <button id="logoutBtn" class="logout-btn">تسجيل الخروج</button>
       </header>
 
-      <section class="content-card" id="createUserSection">
-        <h2>إنشاء مستخدم جديد</h2>
-        <form id="createUserForm" class="form-grid employee-form-grid">
-          <input type="text" id="full_name" placeholder="الاسم الكامل" required />
-          <input type="email" id="email" placeholder="البريد الإلكتروني" required />
-          <input type="password" id="password" placeholder="كلمة المرور" required />
-          <select id="role" required>
-            <option value="">الدور الأساسي</option>
-            <option value="admin">مدير النظام</option>
-            <option value="hr">الموارد البشرية</option>
-            <option value="employee">موظف</option>
-          </select>
-          <button type="submit">إنشاء المستخدم</button>
-        </form>
-        <p id="formMessage" class="inline-message"></p>
-      </section>
-
       <section class="content-card">
-        <h2>تعديل أدوار وصلاحيات المستخدم</h2>
-        <form id="accessForm" class="form-grid employee-form-grid">
-          <input type="hidden" id="accessUserId" />
-          <input type="text" id="accessUserName" placeholder="المستخدم المختار" readonly />
-          <div class="form-section full-width">
-            <h3>الأدوار</h3>
-            <div class="badge-list permissions-box" id="rolesBox"></div>
-          </div>
-          <div class="form-section full-width">
-            <h3>الصلاحيات الإضافية المباشرة</h3>
-            <div class="permissions-grid" id="permissionsBox"></div>
-          </div>
-          <select id="accessActive"><option value="true">نشط</option><option value="false">معطل</option></select>
-          <button type="submit">حفظ الصلاحيات</button>
-        </form>
-        <p id="accessMessage" class="inline-message"></p>
-      </section>
+        <div class="permissions-tabs">
+          <button class="permissions-tab active" data-tab="employeesPanel">الموظفون</button>
+          <button class="permissions-tab" data-tab="jobTitlesPanel">المسميات الوظيفية</button>
+          <button class="permissions-tab" data-tab="logsPanel">سجل التعديلات</button>
+        </div>
 
-      <section class="table-container">
-        <div class="section-header"><div><h2>المستخدمون</h2><p id="usersCountText">جاري تحميل البيانات...</p></div></div>
-        <div class="table-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th>#</th><th>الاسم</th><th>البريد الإلكتروني</th><th>الأدوار</th><th>صلاحيات مباشرة</th><th>الحالة</th><th>إجراءات</th>
-              </tr>
-            </thead>
-            <tbody id="usersTableBody"></tbody>
-          </table>
+        <div id="employeesPanel" class="permissions-panel active">
+          <div class="permissions-layout">
+            <div class="side-list-card">
+              <h2>الموظفون</h2>
+              <input type="text" id="employeeSearch" placeholder="بحث عن موظف" />
+              <div id="employeesPermissionList" class="side-list"><div class="empty-soft">جاري تحميل الموظفين...</div></div>
+            </div>
+            <div class="details-card">
+              <h2 id="selectedEmployeeTitle">اختر موظفًا</h2>
+              <p id="selectedEmployeeHelp">ستظهر مصادر الصلاحيات: المسمى الوظيفي، الأدوار، الصلاحيات الإضافية، والاستثناءات.</p>
+              <div id="employeePermissionSummary" class="permission-source-grid"></div>
+              <form id="employeePermissionForm" class="permission-form-grid" style="margin-top:16px;display:none">
+                <div>
+                  <label for="employeeRolesSelect">الأدوار</label>
+                  <select id="employeeRolesSelect" multiple></select>
+                </div>
+                <div>
+                  <label for="employeeDirectPermissionsSelect">صلاحيات إضافية</label>
+                  <select id="employeeDirectPermissionsSelect" multiple></select>
+                </div>
+                <div class="full-width">
+                  <label for="employeeDeniedPermissionsSelect">صلاحيات مستثناة</label>
+                  <select id="employeeDeniedPermissionsSelect" multiple></select>
+                </div>
+                <div class="permission-actions full-width">
+                  <button type="submit">حفظ صلاحيات الموظف</button>
+                  <button type="button" id="clearEmployeeSelectionBtn" class="secondary-btn">إلغاء</button>
+                </div>
+              </form>
+              <p id="employeePermissionMessage" class="inline-message"></p>
+            </div>
+          </div>
+        </div>
+
+        <div id="jobTitlesPanel" class="permissions-panel">
+          <div class="permissions-layout">
+            <div class="side-list-card">
+              <h2>المسميات الوظيفية</h2>
+              <button id="newJobTitleBtn" class="secondary-btn">إنشاء مسمى وظيفي</button>
+              <div id="jobTitlesList" class="side-list"><div class="empty-soft">جاري تحميل المسميات...</div></div>
+            </div>
+            <div class="details-card">
+              <h2 id="jobTitleFormTitle">إنشاء مسمى وظيفي</h2>
+              <form id="jobTitleForm" class="permission-form-grid">
+                <input type="hidden" id="jobTitleId" />
+                <div><label for="jobTitleName">اسم المسمى</label><input id="jobTitleName" type="text" placeholder="مثال: مدير إنتاج" required /></div>
+                <div><label for="jobTitleCode">الكود</label><input id="jobTitleCode" type="text" placeholder="اختياري" /></div>
+                <div><label for="jobTitleStatus">الحالة</label><select id="jobTitleStatus"><option value="active">نشط</option><option value="inactive">غير نشط</option><option value="archived">مؤرشف</option></select></div>
+                <div class="full-width"><label for="jobTitleDescription">الوصف</label><textarea id="jobTitleDescription" placeholder="وصف مختصر للمسمى"></textarea></div>
+                <div class="full-width">
+                  <h3>الصلاحيات الافتراضية</h3>
+                  <div id="jobTitlePermissionsBox" class="permission-groups"></div>
+                </div>
+                <div class="permission-actions full-width">
+                  <button type="submit">حفظ المسمى</button>
+                  <button type="button" id="resetJobTitleBtn" class="secondary-btn">مسح النموذج</button>
+                  <button type="button" id="disableJobTitleBtn" class="danger-btn">تعطيل</button>
+                  <button type="button" id="deleteJobTitleBtn" class="danger-btn">حذف/أرشفة</button>
+                </div>
+              </form>
+              <p id="jobTitleMessage" class="inline-message"></p>
+            </div>
+          </div>
+        </div>
+
+        <div id="logsPanel" class="permissions-panel">
+          <div class="permission-card">
+            <div class="section-header"><div><h2>سجل تعديلات الصلاحيات</h2><p>آخر العمليات المؤثرة على الصلاحيات والمسميات الوظيفية.</p></div><button id="refreshLogsBtn" class="secondary-btn">تحديث</button></div>
+            <div id="permissionLogsList" class="permission-log-list"><div class="empty-soft">جاري تحميل السجل...</div></div>
+          </div>
         </div>
       </section>
     </main>
   </div>
   <script src="./js/auth-guard.js"></script>
-  <script src="./js/users.js?v=permissions-1"></script>
+  <script src="./js/users.js?v=job-title-permissions-1"></script>
 </body>
 </html>

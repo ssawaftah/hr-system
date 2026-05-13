@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>إدارة الإجازات</title>
+  <title>الطلبات</title>
   <link rel="stylesheet" href="./css/style.css" />
   <link rel="stylesheet" href="./css/employees.css" />
 </head>
@@ -13,11 +13,11 @@
       <div class="sidebar-logo">HR System V2</div>
       <nav class="sidebar-menu">
         <a href="./dashboard.html" data-role-link="dashboard">لوحة التحكم</a>
-        <a href="./users.html" data-role-link="users">المستخدمون</a>
         <a href="./departments.html" data-role-link="departments">الأقسام</a>
         <a href="./employees.html" data-role-link="employees">الموظفون</a>
         <a href="./attendance.html" data-role-link="attendance">الحضور</a>
-        <a href="./leaves.html" class="active" data-role-link="leaves">الإجازات</a>
+        <a href="./shifts.html" data-role-link="shifts">الشفتات</a>
+        <a href="./leaves.html" class="active" data-role-link="leaves">الطلبات</a>
         <a href="./salaries.html" data-role-link="salaries">الرواتب</a>
         <a href="./reports.html" data-role-link="reports">التقارير</a>
       </nav>
@@ -26,38 +26,86 @@
     <main class="main-content">
       <header class="topbar">
         <div>
-          <h1>إدارة الإجازات</h1>
-          <p id="pageSubtitle">دورة عمل كاملة لإنشاء ومراجعة واعتماد الإجازات</p>
+          <h1>الطلبات</h1>
+          <p id="pageSubtitle">إنشاء ومتابعة واعتماد طلبات الموظفين من مكان واحد</p>
         </div>
         <button id="logoutBtn" class="logout-btn">تسجيل الخروج</button>
       </header>
 
       <section class="profile-summary-grid">
-        <div class="summary-card"><span>إجمالي الطلبات</span><strong id="leavesTotalCard">0</strong></div>
-        <div class="summary-card"><span>قيد الانتظار</span><strong id="leavesPendingCard">0</strong></div>
-        <div class="summary-card"><span>مقبولة</span><strong id="leavesApprovedCard">0</strong></div>
-        <div class="summary-card"><span>مرفوضة / ملغاة</span><strong id="leavesRejectedCard">0</strong></div>
+        <div class="summary-card"><span>إجمالي الطلبات</span><strong id="requestsTotalCard">0</strong></div>
+        <div class="summary-card"><span>قيد الانتظار</span><strong id="requestsPendingCard">0</strong></div>
+        <div class="summary-card"><span>يحتاج معلومات</span><strong id="requestsInfoCard">0</strong></div>
+        <div class="summary-card"><span>مغلقة</span><strong id="requestsClosedCard">0</strong></div>
       </section>
 
       <section class="content-card">
-        <h2 id="leaveFormTitle">طلب إجازة</h2>
-        <form id="leaveForm" class="form-grid employee-form-grid">
-          <input type="hidden" id="leaveId" />
-          <select id="employee_id" required><option value="">جاري تحميل الموظفين...</option></select>
-          <select id="leave_type">
+        <div class="section-header">
+          <div>
+            <h2>إنشاء طلب</h2>
+            <p>اختر نوع الطلب ثم عبئ الحقول المطلوبة. كل طلب يتم حفظه مع سجل إجراءات واضح.</p>
+          </div>
+        </div>
+        <div id="requestTypeCards" class="profile-summary-grid request-type-grid">
+          <button type="button" class="summary-card request-type-card" data-type="leave"><span>طلب إجازة</span><strong>إجازة</strong></button>
+          <button type="button" class="summary-card request-type-card" data-type="exit"><span>طلب مغادرة</span><strong>مغادرة</strong></button>
+          <button type="button" class="summary-card request-type-card" data-type="advance"><span>طلب سلفة</span><strong>سلفة</strong></button>
+          <button type="button" class="summary-card request-type-card" data-type="resignation"><span>طلب استقالة</span><strong>استقالة</strong></button>
+          <button type="button" class="summary-card request-type-card" data-type="complaint"><span>شكوى</span><strong>شكوى</strong></button>
+          <button type="button" class="summary-card request-type-card" data-type="custom"><span>طلب مخصص</span><strong>مخصص</strong></button>
+        </div>
+      </section>
+
+      <section class="content-card">
+        <h2 id="requestFormTitle">تفاصيل الطلب</h2>
+        <form id="requestForm" class="form-grid employee-form-grid">
+          <input type="hidden" id="request_type" />
+          <select id="employee_id"><option value="">اختر الموظف</option></select>
+
+          <div class="form-section full-width request-fields" data-fields="leave">
+            <h3>بيانات طلب الإجازة</h3>
+          </div>
+          <select class="request-input" data-for="leave" id="leave_type">
             <option value="annual">سنوية</option>
             <option value="sick">مرضية</option>
-            <option value="unpaid">بدون راتب</option>
             <option value="emergency">طارئة</option>
+            <option value="unpaid">بدون راتب</option>
             <option value="other">أخرى</option>
           </select>
-          <input type="date" id="start_date" required />
-          <input type="date" id="end_date" required />
-          <input type="number" id="days_preview" placeholder="عدد الأيام" readonly />
-          <input type="text" id="reason" placeholder="سبب الإجازة" />
-          <input type="text" id="admin_notes" placeholder="ملاحظات إدارية" />
-          <button type="submit">حفظ الطلب</button>
-          <button type="button" id="cancelLeaveEditBtn" class="secondary-btn">إلغاء التعديل</button>
+          <input class="request-input" data-for="leave" type="date" id="start_date" />
+          <input class="request-input" data-for="leave" type="date" id="end_date" />
+          <input class="request-input" data-for="leave" type="number" id="days_preview" placeholder="عدد الأيام" readonly />
+
+          <div class="form-section full-width request-fields" data-fields="exit"><h3>بيانات طلب المغادرة</h3></div>
+          <input class="request-input" data-for="exit" type="date" id="exit_date" />
+          <input class="request-input" data-for="exit" type="time" id="exit_time" />
+          <input class="request-input" data-for="exit" type="time" id="return_time" placeholder="وقت العودة المتوقع" />
+
+          <div class="form-section full-width request-fields" data-fields="advance"><h3>بيانات طلب السلفة</h3></div>
+          <input class="request-input" data-for="advance" type="number" id="advance_amount" placeholder="المبلغ المطلوب" min="0" step="0.01" />
+          <input class="request-input" data-for="advance" type="text" id="deduction_method" placeholder="طريقة الخصم المقترحة" />
+
+          <div class="form-section full-width request-fields" data-fields="resignation"><h3>بيانات طلب الاستقالة</h3></div>
+          <input class="request-input" data-for="resignation" type="date" id="last_working_day" />
+          <input class="request-input" data-for="resignation" type="text" id="handover_notes" placeholder="ملاحظات تسليم العهدة" />
+
+          <div class="form-section full-width request-fields" data-fields="complaint"><h3>بيانات الشكوى</h3></div>
+          <input class="request-input" data-for="complaint" type="text" id="complaint_title" placeholder="عنوان الشكوى" />
+          <select class="request-input" data-for="complaint" id="is_confidential">
+            <option value="false">غير سرية</option>
+            <option value="true">سرية</option>
+          </select>
+          <input class="request-input" data-for="complaint" type="text" id="against_employee" placeholder="ضد موظف، اختياري" />
+
+          <div class="form-section full-width request-fields" data-fields="custom"><h3>بيانات الطلب المخصص</h3></div>
+          <input class="request-input" data-for="custom" type="text" id="custom_title" placeholder="عنوان الطلب" />
+
+          <input class="full-width" type="text" id="reason" placeholder="السبب / العنوان" />
+          <textarea class="full-width" id="details" placeholder="التفاصيل أو الملاحظات الاختيارية"></textarea>
+
+          <button type="submit" id="submitRequestBtn">إرسال الطلب</button>
+          <button type="button" id="saveDraftBtn" class="secondary-btn">حفظ كمسودة</button>
+          <button type="button" id="resetRequestBtn" class="secondary-btn">إلغاء</button>
         </form>
         <p id="formMessage" class="inline-message"></p>
       </section>
@@ -65,38 +113,22 @@
       <section class="table-container">
         <div class="section-header">
           <div>
-            <h2>طلبات الإجازات</h2>
-            <p id="leavesCountText">جاري تحميل البيانات...</p>
+            <h2>قائمة الطلبات</h2>
+            <p id="requestsCountText">جاري تحميل البيانات...</p>
           </div>
           <div class="actions-row">
-            <button id="refreshLeavesBtn" class="secondary-btn">تحديث</button>
-            <button id="exportLeavesBtn" class="secondary-btn">تصدير CSV</button>
+            <button id="refreshRequestsBtn" class="secondary-btn">تحديث</button>
+            <button id="exportRequestsBtn" class="secondary-btn">تصدير CSV</button>
           </div>
         </div>
 
         <div class="filters-grid attendance-filters-grid">
-          <input type="text" id="leaveSearchInput" placeholder="بحث باسم الموظف أو السبب أو الملاحظات" />
-          <select id="leaveEmployeeFilter"><option value="">كل الموظفين</option></select>
-          <select id="leaveMainDepartmentFilter"><option value="">كل الأقسام الرئيسية</option></select>
-          <select id="leaveSubDepartmentFilter"><option value="">كل الأقسام الفرعية</option></select>
-          <select id="leaveStatusFilter">
-            <option value="">كل الحالات</option>
-            <option value="pending">قيد الانتظار</option>
-            <option value="approved">مقبولة</option>
-            <option value="rejected">مرفوضة</option>
-            <option value="cancelled">ملغاة</option>
-          </select>
-          <select id="leaveTypeFilter">
-            <option value="">كل الأنواع</option>
-            <option value="annual">سنوية</option>
-            <option value="sick">مرضية</option>
-            <option value="unpaid">بدون راتب</option>
-            <option value="emergency">طارئة</option>
-            <option value="other">أخرى</option>
-          </select>
-          <input type="month" id="leaveMonthFilter" title="الشهر" />
-          <input type="date" id="leaveFromDate" title="من تاريخ" />
-          <input type="date" id="leaveToDate" title="إلى تاريخ" />
+          <input type="text" id="requestSearchInput" placeholder="بحث بالموظف أو رقم الموظف أو تفاصيل الطلب" />
+          <select id="requestEmployeeFilter"><option value="">كل الموظفين</option></select>
+          <select id="requestTypeFilter"><option value="">كل أنواع الطلبات</option></select>
+          <select id="requestStatusFilter"><option value="">كل الحالات</option></select>
+          <input type="date" id="requestFromDate" title="من تاريخ" />
+          <input type="date" id="requestToDate" title="إلى تاريخ" />
         </div>
 
         <div class="table-scroll">
@@ -105,25 +137,46 @@
               <tr>
                 <th>#</th>
                 <th>الموظف</th>
-                <th>القسم الرئيسي</th>
-                <th>القسم الفرعي</th>
-                <th>النوع</th>
-                <th>من</th>
-                <th>إلى</th>
-                <th>الأيام</th>
-                <th>السبب</th>
+                <th>رقم الموظف</th>
+                <th>القسم</th>
+                <th>نوع الطلب</th>
+                <th>العنوان</th>
                 <th>الحالة</th>
-                <th>سبب القرار</th>
+                <th>آخر تحديث</th>
                 <th>إجراءات</th>
               </tr>
             </thead>
-            <tbody id="leavesTableBody"><tr><td colspan="12">جاري تحميل البيانات...</td></tr></tbody>
+            <tbody id="requestsTableBody"><tr><td colspan="9">جاري تحميل البيانات...</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="content-card" id="requestDetailsCard" style="display:none">
+        <div class="section-header">
+          <div><h2>تفاصيل الطلب</h2><p id="requestDetailsSubtitle">-</p></div>
+          <button id="closeDetailsBtn" class="secondary-btn">إغلاق التفاصيل</button>
+        </div>
+        <div id="requestDetailsBox" class="details-grid"></div>
+        <div class="form-grid" style="margin-top:16px">
+          <input type="hidden" id="selectedRequestId" />
+          <textarea id="actionComment" class="full-width" placeholder="تعليق أو سبب الإجراء"></textarea>
+          <button type="button" id="approveRequestBtn">موافقة</button>
+          <button type="button" id="rejectRequestBtn" class="danger-btn">رفض</button>
+          <button type="button" id="requestInfoBtn" class="secondary-btn">طلب معلومات</button>
+          <button type="button" id="respondInfoBtn" class="secondary-btn">الرد على طلب المعلومات</button>
+          <button type="button" id="cancelRequestBtn" class="danger-btn">إلغاء الطلب</button>
+        </div>
+        <h3 style="margin-top:20px">سجل الإجراءات</h3>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>#</th><th>الإجراء</th><th>منفذ الإجراء</th><th>التعليق</th><th>التاريخ</th></tr></thead>
+            <tbody id="requestLogsBody"></tbody>
           </table>
         </div>
       </section>
     </main>
   </div>
   <script src="./js/auth-guard.js"></script>
-  <script src="./js/leaves.js?v=20260513-2"></script>
+  <script src="./js/leaves.js?v=requests-1"></script>
 </body>
 </html>

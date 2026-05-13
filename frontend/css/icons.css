@@ -1,0 +1,6 @@
+.app-icon,.nav-icon svg,.metric-icon svg,.shortcut-icon svg,.list-icon svg,.today-icon svg,.action-icon svg{width:20px;height:20px;display:block;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.nav-icon,.metric-icon,.shortcut-icon,.list-icon,.today-icon,.action-icon{background:#F0F7FF!important;color:#007AFF!important;border:1px solid rgba(0,122,255,.10)!important}
+.metric-icon,.shortcut-icon,.list-icon,.today-icon,.action-icon{font-size:0!important;flex:0 0 auto!important}
+.smart-shortcuts a:hover .shortcut-icon,.today-actions-list a:hover .list-icon,.metric-card:hover .metric-icon{background:#007AFF!important;color:#fff!important;box-shadow:0 10px 22px rgba(0,122,255,.18)!important}
+.button-link .app-icon,button .app-icon{width:18px;height:18px;stroke-width:2.2}
+.icon-only{font-size:0!important}

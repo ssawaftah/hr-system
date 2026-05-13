@@ -6,6 +6,7 @@
   <title>الطلبات</title>
   <link rel="stylesheet" href="./css/style.css" />
   <link rel="stylesheet" href="./css/employees.css" />
+  <link rel="stylesheet" href="./css/requests.css" />
 </head>
 <body>
   <div class="app-layout">
@@ -43,70 +44,17 @@
         <div class="section-header">
           <div>
             <h2>إنشاء طلب</h2>
-            <p>اختر نوع الطلب ثم عبئ الحقول المطلوبة. كل طلب يتم حفظه مع سجل إجراءات واضح.</p>
+            <p>اختر نوع الطلب، وسيظهر النموذج في نافذة سريعة دون إبطاء الصفحة.</p>
           </div>
         </div>
-        <div id="requestTypeCards" class="profile-summary-grid request-type-grid">
-          <button type="button" class="summary-card request-type-card" data-type="leave"><span>طلب إجازة</span><strong>إجازة</strong></button>
-          <button type="button" class="summary-card request-type-card" data-type="exit"><span>طلب مغادرة</span><strong>مغادرة</strong></button>
-          <button type="button" class="summary-card request-type-card" data-type="advance"><span>طلب سلفة</span><strong>سلفة</strong></button>
-          <button type="button" class="summary-card request-type-card" data-type="resignation"><span>طلب استقالة</span><strong>استقالة</strong></button>
-          <button type="button" class="summary-card request-type-card" data-type="complaint"><span>شكوى</span><strong>شكوى</strong></button>
-          <button type="button" class="summary-card request-type-card" data-type="custom"><span>طلب مخصص</span><strong>مخصص</strong></button>
+        <div id="requestTypeCards" class="request-type-grid">
+          <button type="button" class="request-type-card" data-type="leave"><span class="card-icon">☀</span><strong>طلب إجازة</strong><small>إجازة سنوية أو مرضية أو طارئة</small></button>
+          <button type="button" class="request-type-card" data-type="exit"><span class="card-icon">↗</span><strong>طلب مغادرة</strong><small>مغادرة مبكرة أو مؤقتة</small></button>
+          <button type="button" class="request-type-card" data-type="advance"><span class="card-icon">◈</span><strong>طلب سلفة</strong><small>طلب مالي للمراجعة فقط</small></button>
+          <button type="button" class="request-type-card" data-type="resignation"><span class="card-icon">✎</span><strong>طلب استقالة</strong><small>تقديم استقالة مع التفاصيل</small></button>
+          <button type="button" class="request-type-card" data-type="complaint"><span class="card-icon">!</span><strong>شكوى</strong><small>شكوى عادية أو سرية</small></button>
+          <button type="button" class="request-type-card" data-type="custom"><span class="card-icon">＋</span><strong>طلب مخصص</strong><small>أي طلب غير مصنف</small></button>
         </div>
-      </section>
-
-      <section class="content-card">
-        <h2 id="requestFormTitle">تفاصيل الطلب</h2>
-        <form id="requestForm" class="form-grid employee-form-grid">
-          <input type="hidden" id="request_type" />
-          <select id="employee_id"><option value="">اختر الموظف</option></select>
-
-          <div class="form-section full-width request-fields" data-fields="leave">
-            <h3>بيانات طلب الإجازة</h3>
-          </div>
-          <select class="request-input" data-for="leave" id="leave_type">
-            <option value="annual">سنوية</option>
-            <option value="sick">مرضية</option>
-            <option value="emergency">طارئة</option>
-            <option value="unpaid">بدون راتب</option>
-            <option value="other">أخرى</option>
-          </select>
-          <input class="request-input" data-for="leave" type="date" id="start_date" />
-          <input class="request-input" data-for="leave" type="date" id="end_date" />
-          <input class="request-input" data-for="leave" type="number" id="days_preview" placeholder="عدد الأيام" readonly />
-
-          <div class="form-section full-width request-fields" data-fields="exit"><h3>بيانات طلب المغادرة</h3></div>
-          <input class="request-input" data-for="exit" type="date" id="exit_date" />
-          <input class="request-input" data-for="exit" type="time" id="exit_time" />
-          <input class="request-input" data-for="exit" type="time" id="return_time" placeholder="وقت العودة المتوقع" />
-
-          <div class="form-section full-width request-fields" data-fields="advance"><h3>بيانات طلب السلفة</h3></div>
-          <input class="request-input" data-for="advance" type="number" id="advance_amount" placeholder="المبلغ المطلوب" min="0" step="0.01" />
-          <input class="request-input" data-for="advance" type="text" id="deduction_method" placeholder="طريقة الخصم المقترحة" />
-
-          <div class="form-section full-width request-fields" data-fields="resignation"><h3>بيانات طلب الاستقالة</h3></div>
-          <input class="request-input" data-for="resignation" type="date" id="last_working_day" />
-          <input class="request-input" data-for="resignation" type="text" id="handover_notes" placeholder="ملاحظات تسليم العهدة" />
-
-          <div class="form-section full-width request-fields" data-fields="complaint"><h3>بيانات الشكوى</h3></div>
-          <input class="request-input" data-for="complaint" type="text" id="complaint_title" placeholder="عنوان الشكوى" />
-          <select class="request-input" data-for="complaint" id="is_confidential">
-            <option value="false">غير سرية</option>
-            <option value="true">سرية</option>
-          </select>
-          <input class="request-input" data-for="complaint" type="text" id="against_employee" placeholder="ضد موظف، اختياري" />
-
-          <div class="form-section full-width request-fields" data-fields="custom"><h3>بيانات الطلب المخصص</h3></div>
-          <input class="request-input" data-for="custom" type="text" id="custom_title" placeholder="عنوان الطلب" />
-
-          <input class="full-width" type="text" id="reason" placeholder="السبب / العنوان" />
-          <textarea class="full-width" id="details" placeholder="التفاصيل أو الملاحظات الاختيارية"></textarea>
-
-          <button type="submit" id="submitRequestBtn">إرسال الطلب</button>
-          <button type="button" id="saveDraftBtn" class="secondary-btn">حفظ كمسودة</button>
-          <button type="button" id="resetRequestBtn" class="secondary-btn">إلغاء</button>
-        </form>
         <p id="formMessage" class="inline-message"></p>
       </section>
 
@@ -157,9 +105,8 @@
           <button id="closeDetailsBtn" class="secondary-btn">إغلاق التفاصيل</button>
         </div>
         <div id="requestDetailsBox" class="details-grid"></div>
-        <div class="form-grid" style="margin-top:16px">
+        <div class="actions-row request-actions-row">
           <input type="hidden" id="selectedRequestId" />
-          <textarea id="actionComment" class="full-width" placeholder="تعليق أو سبب الإجراء"></textarea>
           <button type="button" id="approveRequestBtn">موافقة</button>
           <button type="button" id="rejectRequestBtn" class="danger-btn">رفض</button>
           <button type="button" id="requestInfoBtn" class="secondary-btn">طلب معلومات</button>
@@ -169,14 +116,47 @@
         <h3 style="margin-top:20px">سجل الإجراءات</h3>
         <div class="table-scroll">
           <table>
-            <thead><tr><th>#</th><th>الإجراء</th><th>منفذ الإجراء</th><th>التعليق</th><th>التاريخ</th></tr></thead>
+            <thead><tr><th>#</th><th>الإجراء</th><th>منفذ الإجراء</th><th>التفاصيل</th><th>التاريخ</th></tr></thead>
             <tbody id="requestLogsBody"></tbody>
           </table>
         </div>
       </section>
     </main>
   </div>
+
+  <div class="modal-backdrop" id="requestModal" aria-hidden="true">
+    <div class="modal-card request-modal-card" role="dialog" aria-modal="true">
+      <div class="modal-header">
+        <div><h2 id="requestFormTitle">إنشاء طلب</h2><p id="requestFormHelp">املأ البيانات المطلوبة ثم أرسل الطلب.</p></div>
+        <button type="button" class="secondary-btn small-btn" id="closeRequestModalBtn">إغلاق</button>
+      </div>
+      <form id="requestForm" class="form-grid employee-form-grid request-modal-form">
+        <input type="hidden" id="request_type" />
+        <select id="employee_id"><option value="">موظفي الحالي</option></select>
+        <div id="dynamicRequestFields" class="full-width request-dynamic-fields"></div>
+        <button type="submit" id="submitRequestBtn">إرسال الطلب</button>
+        <button type="button" id="saveDraftBtn" class="secondary-btn">حفظ كمسودة</button>
+        <button type="button" id="resetRequestBtn" class="secondary-btn">إلغاء</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="actionModal" aria-hidden="true">
+    <div class="modal-card action-modal-card" role="dialog" aria-modal="true">
+      <div class="modal-header">
+        <div><h2 id="actionModalTitle">تنفيذ إجراء</h2><p id="actionModalHelp">اكتب الملاحظة المطلوبة إن وجدت.</p></div>
+        <button type="button" class="secondary-btn small-btn" id="closeActionModalBtn">إغلاق</button>
+      </div>
+      <textarea id="actionNoteInput" placeholder="اكتب هنا"></textarea>
+      <p id="actionModalMessage" class="inline-message"></p>
+      <div class="actions-row">
+        <button type="button" id="confirmActionBtn">تأكيد</button>
+        <button type="button" id="cancelActionModalBtn" class="secondary-btn">إلغاء</button>
+      </div>
+    </div>
+  </div>
+
   <script src="./js/auth-guard.js"></script>
-  <script src="./js/leaves.js?v=requests-1"></script>
+  <script src="./js/leaves.js?v=requests-fast-1"></script>
 </body>
 </html>

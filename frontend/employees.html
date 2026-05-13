@@ -4,9 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>الموظفون</title>
-  <link rel="stylesheet" href="./css/app.css?v=employees-apple-1" />
-  <link rel="stylesheet" href="./css/icons.css?v=employees-apple-1" />
-  <link rel="stylesheet" href="./css/employees-page.css?v=employees-apple-1" />
+  <link rel="stylesheet" href="./css/app.css?v=employees-apple-2" />
+  <link rel="stylesheet" href="./css/icons.css?v=employees-apple-2" />
+  <link rel="stylesheet" href="./css/employees-page.css?v=employees-apple-2" />
 </head>
 <body class="apple-system-ui employees-page">
   <div class="app-layout">
@@ -16,10 +16,21 @@
     </aside>
 
     <main class="main-content">
+      <header class="topbar employees-topbar">
+        <div>
+          <h1>الموظفون</h1>
+          <p>إدارة بيانات الموظفين وحساباتهم وصلاحياتهم</p>
+        </div>
+        <div class="header-actions">
+          <a class="secondary-btn button-link" href="./dashboard.html">العودة للرئيسية</a>
+          <button id="logoutBtn" class="logout-btn">تسجيل الخروج</button>
+        </div>
+      </header>
+
       <section class="content-card employee-page-hero">
         <div>
           <span class="page-kicker">الموارد البشرية</span>
-          <h1>الموظفون</h1>
+          <h1>إدارة الموظفين</h1>
           <p>إدارة بيانات الموظفين وحساباتهم وصلاحياتهم من مكان واحد.</p>
         </div>
         <div class="hero-actions">
@@ -115,8 +126,8 @@
     </div>
   </div>
 
-  <script src="./js/navigation-config.js?v=employees-apple-1"></script>
-  <script src="./js/auth-guard.js?v=employees-apple-1"></script>
-  <script src="./js/employees.js?v=employees-apple-1"></script>
+  <script src="./js/navigation-config.js?v=employees-apple-2"></script>
+  <script src="./js/auth-guard.js?v=employees-apple-2"></script>
+  <script src="./js/employees.js?v=employees-apple-2"></script>
 </body>
 </html>

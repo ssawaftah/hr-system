@@ -8,10 +8,10 @@ const {
 } = require("../controllers/attendance.controller");
 
 const authMiddleware = require("../middlewares/auth.middleware");
-const roleMiddleware = require("../middlewares/role.middleware");
+const permissionMiddleware = require("../middlewares/permission.middleware");
 
-router.get("/", authMiddleware, roleMiddleware("admin", "hr"), getAttendance);
-router.post("/", authMiddleware, roleMiddleware("admin", "hr"), createAttendance);
-router.delete("/:id", authMiddleware, roleMiddleware("admin", "hr"), deleteAttendance);
+router.get("/", authMiddleware, permissionMiddleware("attendance.view"), getAttendance);
+router.post("/", authMiddleware, permissionMiddleware("attendance.create"), createAttendance);
+router.delete("/:id", authMiddleware, permissionMiddleware("attendance.delete"), deleteAttendance);
 
 module.exports = router;

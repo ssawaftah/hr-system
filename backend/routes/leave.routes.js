@@ -10,13 +10,13 @@ const {
 } = require("../controllers/leave.controller");
 
 const authMiddleware = require("../middlewares/auth.middleware");
-const roleMiddleware = require("../middlewares/role.middleware");
+const permissionMiddleware = require("../middlewares/permission.middleware");
 
-router.get("/", authMiddleware, roleMiddleware("admin", "hr"), getLeaves);
-router.post("/", authMiddleware, roleMiddleware("admin", "hr"), createLeave);
-router.put("/:id", authMiddleware, roleMiddleware("admin", "hr"), updateLeave);
-router.patch("/:id", authMiddleware, roleMiddleware("admin", "hr"), updateLeaveStatus);
-router.put("/:id/status", authMiddleware, roleMiddleware("admin", "hr"), updateLeaveStatus);
-router.delete("/:id", authMiddleware, roleMiddleware("admin", "hr"), deleteLeave);
+router.get("/", authMiddleware, permissionMiddleware("leaves.view"), getLeaves);
+router.post("/", authMiddleware, permissionMiddleware("leaves.create"), createLeave);
+router.put("/:id", authMiddleware, permissionMiddleware("leaves.update"), updateLeave);
+router.patch("/:id", authMiddleware, permissionMiddleware("leaves.approve"), updateLeaveStatus);
+router.put("/:id/status", authMiddleware, permissionMiddleware("leaves.approve"), updateLeaveStatus);
+router.delete("/:id", authMiddleware, permissionMiddleware("leaves.delete"), deleteLeave);
 
 module.exports = router;

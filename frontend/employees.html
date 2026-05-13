@@ -34,7 +34,7 @@
 
       <section class="content-card">
         <h2 id="employeeFormTitle">إضافة موظف</h2>
-        <form id="employeeForm" class="form-grid">
+        <form id="employeeForm" class="form-grid employee-form-grid">
           <input type="hidden" id="employeeId" />
           <input type="text" id="full_name" placeholder="الاسم الكامل" required />
           <input type="text" id="national_id" placeholder="رقم الموظف" required />
@@ -42,7 +42,8 @@
           <input type="email" id="email" placeholder="البريد الإلكتروني" />
           <input type="text" id="address" placeholder="العنوان" />
           <input type="text" id="job_title" placeholder="المسمى الوظيفي" />
-          <select id="department_id"><option value="">اختر القسم</option></select>
+          <select id="department_id"><option value="">اختر القسم الأساسي</option></select>
+          <select id="extra_department_ids" multiple size="4" title="الأقسام الإضافية"></select>
           <input type="date" id="hire_date" />
           <select id="employment_type">
             <option value="full_time">دوام كامل</option>
@@ -88,7 +89,8 @@
                 <th>الهاتف</th>
                 <th>البريد</th>
                 <th>المسمى</th>
-                <th>القسم</th>
+                <th>القسم الأساسي</th>
+                <th>الأقسام الإضافية</th>
                 <th>الحالة</th>
                 <th>الإجراءات</th>
               </tr>

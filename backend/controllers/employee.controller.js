@@ -1,4 +1,5 @@
 const pool = require("../db");
+const { syncEmployeeAccount, validateEmployeeAccountPayload } = require("../services/employee-account.service");
 
 const normalizeBoolean = (value) => {
   if (typeof value === "boolean") return value;
@@ -90,14 +91,7 @@ const normalizeDepartments = (body) => {
     .filter((item) => Number.isInteger(item.department_id) && item.department_id > 0);
 
   if (cleaned.length === 0 && body.department_id) {
-    cleaned.push({
-      department_id: Number(body.department_id),
-      is_primary: true,
-      role_in_department: null,
-      start_date: null,
-      end_date: null,
-      status: "active",
-    });
+    cleaned.push({ department_id: Number(body.department_id), is_primary: true, role_in_department: null, start_date: null, end_date: null, status: "active" });
   }
 
   return cleaned;
@@ -125,15 +119,10 @@ const validateEmployeePayload = async (client, body, currentId = null) => {
 
   const departmentIds = departments.map((item) => item.department_id);
   if (new Set(departmentIds).size !== departmentIds.length) return "لا يمكن تكرار نفس القسم للموظف";
-  if (departments.length > 0 && departments.filter((item) => item.is_primary).length !== 1) {
-    return "يجب تحديد قسم أساسي واحد فقط";
-  }
+  if (departments.length > 0 && departments.filter((item) => item.is_primary).length !== 1) return "يجب تحديد قسم أساسي واحد فقط";
 
   if (departments.length > 0) {
-    const activeDepartments = await client.query(
-      `SELECT id FROM departments WHERE id = ANY($1::int[]) AND COALESCE(is_active, true) = true`,
-      [departmentIds]
-    );
+    const activeDepartments = await client.query(`SELECT id FROM departments WHERE id = ANY($1::int[]) AND COALESCE(is_active, true) = true`, [departmentIds]);
     if (activeDepartments.rows.length !== departmentIds.length) return "يوجد قسم غير نشط أو غير موجود";
   }
 
@@ -141,27 +130,18 @@ const validateEmployeePayload = async (client, body, currentId = null) => {
 };
 
 const applyDepartmentMemberships = async (client, employeeId, departments, req) => {
-  const oldResult = await client.query(
-    `SELECT department_id, is_primary, role_in_department, status FROM employee_departments WHERE employee_id = $1 ORDER BY id ASC`,
-    [employeeId]
-  );
-
+  const oldResult = await client.query(`SELECT department_id, is_primary, role_in_department, status FROM employee_departments WHERE employee_id = $1 ORDER BY id ASC`, [employeeId]);
   await client.query(`DELETE FROM employee_departments WHERE employee_id = $1`, [employeeId]);
 
   for (const item of departments) {
     await client.query(
-      `
-      INSERT INTO employee_departments
-      (employee_id, department_id, is_primary, role_in_department, start_date, end_date, status)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
-      `,
+      `INSERT INTO employee_departments (employee_id, department_id, is_primary, role_in_department, start_date, end_date, status) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
       [employeeId, item.department_id, item.is_primary, item.role_in_department, item.start_date, item.end_date, item.status]
     );
   }
 
   const primary = departments.find((item) => item.is_primary);
   await client.query(`UPDATE employees SET department_id = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`, [primary?.department_id || null, employeeId]);
-
   await writeAuditLog(client, req, "تم تعديل أقسام الموظف", employeeId, oldResult.rows, departments);
 };
 
@@ -170,13 +150,7 @@ const enrichEmployees = async (rows) => {
   const ids = rows.map((row) => row.id);
   const departmentResult = await pool.query(
     `
-    SELECT
-      ed.employee_id,
-      ed.department_id,
-      ed.is_primary,
-      ed.role_in_department,
-      ed.status,
-      d.name AS department_name
+    SELECT ed.employee_id, ed.department_id, ed.is_primary, ed.role_in_department, ed.status, d.name AS department_name
     FROM employee_departments ed
     JOIN departments d ON d.id = ed.department_id
     WHERE ed.employee_id = ANY($1::int[])
@@ -185,9 +159,18 @@ const enrichEmployees = async (rows) => {
     [ids]
   );
 
+  const accountResult = await pool.query(
+    `SELECT id AS account_id, employee_id, roles, permissions, is_active AS login_active, account_status, last_login_at FROM users WHERE employee_id = ANY($1::int[])`,
+    [ids]
+  );
+
   const grouped = departmentResult.rows.reduce((map, item) => {
     if (!map[item.employee_id]) map[item.employee_id] = [];
     map[item.employee_id].push(item);
+    return map;
+  }, {});
+  const accounts = accountResult.rows.reduce((map, item) => {
+    map[item.employee_id] = item;
     return map;
   }, {});
 
@@ -196,6 +179,11 @@ const enrichEmployees = async (rows) => {
     const primary = memberships.find((item) => item.is_primary);
     return {
       ...row,
+      account: accounts[row.id] || null,
+      is_login_enabled: accounts[row.id]?.login_active ?? false,
+      account_status: accounts[row.id]?.account_status || null,
+      roles: accounts[row.id]?.roles || [],
+      permissions: accounts[row.id]?.permissions || [],
       departments: memberships,
       primary_department: primary || null,
       department_name: primary?.department_name || row.department_name || null,
@@ -208,33 +196,13 @@ const getEmployees = async (req, res) => {
   try {
     await ensureEmployeeSchema();
     const result = await pool.query(`
-      SELECT
-        e.id,
-        e.employee_number,
-        e.full_name,
-        e.national_id,
-        e.phone,
-        e.email,
-        e.address,
-        e.job_title,
-        e.direct_manager_id,
-        e.department_id,
-        d.name AS department_name,
-        e.hire_date,
-        e.employment_type,
-        e.basic_salary,
-        e.social_security_enabled,
-        e.social_security_rate,
-        e.status,
-        e.archived_at,
-        e.is_active,
-        e.created_at,
-        e.updated_at
+      SELECT e.id, e.employee_number, e.full_name, e.national_id, e.phone, e.email, e.address, e.job_title, e.direct_manager_id, e.department_id,
+             d.name AS department_name, e.hire_date, e.employment_type, e.basic_salary, e.social_security_enabled, e.social_security_rate,
+             e.status, e.archived_at, e.is_active, e.created_at, e.updated_at
       FROM employees e
       LEFT JOIN departments d ON e.department_id = d.id
       ORDER BY e.id ASC
     `);
-
     res.status(200).json({ employees: await enrichEmployees(result.rows) });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -245,66 +213,24 @@ const getEmployeeById = async (req, res) => {
   try {
     await ensureEmployeeSchema();
     const { id } = req.params;
-
     const employeeResult = await pool.query(
       `
-      SELECT
-        e.id,
-        e.employee_number,
-        e.full_name,
-        e.national_id,
-        e.phone,
-        e.email,
-        e.address,
-        e.job_title,
-        e.direct_manager_id,
-        e.department_id,
-        d.name AS department_name,
-        e.hire_date,
-        e.employment_type,
-        e.basic_salary,
-        e.social_security_enabled,
-        e.social_security_rate,
-        e.status,
-        e.archived_at,
-        e.is_active,
-        e.created_at,
-        e.updated_at
+      SELECT e.id, e.employee_number, e.full_name, e.national_id, e.phone, e.email, e.address, e.job_title, e.direct_manager_id, e.department_id,
+             d.name AS department_name, e.hire_date, e.employment_type, e.basic_salary, e.social_security_enabled, e.social_security_rate,
+             e.status, e.archived_at, e.is_active, e.created_at, e.updated_at
       FROM employees e
       LEFT JOIN departments d ON e.department_id = d.id
       WHERE e.id = $1
       `,
       [id]
     );
-
     if (employeeResult.rows.length === 0) return res.status(404).json({ error: "الموظف غير موجود" });
-
     const [employee] = await enrichEmployees(employeeResult.rows);
-
-    const attendanceResult = await pool.query(
-      `SELECT * FROM attendance_records WHERE employee_id = $1 ORDER BY attendance_date DESC, id DESC LIMIT 20`,
-      [id]
-    );
-    const salariesResult = await pool.query(
-      `SELECT * FROM salary_records WHERE employee_id = $1 ORDER BY id DESC LIMIT 20`,
-      [id]
-    );
-    const leavesResult = await pool.query(
-      `SELECT * FROM leave_requests WHERE employee_id = $1 ORDER BY id DESC LIMIT 20`,
-      [id]
-    );
-    const auditResult = await pool.query(
-      `SELECT * FROM audit_logs WHERE target_type = 'employee' AND target_id = $1 ORDER BY id DESC LIMIT 30`,
-      [id]
-    );
-
-    res.status(200).json({
-      employee,
-      attendance: attendanceResult.rows,
-      salaries: salariesResult.rows,
-      leaves: leavesResult.rows,
-      audit_logs: auditResult.rows,
-    });
+    const attendanceResult = await pool.query(`SELECT * FROM attendance_records WHERE employee_id = $1 ORDER BY attendance_date DESC, id DESC LIMIT 20`, [id]);
+    const salariesResult = await pool.query(`SELECT * FROM salary_records WHERE employee_id = $1 ORDER BY id DESC LIMIT 20`, [id]);
+    const leavesResult = await pool.query(`SELECT * FROM leave_requests WHERE employee_id = $1 ORDER BY id DESC LIMIT 20`, [id]);
+    const auditResult = await pool.query(`SELECT * FROM audit_logs WHERE target_type = 'employee' AND target_id = $1 ORDER BY id DESC LIMIT 30`, [id]);
+    res.status(200).json({ employee, attendance: attendanceResult.rows, salaries: salariesResult.rows, leaves: leavesResult.rows, audit_logs: auditResult.rows });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -322,17 +248,13 @@ const createEmployee = async (req, res) => {
       return res.status(400).json({ error: validationError });
     }
 
-    const {
-      full_name,
-      national_id,
-      phone,
-      email,
-      address,
-      job_title,
-      direct_manager_id,
-      hire_date,
-      employment_type,
-    } = req.body;
+    const accountValidationError = validateEmployeeAccountPayload(req.body, true);
+    if (accountValidationError) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ error: accountValidationError });
+    }
+
+    const { full_name, national_id, phone, email, address, job_title, direct_manager_id, hire_date, employment_type } = req.body;
     const employeeNumber = (req.body.employee_number || req.body.national_id || "").trim();
     const basicSalary = Number(req.body.basic_salary || 0);
     const socialSecurityRate = Number(req.body.social_security_rate ?? 7.5);
@@ -347,31 +269,16 @@ const createEmployee = async (req, res) => {
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NULL, $9, $10, $11, $12, $13, $14, $15, CURRENT_TIMESTAMP)
       RETURNING *
       `,
-      [
-        employeeNumber,
-        full_name.trim(),
-        national_id || employeeNumber,
-        phone || null,
-        email || null,
-        address || null,
-        job_title || null,
-        direct_manager_id || null,
-        hire_date || null,
-        employment_type || "full_time",
-        basicSalary,
-        socialSecurityEnabled,
-        socialSecurityRate,
-        status,
-        status === "active",
-      ]
+      [employeeNumber, full_name.trim(), national_id || employeeNumber, phone || null, email || null, address || null, job_title || null, direct_manager_id || null, hire_date || null, employment_type || "full_time", basicSalary, socialSecurityEnabled, socialSecurityRate, status, status === "active"]
     );
 
     const employee = result.rows[0];
     await applyDepartmentMemberships(client, employee.id, departments, req);
-    await writeAuditLog(client, req, "تم إنشاء الموظف", employee.id, null, employee);
+    const account = await syncEmployeeAccount(client, employee, req.body);
+    await writeAuditLog(client, req, "تم إنشاء الموظف", employee.id, null, { employee, account });
     await client.query("COMMIT");
 
-    res.status(201).json({ message: "تم إنشاء الموظف بنجاح", employee });
+    res.status(201).json({ message: "تم إنشاء الموظف وحساب الدخول بنجاح", employee, account });
   } catch (error) {
     await client.query("ROLLBACK");
     res.status(500).json({ error: error.message });
@@ -386,7 +293,6 @@ const updateEmployee = async (req, res) => {
     await client.query("BEGIN");
     await ensureEmployeeSchema(client);
     const { id } = req.params;
-
     const existing = await client.query(`SELECT * FROM employees WHERE id = $1`, [id]);
     if (existing.rows.length === 0) {
       await client.query("ROLLBACK");
@@ -399,6 +305,12 @@ const updateEmployee = async (req, res) => {
       return res.status(400).json({ error: validationError });
     }
 
+    const accountValidationError = validateEmployeeAccountPayload(req.body, false);
+    if (accountValidationError) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ error: accountValidationError });
+    }
+
     const employeeNumber = (req.body.employee_number || req.body.national_id || "").trim();
     const status = req.body.status || (normalizeBoolean(req.body.is_active) ? "active" : "inactive");
     const basicSalary = Number(req.body.basic_salary || 0);
@@ -409,50 +321,21 @@ const updateEmployee = async (req, res) => {
     const result = await client.query(
       `
       UPDATE employees
-      SET employee_number = $1,
-          full_name = $2,
-          national_id = $3,
-          phone = $4,
-          email = $5,
-          address = $6,
-          job_title = $7,
-          direct_manager_id = $8,
-          hire_date = $9,
-          employment_type = $10,
-          basic_salary = $11,
-          social_security_enabled = $12,
-          social_security_rate = $13,
-          status = $14,
-          is_active = $15,
-          updated_at = CURRENT_TIMESTAMP
+      SET employee_number = $1, full_name = $2, national_id = $3, phone = $4, email = $5, address = $6, job_title = $7,
+          direct_manager_id = $8, hire_date = $9, employment_type = $10, basic_salary = $11, social_security_enabled = $12,
+          social_security_rate = $13, status = $14, is_active = $15, updated_at = CURRENT_TIMESTAMP
       WHERE id = $16
       RETURNING *
       `,
-      [
-        employeeNumber,
-        req.body.full_name.trim(),
-        req.body.national_id || employeeNumber,
-        req.body.phone || null,
-        req.body.email || null,
-        req.body.address || null,
-        req.body.job_title || null,
-        req.body.direct_manager_id || null,
-        req.body.hire_date || null,
-        req.body.employment_type || "full_time",
-        basicSalary,
-        socialSecurityEnabled,
-        socialSecurityRate,
-        status,
-        status === "active",
-        id,
-      ]
+      [employeeNumber, req.body.full_name.trim(), req.body.national_id || employeeNumber, req.body.phone || null, req.body.email || null, req.body.address || null, req.body.job_title || null, req.body.direct_manager_id || null, req.body.hire_date || null, req.body.employment_type || "full_time", basicSalary, socialSecurityEnabled, socialSecurityRate, status, status === "active", id]
     );
 
     await applyDepartmentMemberships(client, id, departments, req);
-    await writeAuditLog(client, req, "تم تعديل بيانات الموظف", Number(id), existing.rows[0], result.rows[0]);
+    const account = await syncEmployeeAccount(client, result.rows[0], req.body);
+    await writeAuditLog(client, req, "تم تعديل بيانات الموظف", Number(id), existing.rows[0], { employee: result.rows[0], account });
     await client.query("COMMIT");
 
-    res.status(200).json({ message: "تم تعديل الموظف بنجاح", employee: result.rows[0] });
+    res.status(200).json({ message: "تم تعديل الموظف وحساب الدخول بنجاح", employee: result.rows[0], account });
   } catch (error) {
     await client.query("ROLLBACK");
     res.status(500).json({ error: error.message });
@@ -474,29 +357,21 @@ const deleteEmployee = async (req, res) => {
     await client.query("BEGIN");
     await ensureEmployeeSchema(client);
     const { id } = req.params;
-
     const existing = await client.query(`SELECT * FROM employees WHERE id = $1`, [id]);
     if (existing.rows.length === 0) {
       await client.query("ROLLBACK");
       return res.status(404).json({ error: "الموظف غير موجود" });
     }
-
     const linkedCount = await countLinkedRecords(client, id);
     if (linkedCount > 0) {
       await client.query("ROLLBACK");
-      return res.status(409).json({
-        error: "لا يمكن حذف هذا الموظف نهائياً لأنه مرتبط ببيانات أخرى. يمكنك تعطيله أو أرشفته بدلاً من الحذف.",
-        code: "EMPLOYEE_HAS_LINKED_RECORDS",
-        can_disable: true,
-        can_archive: true,
-      });
+      return res.status(409).json({ error: "لا يمكن حذف هذا الموظف نهائياً لأنه مرتبط ببيانات أخرى. يمكنك تعطيله أو أرشفته بدلاً من الحذف.", code: "EMPLOYEE_HAS_LINKED_RECORDS", can_disable: true, can_archive: true });
     }
-
+    await client.query(`DELETE FROM users WHERE employee_id = $1`, [id]);
     await client.query(`DELETE FROM employees WHERE id = $1`, [id]);
     await writeAuditLog(client, req, "تم حذف الموظف", Number(id), existing.rows[0], null);
     await client.query("COMMIT");
-
-    res.status(200).json({ message: "تم حذف الموظف بنجاح" });
+    res.status(200).json({ message: "تم حذف الموظف وحساب الدخول المرتبط به بنجاح" });
   } catch (error) {
     await client.query("ROLLBACK");
     res.status(500).json({ error: error.message });
@@ -516,14 +391,11 @@ const disableEmployee = async (req, res) => {
       await client.query("ROLLBACK");
       return res.status(404).json({ error: "الموظف غير موجود" });
     }
-
-    const result = await client.query(
-      `UPDATE employees SET is_active = false, status = 'inactive', updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *`,
-      [id]
-    );
+    const result = await client.query(`UPDATE employees SET is_active = false, status = 'inactive', updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *`, [id]);
+    await client.query(`UPDATE users SET is_active = false, account_status = 'disabled', updated_at = CURRENT_TIMESTAMP WHERE employee_id = $1`, [id]);
     await writeAuditLog(client, req, "تم تعطيل الموظف", Number(id), existing.rows[0], result.rows[0]);
     await client.query("COMMIT");
-    res.status(200).json({ message: "تم تعطيل الموظف بنجاح", employee: result.rows[0] });
+    res.status(200).json({ message: "تم تعطيل الموظف وحساب الدخول بنجاح", employee: result.rows[0] });
   } catch (error) {
     await client.query("ROLLBACK");
     res.status(500).json({ error: error.message });
@@ -543,14 +415,11 @@ const archiveEmployee = async (req, res) => {
       await client.query("ROLLBACK");
       return res.status(404).json({ error: "الموظف غير موجود" });
     }
-
-    const result = await client.query(
-      `UPDATE employees SET is_active = false, status = 'archived', archived_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *`,
-      [id]
-    );
+    const result = await client.query(`UPDATE employees SET is_active = false, status = 'archived', archived_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *`, [id]);
+    await client.query(`UPDATE users SET is_active = false, account_status = 'disabled', updated_at = CURRENT_TIMESTAMP WHERE employee_id = $1`, [id]);
     await writeAuditLog(client, req, "تم أرشفة الموظف", Number(id), existing.rows[0], result.rows[0]);
     await client.query("COMMIT");
-    res.status(200).json({ message: "تم أرشفة الموظف بنجاح", employee: result.rows[0] });
+    res.status(200).json({ message: "تم أرشفة الموظف وتعطيل الدخول بنجاح", employee: result.rows[0] });
   } catch (error) {
     await client.query("ROLLBACK");
     res.status(500).json({ error: error.message });
@@ -559,12 +428,4 @@ const archiveEmployee = async (req, res) => {
   }
 };
 
-module.exports = {
-  getEmployees,
-  getEmployeeById,
-  createEmployee,
-  updateEmployee,
-  deleteEmployee,
-  disableEmployee,
-  archiveEmployee,
-};
+module.exports = { getEmployees, getEmployeeById, createEmployee, updateEmployee, deleteEmployee, disableEmployee, archiveEmployee };

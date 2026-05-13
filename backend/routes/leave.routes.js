@@ -4,6 +4,7 @@ const router = express.Router();
 const {
   getLeaves,
   createLeave,
+  updateLeave,
   updateLeaveStatus,
   deleteLeave,
 } = require("../controllers/leave.controller");
@@ -13,6 +14,8 @@ const roleMiddleware = require("../middlewares/role.middleware");
 
 router.get("/", authMiddleware, roleMiddleware("admin", "hr"), getLeaves);
 router.post("/", authMiddleware, roleMiddleware("admin", "hr"), createLeave);
+router.put("/:id", authMiddleware, roleMiddleware("admin", "hr"), updateLeave);
+router.patch("/:id", authMiddleware, roleMiddleware("admin", "hr"), updateLeaveStatus);
 router.put("/:id/status", authMiddleware, roleMiddleware("admin", "hr"), updateLeaveStatus);
 router.delete("/:id", authMiddleware, roleMiddleware("admin", "hr"), deleteLeave);
 

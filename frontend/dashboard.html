@@ -4,98 +4,102 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>الرئيسية</title>
-  <link rel="stylesheet" href="./css/style.css?v=apple-dashboard-2" />
-  <link rel="stylesheet" href="./css/announcements.css?v=apple-dashboard-2" />
-  <link rel="stylesheet" href="./css/enterprise-redesign.css?v=apple-dashboard-2" />
-  <link rel="stylesheet" href="./css/apple-dashboard.css?v=apple-dashboard-2" />
+  <link rel="stylesheet" href="./css/app.css?v=dashboard-apple-1" />
 </head>
-<body class="apple-dashboard-page">
+<body class="apple-system-ui dashboard-page">
   <div class="app-layout">
     <aside class="sidebar">
       <div class="sidebar-logo"><span class="brand-mark">HR</span><span>نظام الموارد البشرية</span></div>
       <nav class="sidebar-menu"></nav>
     </aside>
 
-    <main class="main-content">
-      <header class="apple-pro-header topbar">
-        <div class="apple-pro-title">
-          <span class="apple-pro-mark">HR</span>
-          <div>
-            <small>نظام الموارد البشرية</small>
-            <h1>الرئيسية</h1>
-          </div>
+    <main class="main-content dashboard-main">
+      <header class="topbar dashboard-header">
+        <div class="header-title-area">
+          <span class="page-kicker">الرئيسية</span>
+          <h1>صباح الخير، هذه مساحة عملك اليومية</h1>
+          <p id="pageSubtitle">ملخص هادئ لأهم مؤشرات الموارد البشرية، الحضور، الطلبات، والإعلانات.</p>
         </div>
-        <div class="apple-pro-search">
-          <span>بحث</span>
-          <input type="text" placeholder="ابحث عن موظف أو طلب أو إعلان" />
-        </div>
-        <div class="apple-pro-actions">
-          <a class="apple-pro-action" href="./announcements.html" data-role-link="announcements">الإعلانات</a>
-          <button id="logoutBtn" class="apple-logout logout-btn">تسجيل الخروج</button>
+        <div class="header-actions">
+          <a class="secondary-btn button-link header-action-link" href="./announcements.html" data-role-link="announcements"><span class="action-icon">🔔</span>الإعلانات</a>
+          <button id="logoutBtn" class="logout-btn">تسجيل الخروج</button>
         </div>
       </header>
 
-      <section class="apple-dashboard-grid">
-        <article class="apple-welcome-card">
+      <section class="dashboard-hero-layout">
+        <article class="welcome-panel">
+          <div class="panel-topline">
+            <span class="soft-badge">لوحة العمل</span>
+            <span class="mini-status"><span></span>متصل بالنظام</span>
+          </div>
           <div>
-            <span class="apple-eyebrow">لوحة العمل</span>
             <h2 id="welcomeTitle">يوم عمل منظم يبدأ من هنا</h2>
             <p id="welcomeMessage">جاري تحميل بيانات المستخدم...</p>
           </div>
-          <div class="apple-hero-actions">
-            <a class="button-link apple-primary-action" href="./attendance.html" data-role-link="attendance">متابعة الحضور</a>
-            <a class="button-link apple-secondary-action" href="./leaves.html" data-role-link="leaves">إنشاء طلب</a>
+          <div class="hero-actions">
+            <a class="button-link primary-action" href="./attendance.html" data-role-link="attendance"><span>⏱</span>متابعة الحضور</a>
+            <a class="button-link secondary-action" href="./leaves.html" data-role-link="leaves"><span>📝</span>إنشاء طلب</a>
           </div>
         </article>
 
-        <aside class="apple-focus-panel">
-          <div class="apple-focus-head">
+        <aside class="today-panel">
+          <div class="today-header">
             <div>
-              <small>التركيز اليومي</small>
+              <span class="page-kicker">اختصار اليوم</span>
               <h2>أهم الإجراءات</h2>
             </div>
-            <span class="apple-focus-pill">✓</span>
+            <span class="today-icon">⌘</span>
           </div>
-          <div class="apple-focus-list">
-            <a href="./employees.html" data-role-link="employees"><strong>الموظفون</strong><span>فتح</span></a>
-            <a href="./leaves.html" data-role-link="leaves"><strong>الطلبات</strong><span>مراجعة</span></a>
-            <a href="./salaries.html" data-role-link="salaries"><strong>الرواتب</strong><span>إدارة</span></a>
+          <div class="today-actions-list">
+            <a href="./employees.html" data-role-link="employees"><span class="list-icon">👥</span><strong>الموظفون</strong><small>فتح</small></a>
+            <a href="./leaves.html" data-role-link="leaves"><span class="list-icon">📄</span><strong>الطلبات</strong><small>مراجعة</small></a>
+            <a href="./salaries.html" data-role-link="salaries"><span class="list-icon">💳</span><strong>الرواتب</strong><small>إدارة</small></a>
           </div>
         </aside>
       </section>
 
-      <section class="apple-stats">
-        <article class="apple-metric"><span>ن</span><small>المستخدمون</small><strong id="usersCount">0</strong></article>
-        <article class="apple-metric"><span>ق</span><small>الأقسام</small><strong id="departmentsCount">0</strong></article>
-        <article class="apple-metric"><span>م</span><small>الموظفون</small><strong id="employeesCount">0</strong></article>
-        <article class="apple-metric"><span>ح</span><small>الحضور</small><strong id="attendanceCount">0</strong></article>
-        <article class="apple-metric"><span>ط</span><small>الطلبات</small><strong id="leavesCount">0</strong></article>
-        <article class="apple-metric"><span>ر</span><small>الرواتب</small><strong id="salariesCount">0</strong></article>
+      <section class="metrics-grid">
+        <article class="metric-card"><span class="metric-icon">🧑‍💼</span><small>المستخدمون</small><strong id="usersCount">0</strong></article>
+        <article class="metric-card"><span class="metric-icon">🏢</span><small>الأقسام</small><strong id="departmentsCount">0</strong></article>
+        <article class="metric-card"><span class="metric-icon">👥</span><small>الموظفون</small><strong id="employeesCount">0</strong></article>
+        <article class="metric-card"><span class="metric-icon">⏱</span><small>الحضور</small><strong id="attendanceCount">0</strong></article>
+        <article class="metric-card"><span class="metric-icon">📝</span><small>الطلبات</small><strong id="leavesCount">0</strong></article>
+        <article class="metric-card"><span class="metric-icon">💰</span><small>الرواتب</small><strong id="salariesCount">0</strong></article>
       </section>
 
-      <section class="apple-content-grid">
-        <article class="apple-panel">
-          <div class="apple-panel-head">
-            <div><h2>الإعلانات</h2><p>آخر الإعلانات النشطة الموجهة لك.</p></div>
-            <a class="button-link apple-secondary-action" href="./announcements.html" data-role-link="announcements">عرض الكل</a>
+      <section class="dashboard-content-layout">
+        <article class="dashboard-panel announcements-panel">
+          <div class="panel-heading">
+            <div>
+              <span class="page-kicker">آخر التحديثات</span>
+              <h2>الإعلانات</h2>
+              <p>آخر الإعلانات النشطة الموجهة لك.</p>
+            </div>
+            <a class="secondary-btn button-link" href="./announcements.html" data-role-link="announcements">عرض الكل</a>
           </div>
-          <div id="dashboardAnnouncements" class="compact-announcements"><div class="empty-soft">جاري تحميل الإعلانات...</div></div>
+          <div id="dashboardAnnouncements" class="dashboard-announcements"><div class="empty-soft">جاري تحميل الإعلانات...</div></div>
         </article>
 
-        <article class="apple-panel">
-          <div class="apple-panel-head"><div><h2>اختصارات ذكية</h2><p>الوصول السريع بدون قوائم طويلة.</p></div></div>
-          <div class="apple-smart-list">
-            <a class="apple-smart-card" href="./employees.html" data-role-link="employees"><span class="apple-smart-icon">م</span><span><strong>الموظفون</strong><small>الملفات والأقسام وبيانات الدخول</small></span><span class="apple-smart-arrow">‹</span></a>
-            <a class="apple-smart-card" href="./attendance.html" data-role-link="attendance"><span class="apple-smart-icon">ح</span><span><strong>الحضور والانصراف</strong><small>متابعة اليوم والحركات</small></span><span class="apple-smart-arrow">‹</span></a>
-            <a class="apple-smart-card" href="./leaves.html" data-role-link="leaves"><span class="apple-smart-icon">ط</span><span><strong>الطلبات</strong><small>إنشاء ومراجعة واعتماد</small></span><span class="apple-smart-arrow">‹</span></a>
-            <a class="apple-smart-card" href="./reports.html" data-role-link="reports"><span class="apple-smart-icon">ت</span><span><strong>التقارير</strong><small>قراءة وتحليل البيانات</small></span><span class="apple-smart-arrow">‹</span></a>
+        <article class="dashboard-panel shortcuts-panel">
+          <div class="panel-heading">
+            <div>
+              <span class="page-kicker">تنقل سريع</span>
+              <h2>اختصارات ذكية</h2>
+              <p>وصول سريع لأكثر الصفحات استخدامًا.</p>
+            </div>
+          </div>
+          <div class="smart-shortcuts">
+            <a href="./employees.html" data-role-link="employees"><span class="shortcut-icon">👥</span><span><strong>الموظفون</strong><small>الملفات والأقسام وبيانات الدخول</small></span><b>‹</b></a>
+            <a href="./attendance.html" data-role-link="attendance"><span class="shortcut-icon">⏱</span><span><strong>الحضور والانصراف</strong><small>متابعة اليوم والحركات</small></span><b>‹</b></a>
+            <a href="./leaves.html" data-role-link="leaves"><span class="shortcut-icon">📝</span><span><strong>الطلبات</strong><small>إنشاء ومراجعة واعتماد</small></span><b>‹</b></a>
+            <a href="./reports.html" data-role-link="reports"><span class="shortcut-icon">📊</span><span><strong>التقارير</strong><small>قراءة وتحليل البيانات</small></span><b>‹</b></a>
           </div>
         </article>
       </section>
     </main>
   </div>
-  <script src="./js/navigation-config.js?v=apple-dashboard-2"></script>
-  <script src="./js/auth-guard.js?v=apple-dashboard-2"></script>
-  <script src="./js/dashboard.js?v=apple-dashboard-2"></script>
+  <script src="./js/navigation-config.js?v=dashboard-apple-1"></script>
+  <script src="./js/auth-guard.js?v=dashboard-apple-1"></script>
+  <script src="./js/dashboard.js?v=dashboard-apple-1"></script>
 </body>
 </html>

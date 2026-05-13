@@ -5,18 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>إدارة الأقسام</title>
   <link rel="stylesheet" href="./css/style.css" />
+  <link rel="stylesheet" href="./css/employees.css" />
 </head>
 <body>
   <div class="app-layout">
     <aside class="sidebar">
       <div class="sidebar-logo">HR System</div>
       <nav class="sidebar-menu">
-        <a href="./dashboard.html" class="" data-role-link="dashboard">لوحة التحكم</a>
-<a href="./users.html" class="" data-role-link="users">المستخدمون</a>
-<a href="./departments.html" class="active" data-role-link="departments">الأقسام</a>
-<a href="./employees.html" class="" data-role-link="employees">الموظفون</a>
-<a href="./attendance.html" class="" data-role-link="attendance">الحضور</a>
-<a href="./salaries.html" class="" data-role-link="salaries">الرواتب</a>
+        <a href="./dashboard.html" data-role-link="dashboard">لوحة التحكم</a>
+        <a href="./users.html" data-role-link="users">المستخدمون</a>
+        <a href="./departments.html" class="active" data-role-link="departments">الأقسام</a>
+        <a href="./employees.html" data-role-link="employees">الموظفون</a>
+        <a href="./attendance.html" data-role-link="attendance">الحضور</a>
+        <a href="./leaves.html" data-role-link="leaves">الإجازات</a>
+        <a href="./salaries.html" data-role-link="salaries">الرواتب</a>
+        <a href="./reports.html" data-role-link="reports">التقارير</a>
       </nav>
     </aside>
 
@@ -24,45 +27,56 @@
       <header class="topbar">
         <div>
           <h1>إدارة الأقسام</h1>
-          <p id="pageSubtitle">نظام موارد بشرية محلي</p>
+          <p id="pageSubtitle">شجرة أقسام رئيسية وفرعية</p>
         </div>
         <button id="logoutBtn" class="logout-btn">تسجيل الخروج</button>
       </header>
 
+      <section class="content-card">
+        <h2 id="departmentFormTitle">إضافة قسم</h2>
+        <form id="departmentForm" class="form-grid">
+          <input type="hidden" id="departmentId" />
+          <input type="text" id="departmentName" placeholder="اسم القسم" required />
+          <input type="text" id="departmentDescription" placeholder="الوصف" />
+          <select id="parentDepartmentId"><option value="">قسم رئيسي بدون أب</option></select>
+          <select id="departmentActive">
+            <option value="true">نشط</option>
+            <option value="false">معطل</option>
+          </select>
+          <button type="submit">حفظ</button>
+          <button type="button" id="cancelEditBtn" class="secondary-btn">إلغاء التعديل</button>
+        </form>
+        <p id="formMessage" class="inline-message"></p>
+      </section>
 
-<section class="content-card">
-  <h2 id="departmentFormTitle">إضافة قسم</h2>
+      <section class="table-container">
+        <div class="section-header">
+          <div>
+            <h2>شجرة الأقسام</h2>
+            <p>مثال: المالية ← التدقيق المالي</p>
+          </div>
+        </div>
+        <div id="departmentTree" class="department-tree"></div>
+      </section>
 
-  <form id="departmentForm" class="form-grid">
-    <input type="hidden" id="departmentId" />
-    <input type="text" id="departmentName" placeholder="اسم القسم" required />
-    <input type="text" id="departmentDescription" placeholder="الوصف" />
-    <select id="departmentActive">
-      <option value="true">نشط</option>
-      <option value="false">معطل</option>
-    </select>
-    <button type="submit">حفظ</button>
-    <button type="button" id="cancelEditBtn" class="secondary-btn">إلغاء التعديل</button>
-  </form>
-
-  <p id="formMessage"></p>
-</section>
-
-<section class="table-container">
-  <table>
-    <thead>
-      <tr>
-        <th>#</th>
-        <th>اسم القسم</th>
-        <th>الوصف</th>
-        <th>الحالة</th>
-        <th>إجراءات</th>
-      </tr>
-    </thead>
-    <tbody id="departmentsTableBody"></tbody>
-  </table>
-</section>
-
+      <section class="table-container">
+        <div class="section-header"><h2>كل الأقسام</h2></div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>اسم القسم</th>
+                <th>القسم الأب</th>
+                <th>الوصف</th>
+                <th>الحالة</th>
+                <th>إجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="departmentsTableBody"></tbody>
+          </table>
+        </div>
+      </section>
     </main>
   </div>
   <script src="./js/auth-guard.js"></script>

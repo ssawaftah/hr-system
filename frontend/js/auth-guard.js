@@ -8,17 +8,18 @@ let shellReady = false;
 let lastNavKey = "";
 
 const fallbackNavigationConfig = [
-  { id: "dashboard", label: "الرئيسية", path: "./dashboard.html", icon: "⌂", group: "الرئيسية", requiredPermissions: ["dashboard.view"], showInSidebar: true, showInShortcutMenu: true, order: 1 },
-  { id: "attendance", label: "الحضور والانصراف", path: "./attendance.html", icon: "◷", group: "التشغيل اليومي", requiredPermissions: ["attendance.view", "attendance.view.self", "attendance.view.department", "attendance.view.all"], showInSidebar: true, showInShortcutMenu: true, order: 10 },
-  { id: "leaves", label: "الطلبات", path: "./leaves.html", icon: "◫", group: "التشغيل اليومي", requiredPermissions: ["leaves.view", "requests.view.self", "requests.view.department", "requests.view.all"], showInSidebar: true, showInShortcutMenu: true, order: 11 },
+  { id: "dashboard", label: "الرئيسية", path: "./dashboard.html", icon: "⌂", group: "الرئيسية", requiredPermissions: ["dashboard.view"], showInSidebar: true, showInShortcutMenu: false, order: 1 },
+  { id: "attendance", label: "الحضور والانصراف", path: "./attendance.html", icon: "◷", group: "التشغيل اليومي", requiredPermissions: ["attendance.view", "attendance.view.self", "attendance.view.department", "attendance.view.all"], showInSidebar: true, showInShortcutMenu: false, order: 10 },
+  { id: "leaves", label: "الطلبات", path: "./leaves.html", icon: "◫", group: "التشغيل اليومي", requiredPermissions: ["leaves.view", "requests.view.self", "requests.view.department", "requests.view.all"], showInSidebar: true, showInShortcutMenu: false, order: 11 },
   { id: "shifts", label: "الشفتات", path: "./shifts.html", icon: "⇄", group: "التشغيل اليومي", requiredPermissions: ["shifts.view"], showInSidebar: true, showInShortcutMenu: false, order: 12 },
   { id: "employees", label: "الموظفون", path: "./employees.html", icon: "☷", group: "الموارد البشرية", requiredPermissions: ["employees.view", "employees.view.self"], showInSidebar: true, showInShortcutMenu: false, order: 20 },
   { id: "departments", label: "الأقسام", path: "./departments.html", icon: "▦", group: "الموارد البشرية", requiredPermissions: ["departments.view"], showInSidebar: true, showInShortcutMenu: false, order: 21 },
-  { id: "salaries", label: "الرواتب", path: "./salaries.html", icon: "◈", group: "المالية", requiredPermissions: ["salaries.view", "finance.payroll_slips.view"], showInSidebar: true, showInShortcutMenu: true, order: 30 },
+  { id: "salaries", label: "الرواتب", path: "./salaries.html", icon: "◈", group: "المالية", requiredPermissions: ["salaries.view", "finance.payroll_slips.view"], showInSidebar: true, showInShortcutMenu: false, order: 30 },
   { id: "reports", label: "التقارير", path: "./reports.html", icon: "▣", group: "التقارير", requiredPermissions: ["reports.view", "reports.view.self", "reports.view.department", "reports.view.all"], showInSidebar: true, showInShortcutMenu: false, order: 40 },
-  { id: "announcements", label: "الإعلانات", path: "./announcements.html", icon: "✦", group: "النظام", requiredPermissions: ["announcements.view.self", "announcements.view.department", "announcements.view.all", "announcements.manage"], showInSidebar: true, showInShortcutMenu: true, order: 45 },
+  { id: "announcements", label: "الإعلانات", path: "./announcements.html", icon: "✦", group: "النظام", requiredPermissions: ["announcements.view.self", "announcements.view.department", "announcements.view.all", "announcements.manage"], showInSidebar: true, showInShortcutMenu: false, order: 45 },
   { id: "users", label: "الصلاحيات", path: "./users.html", icon: "◌", group: "النظام", requiredPermissions: ["users.view", "permissions.view"], showInSidebar: true, showInShortcutMenu: false, order: 50 },
 ];
+
 const getNavigationConfig = () => Array.isArray(window.navigationConfig) ? window.navigationConfig : fallbackNavigationConfig;
 const shellRoleLabels = { admin: "مدير النظام", hr: "الموارد البشرية", employee: "موظف", manager: "مدير قسم", finance: "المالية" };
 const normalizeList = (value) => !value ? [] : Array.isArray(value) ? value.flatMap(normalizeList) : String(value).split(",").map((item) => item.trim()).filter(Boolean);
@@ -50,12 +51,13 @@ const injectStylesheet = (href) => {
   document.head.appendChild(el);
 };
 const ensureUxFixes = () => {
-  injectStylesheet("./css/app.css?v=clean-apple-2");
-  injectStylesheet("./css/icons.css?v=svg-icons-1");
+  injectStylesheet("./css/app.css?v=clean-apple-3");
+  injectStylesheet("./css/icons.css?v=svg-icons-3");
   document.documentElement.lang = "ar";
   document.documentElement.dir = "rtl";
   document.body.dir = "rtl";
   document.body.classList.add("apple-system-ui");
+  document.querySelectorAll(".bottom-shortcuts").forEach((el) => el.remove());
 };
 const closeSidebar = () => {
   document.querySelector(".app-layout")?.classList.remove("sidebar-open");
@@ -70,7 +72,7 @@ const toggleSidebar = () => {
   backdrop?.classList.toggle("is-visible", willOpen);
   document.body.classList.toggle("no-scroll", willOpen);
 };
-const getAllowedNavigation = (shortcutOnly = false) => getNavigationConfig().filter((item) => shortcutOnly ? item.showInShortcutMenu : item.showInSidebar).filter((item) => hasAnyPermission(item.requiredPermissions || [])).sort((a, b) => (a.order || 0) - (b.order || 0));
+const getAllowedNavigation = () => getNavigationConfig().filter((item) => item.showInSidebar).filter((item) => hasAnyPermission(item.requiredPermissions || [])).sort((a, b) => (a.order || 0) - (b.order || 0));
 const rebuildSidebar = () => {
   const menu = document.querySelector(".sidebar-menu");
   if (!menu) return;
@@ -78,7 +80,7 @@ const rebuildSidebar = () => {
   const navKey = `${current}|${loggedAccess.roles.join(",")}|${loggedAccess.permissions.join(",")}`;
   if (lastNavKey === navKey && menu.dataset.ready === "true") return;
   lastNavKey = navKey;
-  const groups = getAllowedNavigation(false).reduce((map, item) => {
+  const groups = getAllowedNavigation().reduce((map, item) => {
     const group = item.group || "النظام";
     if (!map[group]) map[group] = [];
     map[group].push(item);
@@ -122,6 +124,15 @@ const setupResponsiveShell = () => {
   if (!sidebar || !topbar || !appLayout) return;
   document.querySelectorAll(".sidebar-logo").forEach((logo) => { logo.innerHTML = `<span class="brand-mark">HR</span><span>نظام الموارد البشرية</span>`; });
   sidebar.setAttribute("aria-label", "القائمة الجانبية");
+  if (!sidebar.querySelector(".sidebar-close-btn")) {
+    const closeButton = document.createElement("button");
+    closeButton.type = "button";
+    closeButton.className = "sidebar-close-btn";
+    closeButton.setAttribute("aria-label", "إغلاق القائمة");
+    closeButton.textContent = "إغلاق";
+    closeButton.addEventListener("click", closeSidebar);
+    sidebar.prepend(closeButton);
+  }
   if (!document.querySelector(".sidebar-backdrop")) {
     const backdrop = document.createElement("div");
     backdrop.className = "sidebar-backdrop";
@@ -146,20 +157,12 @@ const setupResponsiveShell = () => {
   }
   if (!shellReady) {
     window.addEventListener("resize", () => { if (window.innerWidth > 1000) closeSidebar(); });
+    window.addEventListener("keydown", (event) => { if (event.key === "Escape") closeSidebar(); });
     shellReady = true;
   }
 };
 const setupBottomShortcuts = () => {
-  document.querySelector(".bottom-shortcuts")?.remove();
-  const preferred = ["dashboard", "attendance", "leaves", "announcements", "salaries"];
-  const allowed = getAllowedNavigation(true);
-  const items = [...allowed.filter((item) => preferred.includes(item.id)), ...allowed.filter((item) => !preferred.includes(item.id))].slice(0, 5);
-  if (!items.length) return;
-  const nav = document.createElement("nav");
-  nav.className = "bottom-shortcuts";
-  nav.setAttribute("aria-label", "قائمة الاختصارات");
-  nav.innerHTML = items.map((item) => `<a href="${item.path}"><span>${item.icon || "•"}</span><strong>${item.label.replace(" والانصراف", "")}</strong></a>`).join("");
-  document.body.appendChild(nav);
+  document.querySelectorAll(".bottom-shortcuts").forEach((el) => el.remove());
 };
 const logoutButton = document.getElementById("logoutBtn");
 if (logoutButton) logoutButton.addEventListener("click", () => { localStorage.clear(); sessionStorage.clear(); window.location.href = "./login.html"; });

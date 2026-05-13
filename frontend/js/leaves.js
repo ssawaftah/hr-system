@@ -1,293 +1,43 @@
-const API_BASE_URL = "https://hr-system-backend.onrender.com/api";
-const token = localStorage.getItem('token');
-const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-const role = currentUser.role;
-// Only allow admin or hr roles to view this page
-if (!token || (role !== 'admin' && role !== 'hr')) {
-  window.location.href = './dashboard.html';
-}
-
-// DOM elements
-const leaveTableBody = document.getElementById('leaveTableBody');
-const leaveForm = document.getElementById('leaveForm');
-const leaveSearchInput = document.getElementById('leaveSearchInput');
-const leaveEmployeeFilter = document.getElementById('leaveEmployeeFilter');
-const leaveStatusFilter = document.getElementById('leaveStatusFilter');
-const leaveTypeFilter = document.getElementById('leaveTypeFilter');
-const leaveFromDate = document.getElementById('leaveFromDate');
-const leaveToDate = document.getElementById('leaveToDate');
-const leavesCountText = document.getElementById('leavesCountText');
-const refreshLeavesBtn = document.getElementById('refreshLeavesBtn');
-const exportLeavesBtn = document.getElementById('exportLeavesBtn');
-const employeeSelect = document.getElementById('employee_id');
-const message = document.getElementById('message');
-
-let leavesData = [];
-let employees = [];
-
-function calculateDays(fromDate, toDate) {
-  const start = new Date(fromDate);
-  const end = new Date(toDate);
-  const diffTime = end - start;
-  return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-}
-
-function getStatusBadge(status) {
-  switch (status) {
-    case 'pending':
-      return '<span class="badge badge-warning">معلقة</span>';
-    case 'approved':
-      return '<span class="badge badge-success">مقبولة</span>';
-    case 'rejected':
-      return '<span class="badge badge-danger">مرفوضة</span>';
-    default:
-      return `<span class="badge badge-secondary">${status}</span>`;
-  }
-}
-
-async function loadEmployees() {
-  try {
-    const res = await fetch(`${API_BASE_URL}/users`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    const data = await res.json();
-    employees = data.users || [];
-    // Populate select options if exist
-    if (employeeSelect) {
-      employeeSelect.innerHTML = '<option value="">اختر الموظف</option>';
-      employees.forEach(emp => {
-        const option = document.createElement('option');
-        option.value = emp.id;
-        option.textContent = emp.full_name;
-        employeeSelect.appendChild(option);
-      });
-    }
-    if (leaveEmployeeFilter) {
-      leaveEmployeeFilter.innerHTML = '<option value="">جميع الموظفين</option>';
-      employees.forEach(emp => {
-        const option = document.createElement('option');
-        option.value = emp.id;
-        option.textContent = emp.full_name;
-        leaveEmployeeFilter.appendChild(option);
-      });
-    }
-  } catch (err) {
-    console.error(err);
-  }
-}
-
-async function loadLeaves() {
-  try {
-    const res = await fetch(`${API_BASE_URL}/leaves`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    const data = await res.json();
-    leavesData = data.leaves || [];
-    applyFiltersAndRender();
-  } catch (err) {
-    console.error(err);
-  }
-}
-
-function applyFiltersAndRender() {
-  let filtered = leavesData.slice();
-  const searchVal = leaveSearchInput?.value.toLowerCase() || '';
-  const empFilter = leaveEmployeeFilter?.value || '';
-  const statusFilter = leaveStatusFilter?.value || '';
-  const typeFilter = leaveTypeFilter?.value || '';
-  const fromDateVal = leaveFromDate?.value || '';
-  const toDateVal = leaveToDate?.value || '';
-
-  filtered = filtered.filter(leave => {
-    const employee = employees.find(emp => emp.id === leave.employee_id);
-    const searchMatch = !searchVal || leave.reason.toLowerCase().includes(searchVal) || (employee && employee.full_name.toLowerCase().includes(searchVal));
-    const empMatch = !empFilter || leave.employee_id === parseInt(empFilter);
-    const statusMatch = !statusFilter || leave.status === statusFilter;
-    const typeMatch = !typeFilter || leave.leave_type === typeFilter;
-    const fromMatch = !fromDateVal || new Date(leave.from_date) >= new Date(fromDateVal);
-    const toMatch = !toDateVal || new Date(leave.to_date) <= new Date(toDateVal);
-    return searchMatch && empMatch && statusMatch && typeMatch && fromMatch && toMatch;
-  });
-
-  renderLeaves(filtered);
-  if (leavesCountText) {
-    leavesCountText.textContent = `عرض ${filtered.length} من أصل ${leavesData.length} طلب`;
-  }
-}
-
-function renderLeaves(leaves) {
-  if (!leaveTableBody) return;
-  leaveTableBody.innerHTML = '';
-  leaves.forEach(leave => {
-    const employee = employees.find(emp => emp.id === leave.employee_id);
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${leave.id}</td>
-      <td>${employee ? employee.full_name : ''}</td>
-      <td>${leave.leave_type}</td>
-      <td>${leave.reason}</td>
-      <td>${leave.from_date}</td>
-      <td>${leave.to_date}</td>
-      <td>${calculateDays(leave.from_date, leave.to_date)}</td>
-      <td>${getStatusBadge(leave.status)}</td>
-      <td>
-        ${leave.status === 'pending' ? `
-          <button data-id="${leave.id}" data-action="approve" class="btn btn-success btn-sm">قبول</button>
-          <button data-id="${leave.id}" data-action="reject" class="btn btn-danger btn-sm">رفض</button>
-        ` : ''}
-        <button data-id="${leave.id}" data-action="delete" class="btn btn-secondary btn-sm">حذف</button>
-      </td>
-    `;
-    leaveTableBody.appendChild(tr);
-  });
-}
-
-// Table button actions
-if (leaveTableBody) {
-  leaveTableBody.addEventListener('click', async (e) => {
-    const btn = e.target.closest('button');
-    if (!btn) return;
-    const id = btn.getAttribute('data-id');
-    const action = btn.getAttribute('data-action');
-    if (!id || !action) return;
-    if (action === 'approve' || action === 'reject') {
-      try {
-        await fetch(`${API_BASE_URL}/leaves/${id}`, {
-          method: 'PATCH',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ status: action === 'approve' ? 'approved' : 'rejected' })
-        });
-        await loadLeaves();
-      } catch (err) {
-        console.error(err);
-      }
-    } else if (action === 'delete') {
-      if (confirm('هل أنت متأكد من حذف هذا الطلب؟')) {
-        try {
-          await fetch(`${API_BASE_URL}/leaves/${id}`, {
-            method: 'DELETE',
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          await loadLeaves();
-        } catch (err) {
-          console.error(err);
-        }
-      }
-    }
-  });
-}
-
-// Filter listeners
-leaveSearchInput?.addEventListener('input', applyFiltersAndRender);
-leaveEmployeeFilter?.addEventListener('change', applyFiltersAndRender);
-leaveStatusFilter?.addEventListener('change', applyFiltersAndRender);
-leaveTypeFilter?.addEventListener('change', applyFiltersAndRender);
-leaveFromDate?.addEventListener('change', applyFiltersAndRender);
-leaveToDate?.addEventListener('change', applyFiltersAndRender);
-
-refreshLeavesBtn?.addEventListener('click', () => {
-  loadLeaves();
-});
-
-// CSV export of filtered leaves
-exportLeavesBtn?.addEventListener('click', () => {
-  let filtered = leavesData.slice();
-  const searchVal = leaveSearchInput?.value.toLowerCase() || '';
-  const empFilter = leaveEmployeeFilter?.value || '';
-  const statusFilter = leaveStatusFilter?.value || '';
-  const typeFilter = leaveTypeFilter?.value || '';
-  const fromDateVal = leaveFromDate?.value || '';
-  const toDateVal = leaveToDate?.value || '';
-  filtered = filtered.filter(leave => {
-    const employee = employees.find(emp => emp.id === leave.employee_id);
-    const searchMatch = !searchVal || leave.reason.toLowerCase().includes(searchVal) || (employee && employee.full_name.toLowerCase().includes(searchVal));
-    const empMatch = !empFilter || leave.employee_id === parseInt(empFilter);
-    const statusMatch = !statusFilter || leave.status === statusFilter;
-    const typeMatch = !typeFilter || leave.leave_type === typeFilter;
-    const fromMatch = !fromDateVal || new Date(leave.from_date) >= new Date(fromDateVal);
-    const toMatch = !toDateVal || new Date(leave.to_date) <= new Date(toDateVal);
-    return searchMatch && empMatch && statusMatch && typeMatch && fromMatch && toMatch;
-  });
-  const csvRows = [];
-  csvRows.push(['رقم الطلب', 'الموظف', 'نوع الإجازة', 'السبب', 'تاريخ البداية', 'تاريخ النهاية', 'عدد الأيام', 'الحالة'].join(','));
-  filtered.forEach(leave => {
-    const employee = employees.find(emp => emp.id === leave.employee_id);
-    csvRows.push([
-      leave.id,
-      employee ? employee.full_name : '',
-      leave.leave_type,
-      leave.reason.replace(/,/g, ';'),
-      leave.from_date,
-      leave.to_date,
-      calculateDays(leave.from_date, leave.to_date),
-      leave.status
-    ].join(','));
-  });
-  const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + csvRows.join('\n');
-  const link = document.createElement('a');
-  link.setAttribute('href', encodeURI(csvContent));
-  link.setAttribute('download', 'leaves.csv');
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-});
-
-// Form submission to add leave
-if (leaveForm) {
-  leaveForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    message.textContent = '';
-    message.style.color = '';
-    const payload = {
-      employee_id: parseInt(employeeSelect.value),
-      leave_type: leaveForm.leave_type.value,
-      reason: leaveForm.reason.value,
-      from_date: leaveForm.from_date.value,
-      to_date: leaveForm.to_date.value
-    };
-    // Validate
-    if (!payload.employee_id || !payload.leave_type || !payload.reason || !payload.from_date || !payload.to_date) {
-      message.style.color = 'red';
-      message.textContent = 'الرجاء ملء جميع الحقول';
-      return;
-    }
-    if (new Date(payload.to_date) < new Date(payload.from_date)) {
-      message.style.color = 'red';
-      message.textContent = 'تاريخ النهاية يجب أن يكون بعد تاريخ البداية';
-      return;
-    }
-    try {
-      const res = await fetch(`${API_BASE_URL}/leaves`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      });
-      if (res.ok) {
-        message.style.color = 'green';
-        message.textContent = 'تم تقديم طلب الإجازة بنجاح';
-        leaveForm.reset();
-        await loadLeaves();
-      } else {
-        const err = await res.json();
-        message.style.color = 'red';
-        message.textContent = err.error || 'حدث خطأ ما';
-      }
-    } catch (error) {
-      console.error(error);
-      message.style.color = 'red';
-      message.textContent = 'حدث خطأ ما';
-    }
-  });
-}
-
-// Initialization on DOM load
-window.addEventListener('DOMContentLoaded', async () => {
-  await loadEmployees();
-  await loadLeaves();
-});
+const tableBody=document.getElementById('leavesTableBody');
+const form=document.getElementById('leaveForm');
+const formMessage=document.getElementById('formMessage');
+const employeeSelect=document.getElementById('employee_id');
+const searchInput=document.getElementById('leaveSearchInput');
+const employeeFilter=document.getElementById('leaveEmployeeFilter');
+const mainDepFilter=document.getElementById('leaveMainDepartmentFilter');
+const subDepFilter=document.getElementById('leaveSubDepartmentFilter');
+const statusFilter=document.getElementById('leaveStatusFilter');
+const typeFilter=document.getElementById('leaveTypeFilter');
+const monthFilter=document.getElementById('leaveMonthFilter');
+const fromDate=document.getElementById('leaveFromDate');
+const toDate=document.getElementById('leaveToDate');
+const refreshBtn=document.getElementById('refreshLeavesBtn');
+const exportBtn=document.getElementById('exportLeavesBtn');
+const countText=document.getElementById('leavesCountText');
+const cards={total:document.getElementById('leavesTotalCard'),pending:document.getElementById('leavesPendingCard'),approved:document.getElementById('leavesApprovedCard'),rejected:document.getElementById('leavesRejectedCard')};
+let leaves=[];let employees=[];
+const typeLabels={annual:'سنوية',sick:'مرضية',unpaid:'بدون راتب',emergency:'طارئة',other:'أخرى'};
+const statusLabels={pending:'قيد الانتظار',approved:'مقبولة',rejected:'مرفوضة',cancelled:'ملغاة'};
+const statusClasses={pending:'warning-badge',approved:'active-badge',rejected:'inactive-badge',cancelled:'info-badge'};
+function msg(t,b){formMessage.textContent=t;formMessage.className='inline-message '+(b?'error-message':'success-message')}
+function val(id){return(document.getElementById(id)?.value||'').trim()}
+function setVal(id,v){let e=document.getElementById(id);if(e)e.value=v??''}
+function fmt(d){return d?String(d).split('T')[0]:'-'}
+function days(s,e){if(!s||!e)return 0;let n=Math.round((new Date(e)-new Date(s))/86400000)+1;return n>0?n:0}
+async function initLeaves(){let u=await loadLoggedUser();if(!u||u.role==='employee'){location.href='./dashboard.html';return}await loadEmployees();await loadLeaves();updateDaysPreview()}
+async function loadEmployees(){let r=await fetch(`${API_BASE_URL}/employees`,{headers:{Authorization:`Bearer ${token}`}});let d=await r.json();if(!r.ok)return;employees=d.employees||[];employeeSelect.innerHTML='<option value="">اختر الموظف</option>';employeeFilter.innerHTML='<option value="">كل الموظفين</option>';employees.forEach(e=>{let label=`${e.full_name} - ${e.primary_department?.department_name||e.department_name||'بدون قسم'}`;employeeSelect.innerHTML+=`<option value="${e.id}">${label}</option>`;employeeFilter.innerHTML+=`<option value="${e.id}">${label}</option>`});renderDepartmentFilters()}
+function renderDepartmentFilters(){let main=new Map(),sub=new Map();employees.forEach(e=>{if(e.primary_department)main.set(String(e.primary_department.department_id),e.primary_department.department_name);else if(e.department_id&&e.department_name)main.set(String(e.department_id),e.department_name);(e.additional_departments||[]).forEach(x=>sub.set(String(x.department_id),x.department_name))});mainDepFilter.innerHTML='<option value="">كل الأقسام الرئيسية</option>'+Array.from(main).map(([id,name])=>`<option value="${id}">${name}</option>`).join('');subDepFilter.innerHTML='<option value="">كل الأقسام الفرعية</option>'+Array.from(sub).map(([id,name])=>`<option value="${id}">${name}</option>`).join('')}
+async function loadLeaves(){countText.textContent='جاري تحميل البيانات...';let r=await fetch(`${API_BASE_URL}/leaves`,{headers:{Authorization:`Bearer ${token}`}});let d=await r.json();if(!r.ok){tableBody.innerHTML=`<tr><td colspan="12">${d.error||'تعذر تحميل البيانات'}</td></tr>`;countText.textContent='تعذر تحميل البيانات';return}leaves=d.leaves||[];renderLeaves()}
+function filtered(){let q=searchInput.value.trim().toLowerCase(),emp=employeeFilter.value,main=mainDepFilter.value,sub=subDepFilter.value,st=statusFilter.value,tp=typeFilter.value,month=monthFilter.value,from=fromDate.value,to=toDate.value;return leaves.filter(l=>{let start=fmt(l.start_date),end=fmt(l.end_date);let text=[l.employee_name,l.reason,l.admin_notes,l.decision_reason,l.primary_department_name,l.sub_department_name].filter(Boolean).join(' ').toLowerCase();return(!q||text.includes(q))&&(!emp||String(l.employee_id)===emp)&&(!main||String(l.primary_department_id)===main)&&(!sub||String(l.sub_department_id)===sub)&&(!st||l.status===st)&&(!tp||l.leave_type===tp)&&(!month||start.startsWith(month)||end.startsWith(month))&&(!from||end>=from)&&(!to||start<=to)})}
+function renderCards(list){cards.total.textContent=list.length;cards.pending.textContent=list.filter(x=>x.status==='pending').length;cards.approved.textContent=list.filter(x=>x.status==='approved').length;cards.rejected.textContent=list.filter(x=>x.status==='rejected'||x.status==='cancelled').length}
+function renderLeaves(){let list=filtered();countText.textContent=`عرض ${list.length} من أصل ${leaves.length} طلب`;renderCards(list);if(!list.length){tableBody.innerHTML='<tr><td colspan="12">لا توجد طلبات مطابقة</td></tr>';return}tableBody.innerHTML='';list.forEach(l=>{let tr=document.createElement('tr');tr.innerHTML=`<td>${l.id}</td><td>${l.employee_name||'-'}</td><td>${l.primary_department_name||'-'}</td><td>${l.sub_department_name||'-'}</td><td>${typeLabels[l.leave_type]||l.leave_type}</td><td>${fmt(l.start_date)}</td><td>${fmt(l.end_date)}</td><td>${l.days_count||days(l.start_date,l.end_date)}</td><td>${l.reason||'-'}</td><td><span class="status-badge ${statusClasses[l.status]||'info-badge'}">${statusLabels[l.status]||l.status}</span></td><td>${l.decision_reason||l.admin_notes||'-'}</td><td><div class="row-actions"><button class="secondary-btn small-btn" data-a="view" data-id="${l.employee_id}">الملف</button><button class="edit-btn small-btn" data-a="edit" data-id="${l.id}">تعديل</button>${l.status==='pending'?`<button class="secondary-btn small-btn" data-a="approve" data-id="${l.id}">قبول</button><button class="danger-btn small-btn" data-a="reject" data-id="${l.id}">رفض</button>`:''}<button class="secondary-btn small-btn" data-a="cancel" data-id="${l.id}">إلغاء</button><button class="danger-btn small-btn" data-a="delete" data-id="${l.id}">حذف</button></div></td>`;tableBody.appendChild(tr)})}
+function updateDaysPreview(){setVal('days_preview',days(val('start_date'),val('end_date'))||'')}
+function resetForm(){form.reset();setVal('leaveId','');document.getElementById('leaveFormTitle').textContent='طلب إجازة';updateDaysPreview()}
+function editLeave(id){let l=leaves.find(x=>String(x.id)===String(id));if(!l)return;setVal('leaveId',l.id);setVal('employee_id',l.employee_id);setVal('leave_type',l.leave_type);setVal('start_date',fmt(l.start_date));setVal('end_date',fmt(l.end_date));setVal('reason',l.reason);setVal('admin_notes',l.admin_notes);updateDaysPreview();document.getElementById('leaveFormTitle').textContent='تعديل طلب إجازة';scrollTo({top:0,behavior:'smooth'})}
+form.addEventListener('submit',async e=>{e.preventDefault();let body={employee_id:employeeSelect.value,leave_type:val('leave_type'),start_date:val('start_date'),end_date:val('end_date'),reason:val('reason'),admin_notes:val('admin_notes')};if(!body.employee_id||!body.start_date||!body.end_date){msg('الموظف وتاريخ البداية والنهاية مطلوبة',true);return}if(days(body.start_date,body.end_date)<=0){msg('تاريخ نهاية الإجازة يجب أن يكون بعد تاريخ البداية',true);return}let id=val('leaveId');let r=await fetch(id?`${API_BASE_URL}/leaves/${id}`:`${API_BASE_URL}/leaves`,{method:id?'PUT':'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify(body)});let d=await r.json();if(!r.ok){msg(d.error||'تعذر حفظ الطلب',true);return}msg(d.message||'تم حفظ الطلب');resetForm();await loadLeaves()});
+async function changeStatus(id,status){let reason='';if(status==='rejected'||status==='cancelled'){reason=prompt(status==='rejected'?'اكتب سبب الرفض':'اكتب سبب الإلغاء')||'';if(!reason.trim()){msg('سبب القرار مطلوب',true);return}}let r=await fetch(`${API_BASE_URL}/leaves/${id}`,{method:'PATCH',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify({status,decision_reason:reason,admin_notes:reason})});let d=await r.json();msg(d.message||d.error,!r.ok);await loadLeaves()}
+async function deleteLeave(id){if(!confirm('هل أنت متأكد من حذف طلب الإجازة؟'))return;let r=await fetch(`${API_BASE_URL}/leaves/${id}`,{method:'DELETE',headers:{Authorization:`Bearer ${token}`}});let d=await r.json();msg(d.message||d.error,!r.ok);await loadLeaves()}
+tableBody.addEventListener('click',e=>{let b=e.target.closest('button');if(!b)return;let id=b.dataset.id;if(b.dataset.a==='view')location.href=`./employee-profile.html?id=${id}`;if(b.dataset.a==='edit')editLeave(id);if(b.dataset.a==='approve')changeStatus(id,'approved');if(b.dataset.a==='reject')changeStatus(id,'rejected');if(b.dataset.a==='cancel')changeStatus(id,'cancelled');if(b.dataset.a==='delete')deleteLeave(id)});
+function exportCSV(){let rows=[['id','employee','main_department','sub_department','type','start','end','days','reason','status','decision'],...filtered().map(l=>[l.id,l.employee_name,l.primary_department_name||'',l.sub_department_name||'',typeLabels[l.leave_type]||l.leave_type,fmt(l.start_date),fmt(l.end_date),l.days_count||days(l.start_date,l.end_date),l.reason||'',statusLabels[l.status]||l.status,l.decision_reason||l.admin_notes||''])];let csv=rows.map(row=>row.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\n');let blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});let url=URL.createObjectURL(blob);let a=document.createElement('a');a.href=url;a.download='leaves.csv';a.click();URL.revokeObjectURL(url)}
+['start_date','end_date'].forEach(id=>document.getElementById(id).addEventListener('change',updateDaysPreview));document.getElementById('cancelLeaveEditBtn').addEventListener('click',resetForm);[searchInput,employeeFilter,mainDepFilter,subDepFilter,statusFilter,typeFilter,monthFilter,fromDate,toDate].forEach(el=>{el.addEventListener('input',renderLeaves);el.addEventListener('change',renderLeaves)});refreshBtn.addEventListener('click',loadLeaves);exportBtn.addEventListener('click',exportCSV);
+initLeaves();

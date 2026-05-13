@@ -14,6 +14,7 @@ const dashboardRoutes = require("./routes/dashboard.routes");
 const leaveRoutes = require("./routes/leave.routes");
 const reportRoutes = require("./routes/report.routes");
 const shiftRoutes = require("./routes/shift.routes");
+const permissionRoutes = require("./routes/job-title.routes");
 
 const app = express();
 
@@ -30,6 +31,7 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/leaves", leaveRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/shifts", shiftRoutes);
+app.use("/api/permissions", permissionRoutes);
 
 app.get("/", async (req, res) => {
   try {

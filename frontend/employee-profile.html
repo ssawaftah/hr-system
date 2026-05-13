@@ -4,104 +4,96 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ملف الموظف</title>
-  <link rel="stylesheet" href="./css/style.css" />
-  <link rel="stylesheet" href="./css/employees.css" />
+  <link rel="stylesheet" href="./css/app.css?v=employee-profile-apple-1" />
+  <link rel="stylesheet" href="./css/icons.css?v=employee-profile-apple-1" />
+  <link rel="stylesheet" href="./css/employees-page.css?v=employee-profile-apple-1" />
 </head>
-<body>
+<body class="apple-system-ui employees-page profile-page">
   <div class="app-layout">
     <aside class="sidebar">
-      <div class="sidebar-logo">HR System V2</div>
-      <nav class="sidebar-menu">
-        <a href="./dashboard.html" data-role-link="dashboard">لوحة التحكم</a>
-        <a href="./users.html" data-role-link="users">المستخدمون</a>
-        <a href="./departments.html" data-role-link="departments">الأقسام</a>
-        <a href="./employees.html" class="active" data-role-link="employees">الموظفون</a>
-        <a href="./attendance.html" data-role-link="attendance">الحضور</a>
-        <a href="./leaves.html" data-role-link="leaves">الإجازات</a>
-        <a href="./salaries.html" data-role-link="salaries">الرواتب</a>
-        <a href="./reports.html" data-role-link="reports">التقارير</a>
-      </nav>
+      <div class="sidebar-logo"><span class="brand-mark">HR</span><span>نظام الموارد البشرية</span></div>
+      <nav class="sidebar-menu"></nav>
     </aside>
 
     <main class="main-content">
       <header class="topbar">
         <div>
+          <span class="page-kicker">الموظفون</span>
           <h1>ملف الموظف</h1>
-          <p id="pageSubtitle">عرض شامل لبيانات الموظف وحضوره وإجازاته ورواتبه</p>
+          <p id="pageSubtitle">عرض شامل ومنظم لبيانات الموظف وحسابه وصلاحياته وسجلاته.</p>
         </div>
-        <button id="logoutBtn" class="logout-btn">تسجيل الخروج</button>
+        <div class="profile-top-actions">
+          <a href="./dashboard.html" class="secondary-btn button-link">الرئيسية</a>
+          <a href="./employees.html" class="secondary-btn button-link">العودة للموظفين</a>
+          <button id="logoutBtn" class="logout-btn">تسجيل الخروج</button>
+        </div>
       </header>
 
       <section class="content-card employee-profile-hero">
+        <span id="employeeAvatar" class="employee-avatar">م</span>
         <div>
+          <span id="employeeStatusBadge" class="mini-badge">جاري التحميل</span>
           <h2 id="employeeName">جاري التحميل...</h2>
           <p id="employeeMeta">يرجى الانتظار</p>
         </div>
-        <div class="actions-row">
-          <a href="./employees.html" class="secondary-btn">العودة للموظفين</a>
-          <button id="editEmployeeBtn" class="edit-btn">تعديل الموظف</button>
+        <div class="profile-top-actions">
+          <button id="editEmployeeBtn" class="primary-action">تعديل الموظف</button>
+          <a href="./users.html" id="managePermissionsBtn" class="secondary-btn button-link">إدارة الصلاحيات</a>
         </div>
       </section>
 
       <section class="profile-summary-grid" id="profileSummaryGrid">
-        <div class="summary-card"><span>الحالة</span><strong id="summaryStatus">-</strong></div>
-        <div class="summary-card"><span>القسم الرئيسي</span><strong id="summaryMainDepartment">-</strong></div>
-        <div class="summary-card"><span>القسم الفرعي</span><strong id="summarySubDepartment">-</strong></div>
-        <div class="summary-card"><span>الراتب الأساسي</span><strong id="summarySalary">-</strong></div>
+        <article class="summary-card"><span>الحالة الوظيفية</span><strong id="summaryStatus">-</strong></article>
+        <article class="summary-card"><span>القسم الأساسي</span><strong id="summaryMainDepartment">-</strong></article>
+        <article class="summary-card"><span>القسم الإضافي</span><strong id="summarySubDepartment">-</strong></article>
+        <article class="summary-card"><span>الراتب الأساسي</span><strong id="summarySalary">-</strong></article>
       </section>
 
       <section class="content-card">
-        <div class="section-header">
+        <div class="profile-section-title">
           <div>
-            <h2>البيانات الشخصية والوظيفية</h2>
-            <p>كل بيانات الموظف الأساسية المرتبطة بالنظام</p>
+            <span class="page-kicker">الملف الرئيسي</span>
+            <h2>بيانات الموظف</h2>
+            <p>كل البيانات الأساسية مقسمة إلى بطاقات واضحة.</p>
           </div>
         </div>
-        <div class="details-grid" id="employeeDetails"></div>
-      </section>
-
-      <section class="table-container">
-        <div class="section-header"><h2>آخر سجلات الحضور</h2></div>
-        <div class="table-scroll">
-          <table>
-            <thead><tr><th>التاريخ</th><th>الدخول</th><th>الخروج</th><th>الحالة</th><th>المصدر</th></tr></thead>
-            <tbody id="attendanceBody"></tbody>
-          </table>
+        <div class="details-shell">
+          <section class="form-panel"><h3>البيانات الشخصية</h3><div class="details-grid" id="personalDetails"></div></section>
+          <section class="form-panel"><h3>بيانات الدخول</h3><div class="details-grid" id="loginDetails"></div></section>
+          <section class="form-panel"><h3>البيانات الوظيفية والأقسام</h3><div class="details-grid" id="jobDetails"></div></section>
+          <section class="form-panel"><h3>البيانات المالية الأساسية</h3><div class="details-grid" id="financialDetails"></div></section>
+          <section class="form-panel"><h3>الأدوار والصلاحيات</h3><div id="permissionsDetails"></div></section>
         </div>
       </section>
 
-      <section class="table-container">
-        <div class="section-header"><h2>آخر طلبات الإجازة</h2></div>
-        <div class="table-scroll">
-          <table>
-            <thead><tr><th>النوع</th><th>من</th><th>إلى</th><th>عدد الأيام</th><th>الحالة</th></tr></thead>
-            <tbody id="leavesBody"></tbody>
-          </table>
-        </div>
+      <section class="dashboard-content-layout">
+        <article class="dashboard-panel">
+          <div class="panel-heading"><div><span class="page-kicker">الحضور</span><h2>آخر سجلات الحضور</h2></div></div>
+          <div class="table-scroll"><table><thead><tr><th>التاريخ</th><th>الدخول</th><th>الخروج</th><th>الحالة</th><th>المصدر</th></tr></thead><tbody id="attendanceBody"></tbody></table></div>
+        </article>
+
+        <article class="dashboard-panel">
+          <div class="panel-heading"><div><span class="page-kicker">الطلبات</span><h2>آخر الطلبات</h2></div></div>
+          <div class="table-scroll"><table><thead><tr><th>النوع</th><th>من</th><th>إلى</th><th>الأيام</th><th>الحالة</th></tr></thead><tbody id="leavesBody"></tbody></table></div>
+        </article>
       </section>
 
-      <section class="table-container">
-        <div class="section-header"><h2>آخر سجلات الرواتب</h2></div>
-        <div class="table-scroll">
-          <table>
-            <thead><tr><th>الشهر</th><th>الإجمالي</th><th>الخصومات</th><th>الصافي</th><th>الحالة</th></tr></thead>
-            <tbody id="salariesBody"></tbody>
-          </table>
-        </div>
-      </section>
+      <section class="dashboard-content-layout">
+        <article class="dashboard-panel">
+          <div class="panel-heading"><div><span class="page-kicker">الرواتب</span><h2>آخر سجلات الرواتب</h2></div></div>
+          <div class="table-scroll"><table><thead><tr><th>الشهر</th><th>الإجمالي</th><th>الخصومات</th><th>الصافي</th><th>الحالة</th></tr></thead><tbody id="salariesBody"></tbody></table></div>
+        </article>
 
-      <section class="table-container">
-        <div class="section-header"><h2>سجل التعديلات</h2></div>
-        <div class="table-scroll">
-          <table>
-            <thead><tr><th>العملية</th><th>التاريخ</th><th>بواسطة</th></tr></thead>
-            <tbody id="auditBody"></tbody>
-          </table>
-        </div>
+        <article class="dashboard-panel">
+          <div class="panel-heading"><div><span class="page-kicker">السجل</span><h2>سجل التعديلات</h2></div></div>
+          <div class="table-scroll"><table><thead><tr><th>العملية</th><th>التاريخ</th><th>بواسطة</th></tr></thead><tbody id="auditBody"></tbody></table></div>
+        </article>
       </section>
     </main>
   </div>
-  <script src="./js/auth-guard.js"></script>
-  <script src="./js/employee-profile.js"></script>
+
+  <script src="./js/navigation-config.js?v=employee-profile-apple-1"></script>
+  <script src="./js/auth-guard.js?v=employee-profile-apple-1"></script>
+  <script src="./js/employee-profile.js?v=employee-profile-apple-1"></script>
 </body>
 </html>

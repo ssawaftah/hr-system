@@ -6,44 +6,21 @@ if (!token) window.location.href = "./login.html";
 let loggedUser = null;
 let loggedAccess = { roles: [], permissions: [] };
 
-const pagePermissions = {
-  "dashboard.html": ["dashboard.view"],
-  "users.html": ["users.view"],
-  "departments.html": ["departments.view"],
-  "employees.html": ["employees.view"],
-  "employee-profile.html": ["employees.view"],
-  "attendance.html": ["attendance.view"],
-  "shifts.html": ["shifts.view"],
-  "leaves.html": ["leaves.view"],
-  "salaries.html": ["salaries.view"],
-  "reports.html": ["reports.view"],
-};
+const fallbackNavigationConfig = [
+  { id: "dashboard", label: "الرئيسية", path: "./dashboard.html", icon: "⌂", group: "الرئيسية", requiredPermissions: ["dashboard.view"], showInSidebar: true, showInShortcutMenu: true, order: 1 },
+  { id: "attendance", label: "الحضور والانصراف", path: "./attendance.html", icon: "◷", group: "التشغيل اليومي", requiredPermissions: ["attendance.view", "attendance.view.self", "attendance.view.department", "attendance.view.all"], showInSidebar: true, showInShortcutMenu: true, order: 10 },
+  { id: "leaves", label: "الطلبات والإجازات", path: "./leaves.html", icon: "◫", group: "التشغيل اليومي", requiredPermissions: ["leaves.view", "requests.view.self", "requests.view.department", "requests.view.all"], showInSidebar: true, showInShortcutMenu: true, order: 11 },
+  { id: "shifts", label: "الشفتات", path: "./shifts.html", icon: "⇄", group: "التشغيل اليومي", requiredPermissions: ["shifts.view"], showInSidebar: true, showInShortcutMenu: false, order: 12 },
+  { id: "employees", label: "الموظفون", path: "./employees.html", icon: "☷", group: "الموارد البشرية", requiredPermissions: ["employees.view", "employees.view.self"], showInSidebar: true, showInShortcutMenu: false, order: 20 },
+  { id: "departments", label: "الأقسام", path: "./departments.html", icon: "▦", group: "الموارد البشرية", requiredPermissions: ["departments.view"], showInSidebar: true, showInShortcutMenu: false, order: 21 },
+  { id: "salaries", label: "الرواتب", path: "./salaries.html", icon: "◈", group: "المالية", requiredPermissions: ["salaries.view", "finance.payroll_slips.view"], showInSidebar: true, showInShortcutMenu: true, order: 30 },
+  { id: "reports", label: "التقارير", path: "./reports.html", icon: "▣", group: "التقارير", requiredPermissions: ["reports.view", "reports.view.self", "reports.view.department", "reports.view.all"], showInSidebar: true, showInShortcutMenu: true, order: 40 },
+  { id: "users", label: "الصلاحيات", path: "./users.html", icon: "◌", group: "النظام", requiredPermissions: ["users.view", "permissions.view"], showInSidebar: true, showInShortcutMenu: false, order: 50 },
+];
 
-const linkPermissions = {
-  dashboard: ["dashboard.view"],
-  users: ["users.view"],
-  departments: ["departments.view"],
-  employees: ["employees.view"],
-  attendance: ["attendance.view"],
-  shifts: ["shifts.view"],
-  leaves: ["leaves.view"],
-  salaries: ["salaries.view"],
-  reports: ["reports.view"],
-};
+const getNavigationConfig = () => Array.isArray(window.navigationConfig) ? window.navigationConfig : fallbackNavigationConfig;
 
-const navMeta = {
-  dashboard: { label: "الرئيسية", icon: "⌂" },
-  users: { label: "الصلاحيات", icon: "◌" },
-  departments: { label: "الأقسام", icon: "▦" },
-  employees: { label: "الموظفون", icon: "☷" },
-  attendance: { label: "الحضور", icon: "◷" },
-  shifts: { label: "الشفتات", icon: "⇄" },
-  leaves: { label: "الإجازات", icon: "◫" },
-  salaries: { label: "الرواتب", icon: "◈" },
-  reports: { label: "التقارير", icon: "▣" },
-};
-
-const roleLabels = { admin: "مدير النظام", hr: "الموارد البشرية", employee: "موظف" };
+const roleLabels = { admin: "مدير النظام", hr: "الموارد البشرية", employee: "موظف", manager: "مدير قسم", finance: "المالية" };
 
 const normalizeList = (value) => {
   if (!value) return [];
@@ -51,23 +28,34 @@ const normalizeList = (value) => {
   return String(value).split(",").map((item) => item.trim()).filter(Boolean);
 };
 
-const hasPermission = (permission) => loggedAccess.roles.includes("admin") || loggedAccess.permissions.includes(permission);
-const hasAnyPermission = (permissions = []) => loggedAccess.roles.includes("admin") || permissions.some((permission) => loggedAccess.permissions.includes(permission));
+const hasPermission = (permission) => loggedAccess.roles.includes("admin") || loggedAccess.permissions.includes(permission) || loggedAccess.permissions.includes("system.admin");
+const hasAnyPermission = (permissions = []) => loggedAccess.roles.includes("admin") || permissions.length === 0 || permissions.some((permission) => hasPermission(permission));
 const getCurrentPageName = () => window.location.pathname.split("/").pop() || "dashboard.html";
 
+const canAccessPath = (path) => {
+  const page = path.replace("./", "");
+  const item = getNavigationConfig().find((nav) => nav.path.replace("./", "") === page);
+  if (!item) return true;
+  return hasAnyPermission(item.requiredPermissions || []);
+};
+
 const ensureUxFixes = () => {
-  if (document.querySelector('link[href*="ux-fixes.css"]')) return;
-  const link = document.createElement("link");
-  link.rel = "stylesheet";
-  link.href = "./css/ux-fixes.css?v=2";
-  document.head.appendChild(link);
+  if (!document.querySelector('link[href*="ux-fixes.css"]')) {
+    const ux = document.createElement("link");
+    ux.rel = "stylesheet";
+    ux.href = "./css/ux-fixes.css?v=3";
+    document.head.appendChild(ux);
+  }
+  if (!document.querySelector('script[src*="navigation-config.js"]')) {
+    const script = document.createElement("script");
+    script.src = "./js/navigation-config.js?v=1";
+    document.head.appendChild(script);
+  }
 };
 
 const closeSidebar = () => {
-  const appLayout = document.querySelector(".app-layout");
-  const backdrop = document.querySelector(".sidebar-backdrop");
-  appLayout?.classList.remove("sidebar-open");
-  backdrop?.classList.remove("is-visible");
+  document.querySelector(".app-layout")?.classList.remove("sidebar-open");
+  document.querySelector(".sidebar-backdrop")?.classList.remove("is-visible");
   document.body.classList.remove("no-scroll");
 };
 
@@ -80,30 +68,32 @@ const toggleSidebar = () => {
   document.body.classList.toggle("no-scroll", willOpen);
 };
 
-const enhanceNavigationLabels = () => {
-  document.querySelectorAll(".sidebar-logo").forEach((logo) => { logo.textContent = "نظام الموارد البشرية"; });
-  document.querySelectorAll("[data-role-link]").forEach((link) => {
-    const meta = navMeta[link.dataset.roleLink];
-    if (!meta) return;
-    link.innerHTML = `<span class="nav-icon">${meta.icon}</span><span>${meta.label}</span>`;
-    link.addEventListener("click", closeSidebar);
-  });
-};
+const getAllowedNavigation = (shortcutOnly = false) => getNavigationConfig()
+  .filter((item) => shortcutOnly ? item.showInShortcutMenu : item.showInSidebar)
+  .filter((item) => hasAnyPermission(item.requiredPermissions || []))
+  .sort((a, b) => (a.order || 0) - (b.order || 0));
 
-const applyNavigationPermissions = () => {
-  document.querySelectorAll("[data-role-link]").forEach((link) => {
-    const key = link.dataset.roleLink;
-    const required = linkPermissions[key] || [];
-    link.style.display = required.length && !hasAnyPermission(required) ? "none" : "";
-  });
+const rebuildSidebar = () => {
+  const menu = document.querySelector(".sidebar-menu");
+  if (!menu) return;
+  const current = getCurrentPageName();
+  const items = getAllowedNavigation(false);
+  const groups = items.reduce((map, item) => {
+    const group = item.group || "النظام";
+    if (!map[group]) map[group] = [];
+    map[group].push(item);
+    return map;
+  }, {});
+  menu.innerHTML = Object.entries(groups).map(([group, groupItems]) => `
+    <div class="nav-group-title">${group}</div>
+    ${groupItems.map((item) => `<a href="${item.path}" class="${item.path.replace("./", "") === current ? "active" : ""}" data-nav-id="${item.id}"><span class="nav-icon">${item.icon || "•"}</span><span>${item.label}</span></a>`).join("")}
+  `).join("");
+  menu.querySelectorAll("a").forEach((link) => link.addEventListener("click", closeSidebar));
 };
 
 const enforcePagePermission = () => {
-  const currentPage = getCurrentPageName();
-  const required = pagePermissions[currentPage];
-  if (!required || hasAnyPermission(required)) return true;
-  alert("لا تملك صلاحية الوصول إلى هذه الصفحة");
-  window.location.href = "./dashboard.html";
+  if (canAccessPath(`./${getCurrentPageName()}`)) return true;
+  window.location.href = "./access-denied.html";
   return false;
 };
 
@@ -120,7 +110,9 @@ const setupResponsiveShell = () => {
   const appLayout = document.querySelector(".app-layout");
   if (!sidebar || !topbar || !appLayout) return;
 
+  document.querySelectorAll(".sidebar-logo").forEach((logo) => { logo.textContent = "نظام الموارد البشرية"; });
   sidebar.setAttribute("aria-label", "القائمة الجانبية");
+
   if (!document.querySelector(".sidebar-backdrop")) {
     const backdrop = document.createElement("div");
     backdrop.className = "sidebar-backdrop";
@@ -144,31 +136,20 @@ const setupResponsiveShell = () => {
     const oldLogout = document.getElementById("logoutBtn");
     const tools = document.createElement("div");
     tools.className = "topbar-tools";
-    tools.innerHTML = `
-      <button type="button" class="notification-btn" aria-label="الإشعارات">الإشعارات</button>
-      <div class="user-chip">
-        <span class="user-avatar">${(loggedUser?.full_name || "م").slice(0, 1)}</span>
-        <div><strong>${loggedUser?.full_name || "مستخدم"}</strong><small>${normalizeList(loggedAccess.roles).map((r) => roleLabels[r] || r).join("، ") || "مستخدم"}</small></div>
-      </div>
-    `;
+    tools.innerHTML = `<button type="button" class="notification-btn" aria-label="الإشعارات">الإشعارات</button><div class="user-chip"><span class="user-avatar">${(loggedUser?.full_name || "م").slice(0, 1)}</span><div><strong>${loggedUser?.full_name || "مستخدم"}</strong><small>${normalizeList(loggedAccess.roles).map((r) => roleLabels[r] || r).join("، ") || "مستخدم"}</small></div></div>`;
     if (oldLogout) tools.appendChild(oldLogout);
     topbar.appendChild(tools);
   }
 };
 
 const setupBottomShortcuts = () => {
-  if (document.querySelector(".bottom-shortcuts")) return;
-  const items = [
-    { key: "dashboard", href: "./dashboard.html", label: "الرئيسية" },
-    { key: "attendance", href: "./attendance.html", label: "الحضور" },
-    { key: "leaves", href: "./leaves.html", label: "الإجازات" },
-    { key: "salaries", href: "./salaries.html", label: "راتبي" },
-    { key: "reports", href: "./reports.html", label: "التقارير" },
-  ].filter((item) => hasAnyPermission(linkPermissions[item.key] || []));
+  document.querySelector(".bottom-shortcuts")?.remove();
+  const items = getAllowedNavigation(true).slice(0, 5);
+  if (!items.length) return;
   const nav = document.createElement("nav");
   nav.className = "bottom-shortcuts";
   nav.setAttribute("aria-label", "قائمة الاختصارات");
-  nav.innerHTML = items.slice(0, 5).map((item) => `<a href="${item.href}">${item.label}</a>`).join("");
+  nav.innerHTML = items.map((item) => `<a href="${item.path}">${item.label.replace(" والانصراف", "")}</a>`).join("");
   document.body.appendChild(nav);
 };
 
@@ -195,17 +176,16 @@ const loadLoggedUser = async () => {
     try {
       const accessResponse = await fetch(`${API_BASE_URL}/users/me/access`, { headers: { Authorization: `Bearer ${token}` } });
       const accessData = await accessResponse.json();
-      if (accessResponse.ok) access = { roles: normalizeList(accessData.roles), permissions: normalizeList(accessData.permissions) };
+      if (accessResponse.ok) access = { roles: normalizeList(accessData.roles), permissions: normalizeList(accessData.permissions), employee_id: accessData.employee_id, employee_number: accessData.employee_number };
     } catch (error) { console.log(error); }
     loggedAccess = access;
-    localStorage.setItem("user", JSON.stringify({ ...loggedUser, roles: access.roles, permissions: access.permissions }));
-    enhanceNavigationLabels();
-    applyNavigationPermissions();
+    localStorage.setItem("user", JSON.stringify({ ...loggedUser, roles: access.roles, permissions: access.permissions, employee_id: access.employee_id, employee_number: access.employee_number }));
     setupResponsiveShell();
+    rebuildSidebar();
     setupBottomShortcuts();
     applyActionPermissions();
     if (!enforcePagePermission()) return null;
-    return { ...loggedUser, roles: access.roles, permissions: access.permissions };
+    return { ...loggedUser, roles: access.roles, permissions: access.permissions, employee_id: access.employee_id, employee_number: access.employee_number };
   } catch (error) {
     console.log(error);
     localStorage.clear();

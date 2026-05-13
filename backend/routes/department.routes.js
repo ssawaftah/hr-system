@@ -9,11 +9,11 @@ const {
 } = require("../controllers/department.controller");
 
 const authMiddleware = require("../middlewares/auth.middleware");
-const roleMiddleware = require("../middlewares/role.middleware");
+const permissionMiddleware = require("../middlewares/permission.middleware");
 
-router.get("/", authMiddleware, roleMiddleware("admin", "hr"), getDepartments);
-router.post("/", authMiddleware, roleMiddleware("admin", "hr"), createDepartment);
-router.put("/:id", authMiddleware, roleMiddleware("admin", "hr"), updateDepartment);
-router.delete("/:id", authMiddleware, roleMiddleware("admin"), deleteDepartment);
+router.get("/", authMiddleware, permissionMiddleware("departments.view"), getDepartments);
+router.post("/", authMiddleware, permissionMiddleware("departments.manage"), createDepartment);
+router.put("/:id", authMiddleware, permissionMiddleware("departments.manage"), updateDepartment);
+router.delete("/:id", authMiddleware, permissionMiddleware("departments.manage"), deleteDepartment);
 
 module.exports = router;

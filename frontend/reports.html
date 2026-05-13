@@ -3,21 +3,22 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>التقارير</title>
+  <title>تقارير الحضور</title>
   <link rel="stylesheet" href="./css/style.css" />
+  <link rel="stylesheet" href="./css/employees.css" />
 </head>
 <body>
   <div class="app-layout">
     <aside class="sidebar">
       <div class="sidebar-logo">HR System V2</div>
       <nav class="sidebar-menu">
-        <a href="./dashboard.html" class="" data-role-link="dashboard">لوحة التحكم</a>
-        <a href="./users.html" class="" data-role-link="users">المستخدمون</a>
-        <a href="./departments.html" class="" data-role-link="departments">الأقسام</a>
-        <a href="./employees.html" class="" data-role-link="employees">الموظفون</a>
-        <a href="./attendance.html" class="" data-role-link="attendance">الحضور</a>
-        <a href="./leaves.html" class="" data-role-link="leaves">الإجازات</a>
-        <a href="./salaries.html" class="" data-role-link="salaries">الرواتب</a>
+        <a href="./dashboard.html" data-role-link="dashboard">لوحة التحكم</a>
+        <a href="./users.html" data-role-link="users">المستخدمون</a>
+        <a href="./departments.html" data-role-link="departments">الأقسام</a>
+        <a href="./employees.html" data-role-link="employees">الموظفون</a>
+        <a href="./attendance.html" data-role-link="attendance">الحضور</a>
+        <a href="./leaves.html" data-role-link="leaves">الإجازات</a>
+        <a href="./salaries.html" data-role-link="salaries">الرواتب</a>
         <a href="./reports.html" class="active" data-role-link="reports">التقارير</a>
       </nav>
     </aside>
@@ -25,24 +26,95 @@
     <main class="main-content">
       <header class="topbar">
         <div>
-          <h1>التقارير</h1>
-          <p id="pageSubtitle">تقارير تشغيلية ومالية حسب صلاحيات المستخدم</p>
+          <h1>تقارير الحضور</h1>
+          <p id="pageSubtitle">تقارير حسب الموظف والقسم والشهر بدون ربط تلقائي بالرواتب</p>
         </div>
         <button id="logoutBtn" class="logout-btn">تسجيل الخروج</button>
       </header>
 
+      <section class="profile-summary-grid">
+        <div class="summary-card"><span>إجمالي السجلات</span><strong id="reportTotalRecords">0</strong></div>
+        <div class="summary-card"><span>أيام الحضور</span><strong id="reportPresentDays">0</strong></div>
+        <div class="summary-card"><span>أيام الغياب</span><strong id="reportAbsentDays">0</strong></div>
+        <div class="summary-card"><span>مرات التأخير</span><strong id="reportLateDays">0</strong></div>
+      </section>
+
       <section class="content-card">
-        <h2>تقرير الحضور حسب الحالة</h2>
-        <button id="exportAttendanceSummary" class="secondary-btn">تصدير CSV</button>
+        <div class="section-header">
+          <div>
+            <h2>فلاتر تقرير الحضور</h2>
+            <p>اختر الموظف أو القسم أو الشهر لعرض التقرير المناسب</p>
+          </div>
+          <button id="exportAttendanceDetailed" class="secondary-btn">تصدير CSV</button>
+        </div>
+        <div class="filters-grid attendance-filters-grid">
+          <select id="reportEmployeeFilter"><option value="">كل الموظفين</option></select>
+          <select id="reportMainDepartmentFilter"><option value="">كل الأقسام الرئيسية</option></select>
+          <select id="reportSubDepartmentFilter"><option value="">كل الأقسام الفرعية</option></select>
+          <input type="month" id="reportMonthFilter" />
+          <select id="reportStatusFilter">
+            <option value="">كل الحالات</option>
+            <option value="present">حاضر</option>
+            <option value="late">متأخر</option>
+            <option value="absent">غائب</option>
+            <option value="early_leave">خروج مبكر</option>
+            <option value="leave">إجازة</option>
+          </select>
+          <button id="applyAttendanceReportFilters" class="secondary-btn">تطبيق الفلاتر</button>
+        </div>
+      </section>
+
+      <section class="table-container">
+        <div class="section-header">
+          <div>
+            <h2>تقرير شهري حسب الموظف</h2>
+            <p id="monthlyReportCount">جاري تحميل البيانات...</p>
+          </div>
+        </div>
         <div class="table-scroll">
           <table>
             <thead>
               <tr>
-                <th>الحالة</th>
-                <th>العدد</th>
+                <th>الموظف</th>
+                <th>القسم الرئيسي</th>
+                <th>القسم الفرعي</th>
+                <th>إجمالي السجلات</th>
+                <th>حضور</th>
+                <th>غياب</th>
+                <th>تأخير</th>
+                <th>خروج مبكر</th>
+                <th>إجازة</th>
+                <th>الملف</th>
               </tr>
             </thead>
-            <tbody id="attendanceSummaryBody"></tbody>
+            <tbody id="attendanceMonthlyBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="table-container">
+        <div class="section-header">
+          <div>
+            <h2>السجلات التفصيلية</h2>
+            <p id="recordsReportCount">تفاصيل كل حركة حضور حسب الفلاتر</p>
+          </div>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>الموظف</th>
+                <th>القسم الرئيسي</th>
+                <th>القسم الفرعي</th>
+                <th>التاريخ</th>
+                <th>الدخول</th>
+                <th>الخروج</th>
+                <th>الحالة</th>
+                <th>المصدر</th>
+              </tr>
+            </thead>
+            <tbody id="attendanceRecordsBody"></tbody>
           </table>
         </div>
       </section>
@@ -52,13 +124,7 @@
         <button id="exportSalarySummary" class="secondary-btn">تصدير CSV</button>
         <div class="table-scroll">
           <table>
-            <thead>
-              <tr>
-                <th>الشهر</th>
-                <th>عدد السجلات</th>
-                <th>إجمالي الصافي</th>
-              </tr>
-            </thead>
+            <thead><tr><th>الشهر</th><th>عدد السجلات</th><th>إجمالي الصافي</th></tr></thead>
             <tbody id="salarySummaryBody"></tbody>
           </table>
         </div>

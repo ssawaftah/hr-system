@@ -32,13 +32,12 @@ const validateEmployeeAccountPayload = (body, isCreate = false) => {
   const employeeNumber = String(body.employee_number || body.national_id || "").trim();
   const loginEnabled = normalizeBoolean(body.is_login_enabled ?? body.login_enabled, true);
   const password = String(body.password || body.new_password || "");
-
   if (!employeeNumber) return "رقم الموظف مطلوب لإنشاء بيانات الدخول";
   if (isCreate && loginEnabled && !password) return "كلمة المرور مطلوبة عند تفعيل الدخول للنظام";
   return null;
 };
 
-const syncEmployeeAccount = async (client, employee, body = {}, options = {}) => {
+const syncEmployeeAccount = async (client, employee, body = {}) => {
   await ensureEmployeeAccountSchema(client);
 
   const employeeNumber = String(employee.employee_number || body.employee_number || body.national_id || "").trim();
@@ -47,8 +46,6 @@ const syncEmployeeAccount = async (client, employee, body = {}, options = {}) =>
   const loginEnabled = normalizeBoolean(body.is_login_enabled ?? body.login_enabled, employee.is_active !== false);
   const accountStatus = body.account_status || (loginEnabled ? "active" : "disabled");
   const isActive = loginEnabled && accountStatus === "active" && employee.is_active !== false;
-  const roles = normalizeArray(body.roles).length ? normalizeArray(body.roles) : ["employee"];
-  const permissions = normalizeArray(body.permissions);
   const password = String(body.password || body.new_password || "");
 
   const existing = await client.query(
@@ -60,11 +57,17 @@ const syncEmployeeAccount = async (client, employee, body = {}, options = {}) =>
     throw new Error("كلمة المرور مطلوبة عند تفعيل الدخول للنظام");
   }
 
-  let passwordHash = existing.rows[0]?.password_hash;
+  const existingUser = existing.rows[0] || null;
+  const incomingRoles = normalizeArray(body.roles);
+  const incomingPermissions = normalizeArray(body.permissions);
+  const roles = incomingRoles.length ? incomingRoles : (normalizeArray(existingUser?.roles).length ? normalizeArray(existingUser.roles) : ["employee"]);
+  const permissions = incomingPermissions.length || Object.prototype.hasOwnProperty.call(body, "permissions") ? incomingPermissions : normalizeArray(existingUser?.permissions);
+
+  let passwordHash = existingUser?.password_hash;
   if (password) passwordHash = await bcrypt.hash(password, 10);
   if (!passwordHash) passwordHash = await bcrypt.hash(`${employeeNumber}-${Date.now()}`, 10);
 
-  if (existing.rows.length) {
+  if (existingUser) {
     const result = await client.query(
       `
       UPDATE users
@@ -82,7 +85,7 @@ const syncEmployeeAccount = async (client, employee, body = {}, options = {}) =>
       WHERE id = $11
       RETURNING id, full_name, email, employee_number, employee_id, role, roles, permissions, is_active, account_status
       `,
-      [fullName, email, employeeNumber, employee.id, passwordHash, roles[0], roles, permissions, isActive, accountStatus, existing.rows[0].id]
+      [fullName, email, employeeNumber, employee.id, passwordHash, roles[0], roles, permissions, isActive, accountStatus, existingUser.id]
     );
     return result.rows[0];
   }
@@ -99,10 +102,4 @@ const syncEmployeeAccount = async (client, employee, body = {}, options = {}) =>
   return result.rows[0];
 };
 
-module.exports = {
-  ensureEmployeeAccountSchema,
-  syncEmployeeAccount,
-  validateEmployeeAccountPayload,
-  normalizeArray,
-  normalizeBoolean,
-};
+module.exports = { ensureEmployeeAccountSchema, syncEmployeeAccount, validateEmployeeAccountPayload, normalizeArray, normalizeBoolean };

@@ -1,4 +1,5 @@
 const pool = require("../db");
+const { ensureAttendanceSchema, upsertAutoAttendance } = require("./attendance.controller");
 
 const ensureLeaveSchema = async () => {
   await pool.query(`ALTER TABLE leave_requests ADD COLUMN IF NOT EXISTS admin_notes TEXT`);
@@ -13,6 +14,33 @@ const addDaysCount = (row) => {
   const end = row.end_date ? new Date(row.end_date) : null;
   const days = start && end ? Math.round((end - start) / 86400000) + 1 : 0;
   return { ...row, days_count: days > 0 ? days : 0 };
+};
+
+const dateRange = (startDate, endDate) => {
+  const dates = [];
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  for (let cursor = new Date(start); cursor <= end; cursor.setDate(cursor.getDate() + 1)) {
+    dates.push(cursor.toISOString().split("T")[0]);
+  }
+  return dates;
+};
+
+const materializeApprovedLeaveAttendance = async (leave) => {
+  if (!leave || leave.status !== "approved") return;
+  await ensureAttendanceSchema();
+  const dates = dateRange(leave.start_date, leave.end_date);
+  for (const date of dates) {
+    await upsertAutoAttendance({
+      employeeId: leave.employee_id,
+      date,
+      status: "absent",
+      source: "approved_leave",
+      notes: `غياب بعذر - إجازة معتمدة (${leave.leave_type})${leave.reason ? ` - ${leave.reason}` : ""}`,
+      leaveRequestId: leave.id,
+      absenceReason: "excused_leave",
+    });
+  }
 };
 
 const getLeaves = async (req, res) => {
@@ -115,6 +143,7 @@ const updateLeave = async (req, res) => {
     );
 
     if (result.rows.length === 0) return res.status(404).json({ error: "طلب الإجازة غير موجود" });
+    await materializeApprovedLeaveAttendance(result.rows[0]);
     res.status(200).json({ message: "تم تعديل طلب الإجازة بنجاح", leave: addDaysCount(result.rows[0]) });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -152,6 +181,7 @@ const updateLeaveStatus = async (req, res) => {
     );
 
     if (result.rows.length === 0) return res.status(404).json({ error: "طلب الإجازة غير موجود" });
+    await materializeApprovedLeaveAttendance(result.rows[0]);
     res.status(200).json({ message: "تم تحديث حالة الإجازة بنجاح", leave: addDaysCount(result.rows[0]) });
   } catch (error) {
     res.status(500).json({ error: error.message });

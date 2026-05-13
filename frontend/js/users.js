@@ -1,87 +1,23 @@
-const usersTableBody = document.getElementById("usersTableBody");
-const formMessage = document.getElementById("formMessage");
-const createUserForm = document.getElementById("createUserForm");
-const createUserSection = document.getElementById("createUserSection");
-
-const initUsers = async () => {
-  const user = await loadLoggedUser();
-
-  if (!user) return;
-
-  if (user.role === "employee") {
-    window.location.href = "./dashboard.html";
-    return;
-  }
-
-  if (user.role !== "admin") {
-    createUserSection.style.display = "none";
-  }
-
-  await loadUsers();
-};
-
-const loadUsers = async () => {
-  const response = await fetch(`${API_BASE_URL}/users`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    usersTableBody.innerHTML = `<tr><td colspan="5">${data.error}</td></tr>`;
-    return;
-  }
-
-  usersTableBody.innerHTML = "";
-
-  data.users.forEach((user) => {
-    const row = document.createElement("tr");
-
-    row.innerHTML = `
-      <td>${user.id}</td>
-      <td>${user.full_name}</td>
-      <td>${user.email}</td>
-      <td>${user.role}</td>
-      <td>${user.is_active ? "نشط" : "معطل"}</td>
-    `;
-
-    usersTableBody.appendChild(row);
-  });
-};
-
-createUserForm.addEventListener("submit", async (e) => {
-  e.preventDefault();
-
-  const body = {
-    full_name: document.getElementById("full_name").value.trim(),
-    email: document.getElementById("email").value.trim(),
-    password: document.getElementById("password").value,
-    role: document.getElementById("role").value,
-  };
-
-  const response = await fetch(`${API_BASE_URL}/users`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    formMessage.style.color = "red";
-    formMessage.textContent = data.error;
-    return;
-  }
-
-  formMessage.style.color = "green";
-  formMessage.textContent = data.message;
-  createUserForm.reset();
-  await loadUsers();
-});
-
+const usersTableBody=document.getElementById('usersTableBody');
+const formMessage=document.getElementById('formMessage');
+const accessMessage=document.getElementById('accessMessage');
+const createUserForm=document.getElementById('createUserForm');
+const accessForm=document.getElementById('accessForm');
+const createUserSection=document.getElementById('createUserSection');
+const rolesBox=document.getElementById('rolesBox');
+const permissionsBox=document.getElementById('permissionsBox');
+const usersCountText=document.getElementById('usersCountText');
+let users=[];let availablePermissions=[];
+const roleLabels={admin:'مدير النظام',hr:'الموارد البشرية',employee:'موظف'};
+function msg(el,t,b=false){el.textContent=t;el.className='inline-message '+(b?'error-message':'success-message')}
+function normalize(v){if(!v)return[];if(Array.isArray(v))return v;return String(v).split(',').map(x=>x.trim()).filter(Boolean)}
+async function initUsers(){const user=await loadLoggedUser();if(!user)return;if(user.role!=='admin'&&!normalize(user.roles).includes('admin')){window.location.href='./dashboard.html';return}renderAccessInputs();await loadUsers()}
+async function fetchJson(url,opt={}){let r=await fetch(url,{headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},...opt});let d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'فشل الطلب');return d}
+function renderAccessInputs(){rolesBox.innerHTML=Object.entries(roleLabels).map(([key,label])=>`<label class="soft-badge"><input type="checkbox" name="roleCheck" value="${key}"> ${label}</label>`).join('');permissionsBox.innerHTML=(availablePermissions.length?availablePermissions:[]).map(p=>`<label class="permission-item"><input type="checkbox" name="permissionCheck" value="${p}"> ${p}</label>`).join('')||'<p>سيتم تحميل الصلاحيات بعد جلب المستخدمين</p>'}
+async function loadUsers(){try{usersCountText.textContent='جاري تحميل البيانات...';let d=await fetchJson(`${API_BASE_URL}/users`);users=d.users||[];availablePermissions=d.available_permissions||[];renderAccessInputs();renderUsers()}catch(e){usersTableBody.innerHTML=`<tr><td colspan="7">${e.message}</td></tr>`;usersCountText.textContent='تعذر تحميل البيانات'}}
+function renderUsers(){usersCountText.textContent=`عدد المستخدمين: ${users.length}`;if(!users.length){usersTableBody.innerHTML='<tr><td colspan="7">لا يوجد مستخدمون</td></tr>';return}usersTableBody.innerHTML='';users.forEach(u=>{let roles=normalize(u.roles||u.role);let perms=normalize(u.permissions);let tr=document.createElement('tr');tr.innerHTML=`<td>${u.id}</td><td>${u.full_name}</td><td>${u.email}</td><td>${roles.map(r=>roleLabels[r]||r).join('، ')||'-'}</td><td>${perms.length}</td><td><span class="status-badge ${u.is_active?'active-badge':'inactive-badge'}">${u.is_active?'نشط':'معطل'}</span></td><td><button class="edit-btn small-btn" data-id="${u.id}">تعديل الصلاحيات</button></td>`;usersTableBody.appendChild(tr)})}
+createUserForm.addEventListener('submit',async e=>{e.preventDefault();let body={full_name:document.getElementById('full_name').value.trim(),email:document.getElementById('email').value.trim(),password:document.getElementById('password').value,role:document.getElementById('role').value,roles:[document.getElementById('role').value],permissions:[]};try{let d=await fetchJson(`${API_BASE_URL}/users`,{method:'POST',body:JSON.stringify(body)});msg(formMessage,d.message||'تم إنشاء المستخدم');createUserForm.reset();await loadUsers()}catch(error){msg(formMessage,error.message,true)}});
+function editAccess(id){let u=users.find(x=>String(x.id)===String(id));if(!u)return;document.getElementById('accessUserId').value=u.id;document.getElementById('accessUserName').value=`${u.full_name} - ${u.email}`;document.getElementById('accessActive').value=String(u.is_active);let roles=normalize(u.roles||u.role);let perms=normalize(u.permissions);document.querySelectorAll('[name="roleCheck"]').forEach(c=>c.checked=roles.includes(c.value));document.querySelectorAll('[name="permissionCheck"]').forEach(c=>c.checked=perms.includes(c.value));scrollTo({top:0,behavior:'smooth'})}
+accessForm.addEventListener('submit',async e=>{e.preventDefault();let id=document.getElementById('accessUserId').value;if(!id){msg(accessMessage,'اختر مستخدمًا أولًا',true);return}let roles=Array.from(document.querySelectorAll('[name="roleCheck"]:checked')).map(c=>c.value);let permissions=Array.from(document.querySelectorAll('[name="permissionCheck"]:checked')).map(c=>c.value);let body={roles,permissions,is_active:document.getElementById('accessActive').value==='true'};try{let d=await fetchJson(`${API_BASE_URL}/users/${id}/access`,{method:'PUT',body:JSON.stringify(body)});msg(accessMessage,d.message||'تم حفظ الصلاحيات');await loadUsers()}catch(error){msg(accessMessage,error.message,true)}});
+usersTableBody.addEventListener('click',e=>{let b=e.target.closest('button');if(!b)return;editAccess(b.dataset.id)});
 initUsers();

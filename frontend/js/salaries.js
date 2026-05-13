@@ -1,124 +1,36 @@
-const tableBody = document.getElementById("salariesTableBody");
-const form = document.getElementById("salaryForm");
-const formMessage = document.getElementById("formMessage");
-const employeeSelect = document.getElementById("employee_id");
-
-const initSalaries = async () => {
-  const user = await loadLoggedUser();
-
-  if (!user || user.role === "employee") {
-    window.location.href = "./dashboard.html";
-    return;
-  }
-
-  await loadEmployees();
-  await loadSalaries();
-};
-
-const loadEmployees = async () => {
-  const response = await fetch(`${API_BASE_URL}/employees`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) return;
-
-  employeeSelect.innerHTML = `<option value="">اختر الموظف</option>`;
-
-  data.employees.forEach((employee) => {
-    employeeSelect.innerHTML += `
-      <option value="${employee.id}">${employee.full_name}</option>
-    `;
-  });
-};
-
-const loadSalaries = async () => {
-  const response = await fetch(`${API_BASE_URL}/salaries`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    tableBody.innerHTML = `<tr><td colspan="9">${data.error}</td></tr>`;
-    return;
-  }
-
-  tableBody.innerHTML = "";
-
-  data.salaries.forEach((salary) => {
-    const row = document.createElement("tr");
-
-    row.innerHTML = `
-      <td>${salary.id}</td>
-      <td>${salary.employee_name}</td>
-      <td>${salary.salary_month}</td>
-      <td>${salary.basic_salary}</td>
-      <td>${salary.allowances}</td>
-      <td>${salary.deductions}</td>
-      <td>${salary.net_salary}</td>
-      <td>${salary.status}</td>
-      <td>
-        <button class="danger-btn" onclick="deleteSalary(${salary.id})">حذف</button>
-      </td>
-    `;
-
-    tableBody.appendChild(row);
-  });
-};
-
-form.addEventListener("submit", async (e) => {
-  e.preventDefault();
-
-  const body = {
-    employee_id: document.getElementById("employee_id").value,
-    salary_month: document.getElementById("salary_month").value,
-    basic_salary: document.getElementById("basic_salary").value || 0,
-    allowances: document.getElementById("allowances").value || 0,
-    deductions: document.getElementById("deductions").value || 0,
-    status: document.getElementById("status").value,
-  };
-
-  const response = await fetch(`${API_BASE_URL}/salaries`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    formMessage.style.color = "red";
-    formMessage.textContent = data.error;
-    return;
-  }
-
-  formMessage.style.color = "green";
-  formMessage.textContent = data.message;
-  form.reset();
-  await loadSalaries();
-});
-
-const deleteSalary = async (id) => {
-  if (!confirm("هل أنت متأكد من حذف سجل الراتب؟")) return;
-
-  const response = await fetch(`${API_BASE_URL}/salaries/${id}`, {
-    method: "DELETE",
-    headers: { Authorization: `Bearer ${token}` },
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    alert(data.error);
-    return;
-  }
-
-  await loadSalaries();
-};
-
+const tableBody=document.getElementById('salariesTableBody');
+const form=document.getElementById('salaryForm');
+const formMessage=document.getElementById('formMessage');
+const employeeSelect=document.getElementById('employee_id');
+const previewBox=document.getElementById('salaryPreviewBox');
+const countText=document.getElementById('salariesCountText');
+const searchInput=document.getElementById('salarySearchInput');
+const statusFilter=document.getElementById('salaryStatusFilter');
+const monthFilter=document.getElementById('salaryMonthFilter');
+const cards={draft:document.getElementById('draftSalaryCard'),review:document.getElementById('reviewSalaryCard'),approved:document.getElementById('approvedSalaryCard'),published:document.getElementById('publishedSalaryCard')};
+let salaries=[];let employees=[];
+const statusLabels={draft:'مسودة',review:'قيد المراجعة',approved:'معتمد',published:'منشور'};
+const statusClasses={draft:'info-badge',review:'warning-badge',approved:'active-badge',published:'primary-badge'};
+function msg(t,b=false){formMessage.textContent=t;formMessage.className='inline-message '+(b?'error-message':'success-message')}
+function v(id){return(document.getElementById(id)?.value||'').trim()}
+function n(id){return Number(v(id)||0)}
+function money(x){return Number(x||0).toFixed(2)}
+function setDefaultMonth(){if(!v('salary_month')){let d=new Date();document.getElementById('salary_month').value=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`}}
+async function initSalaries(){let user=await loadLoggedUser();if(!user||user.role!=='admin'){location.href='./dashboard.html';return}setDefaultMonth();await loadEmployees();await loadSalaries()}
+async function fetchJson(url,opt={}){let r=await fetch(url,{headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},...opt});let d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'فشل الطلب');return d}
+async function loadEmployees(){try{let d=await fetchJson(`${API_BASE_URL}/employees`);employees=d.employees||[];employeeSelect.innerHTML='<option value="">اختر الموظف</option>';employees.forEach(e=>employeeSelect.innerHTML+=`<option value="${e.id}" data-salary="${e.basic_salary||0}">${e.full_name} - ${e.employee_number||e.id}</option>`)}catch(e){employeeSelect.innerHTML='<option value="">تعذر تحميل الموظفين</option>';msg(e.message,true)}}
+async function loadSalaries(){try{countText.textContent='جاري تحميل البيانات...';let d=await fetchJson(`${API_BASE_URL}/salaries`);salaries=d.salaries||[];renderSalaries()}catch(e){countText.textContent='تعذر تحميل البيانات';tableBody.innerHTML=`<tr><td colspan="12">${e.message}</td></tr>`}}
+function filtered(){let q=searchInput.value.trim().toLowerCase(),st=statusFilter.value,mo=monthFilter.value;return salaries.filter(s=>{let text=[s.employee_name,s.employee_number,s.salary_month,s.notes].filter(Boolean).join(' ').toLowerCase();return(!q||text.includes(q))&&(!st||s.status===st)&&(!mo||s.salary_month===mo)})}
+function renderCards(list){cards.draft.textContent=list.filter(s=>s.status==='draft').length;cards.review.textContent=list.filter(s=>s.status==='review').length;cards.approved.textContent=list.filter(s=>s.status==='approved').length;cards.published.textContent=list.filter(s=>s.status==='published').length}
+function renderSalaries(){let list=filtered();countText.textContent=`عرض ${list.length} من أصل ${salaries.length} سجل`;renderCards(list);if(!list.length){tableBody.innerHTML='<tr><td colspan="12">لا توجد سجلات رواتب</td></tr>';return}tableBody.innerHTML='';list.forEach(s=>{let actions=[];if(s.status==='draft')actions.push(`<button class="secondary-btn small-btn" data-a="status" data-id="${s.id}" data-status="review">إرسال للمراجعة</button>`);if(s.status==='review')actions.push(`<button class="edit-btn small-btn" data-a="status" data-id="${s.id}" data-status="approved">اعتماد</button>`);if(s.status==='approved')actions.push(`<button class="secondary-btn small-btn" data-a="status" data-id="${s.id}" data-status="published">نشر</button>`);if(s.status!=='published')actions.push(`<button class="danger-btn small-btn" data-a="delete" data-id="${s.id}">حذف</button>`);let tr=document.createElement('tr');tr.innerHTML=`<td>${s.id}</td><td>${s.employee_name}</td><td>${s.salary_month}</td><td>${money(s.basic_salary)}</td><td>${money(s.allowances)}</td><td>${money(s.bonuses)}</td><td>${money(s.deductions)}</td><td>${money(s.advances)}</td><td>${money(s.gross_salary)}</td><td>${money(s.net_salary)}</td><td><span class="status-badge ${statusClasses[s.status]||'info-badge'}">${statusLabels[s.status]||s.status}</span></td><td><div class="row-actions">${actions.join('')}</div></td>`;tableBody.appendChild(tr)})}
+function calcPreview(){let basic=n('basic_salary'),allowances=n('allowances'),bonuses=n('bonuses'),deductions=n('deductions'),advances=n('advances'),manual=n('manual_adjustments');return basic+allowances+bonuses+manual-deductions-advances}
+['basic_salary','allowances','bonuses','deductions','advances','manual_adjustments'].forEach(id=>document.getElementById(id).addEventListener('input',()=>msg(`الصافي المبدئي: ${money(calcPreview())} د.أ`)));
+employeeSelect.addEventListener('change',()=>{let opt=employeeSelect.selectedOptions[0];if(opt&&opt.dataset.salary&&!v('basic_salary'))document.getElementById('basic_salary').value=opt.dataset.salary;});
+document.getElementById('previewSalaryBtn').addEventListener('click',async()=>{try{let employee_id=v('employee_id'),salary_month=v('salary_month');if(!employee_id||!salary_month){msg('اختر الموظف والشهر أولاً',true);return}let d=await fetchJson(`${API_BASE_URL}/salaries/preview?employee_id=${employee_id}&salary_month=${salary_month}`);let a=d.attendance||{},e=d.employee||{};document.getElementById('basic_salary').value=e.basic_salary||0;previewBox.innerHTML=`<div><strong>الموظف:</strong> ${e.full_name||'-'}</div><div><strong>الراتب الأساسي:</strong> ${money(e.basic_salary)} د.أ</div><div><strong>حضور:</strong> ${a.present_days||0}</div><div><strong>تأخير:</strong> ${a.late_days||0}</div><div><strong>غياب بعذر:</strong> ${a.excused_absent_days||0}</div><div><strong>غياب بدون عذر:</strong> ${a.unexcused_absent_days||0}</div>`;msg(d.note||'تم جلب البيانات المساعدة')}catch(e){msg(e.message,true)}});
+form.addEventListener('submit',async e=>{e.preventDefault();let body={employee_id:v('employee_id'),salary_month:v('salary_month'),basic_salary:n('basic_salary'),allowances:n('allowances'),bonuses:n('bonuses'),deductions:n('deductions'),advances:n('advances'),manual_adjustments:n('manual_adjustments'),status:v('status'),notes:v('notes')};if(!body.employee_id||!body.salary_month){msg('الموظف والشهر مطلوبان',true);return}try{let d=await fetchJson(`${API_BASE_URL}/salaries`,{method:'POST',body:JSON.stringify(body)});msg(d.message||'تم حفظ الراتب');form.reset();setDefaultMonth();await loadSalaries()}catch(error){msg(error.message,true)}});
+async function updateStatus(id,status){try{let d=await fetchJson(`${API_BASE_URL}/salaries/${id}/status`,{method:'PATCH',body:JSON.stringify({status})});msg(d.message||'تم تحديث الحالة');await loadSalaries()}catch(e){msg(e.message,true)}}
+async function deleteSalary(id){if(!confirm('هل أنت متأكد من حذف سجل الراتب؟'))return;try{let d=await fetchJson(`${API_BASE_URL}/salaries/${id}`,{method:'DELETE'});msg(d.message||'تم الحذف');await loadSalaries()}catch(e){msg(e.message,true)}}
+tableBody.addEventListener('click',e=>{let b=e.target.closest('button');if(!b)return;if(b.dataset.a==='status')updateStatus(b.dataset.id,b.dataset.status);if(b.dataset.a==='delete')deleteSalary(b.dataset.id)});
+function exportCSV(){let rows=[['id','employee','month','basic','allowances','bonuses','deductions','advances','gross','net','status'],...filtered().map(s=>[s.id,s.employee_name,s.salary_month,s.basic_salary,s.allowances,s.bonuses,s.deductions,s.advances,s.gross_salary,s.net_salary,statusLabels[s.status]||s.status])];let csv=rows.map(r=>r.map(x=>`"${String(x??'').replace(/"/g,'""')}"`).join(',')).join('\n');let blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});let url=URL.createObjectURL(blob);let a=document.createElement('a');a.href=url;a.download='salaries.csv';a.click();URL.revokeObjectURL(url)}
+[searchInput,statusFilter,monthFilter].forEach(el=>{el.addEventListener('input',renderSalaries);el.addEventListener('change',renderSalaries)});document.getElementById('exportSalariesBtn').addEventListener('click',exportCSV);
 initSalaries();

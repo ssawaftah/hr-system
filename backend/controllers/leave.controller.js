@@ -8,11 +8,11 @@ const ensureLeaveSchema = async () => {
   await pool.query(`ALTER TABLE leave_requests ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
 };
 
-const calculateDays = (startDate, endDate) => {
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-  const days = Math.round((end - start) / 86400000) + 1;
-  return days > 0 ? days : 0;
+const addDaysCount = (row) => {
+  const start = row.start_date ? new Date(row.start_date) : null;
+  const end = row.end_date ? new Date(row.end_date) : null;
+  const days = start && end ? Math.round((end - start) / 86400000) + 1 : 0;
+  return { ...row, days_count: days > 0 ? days : 0 };
 };
 
 const getLeaves = async (req, res) => {
@@ -27,7 +27,6 @@ const getLeaves = async (req, res) => {
         l.leave_type,
         l.start_date,
         l.end_date,
-        (l.end_date - l.start_date + 1)::int AS days_count,
         l.reason,
         l.status,
         l.admin_notes,
@@ -49,7 +48,7 @@ const getLeaves = async (req, res) => {
       ORDER BY l.id DESC
     `);
 
-    res.status(200).json({ leaves: result.rows });
+    res.status(200).json({ leaves: result.rows.map(addDaysCount) });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -63,67 +62,24 @@ const createLeave = async (req, res) => {
     if (!employee_id || !start_date || !end_date) {
       return res.status(400).json({ error: "الموظف وتاريخ البداية والنهاية مطلوبة" });
     }
-
     if (new Date(end_date) < new Date(start_date)) {
       return res.status(400).json({ error: "تاريخ نهاية الإجازة يجب أن يكون بعد تاريخ البداية" });
     }
 
     const employee = await pool.query(`SELECT id FROM employees WHERE id = $1`, [employee_id]);
-    if (employee.rows.length === 0) {
-      return res.status(404).json({ error: "الموظف غير موجود" });
-    }
+    if (employee.rows.length === 0) return res.status(404).json({ error: "الموظف غير موجود" });
 
     const result = await pool.query(
       `
       INSERT INTO leave_requests
       (employee_id, leave_type, start_date, end_date, reason, admin_notes, status, updated_at)
       VALUES ($1, $2, $3, $4, $5, $6, 'pending', CURRENT_TIMESTAMP)
-      RETURNING *, (end_date - start_date + 1)::int AS days_count
+      RETURNING *
       `,
       [employee_id, leave_type || "annual", start_date, end_date, reason || null, admin_notes || null]
     );
 
-    res.status(201).json({ message: "تم إنشاء طلب الإجازة بنجاح", leave: result.rows[0] });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
-
-const updateLeaveStatus = async (req, res) => {
-  try {
-    await ensureLeaveSchema();
-    const { id } = req.params;
-    const { status, admin_notes, decision_reason } = req.body;
-    const allowedStatuses = ["pending", "approved", "rejected", "cancelled"];
-
-    if (!allowedStatuses.includes(status)) {
-      return res.status(400).json({ error: "حالة الطلب غير صحيحة" });
-    }
-
-    if ((status === "rejected" || status === "cancelled") && !decision_reason && !admin_notes) {
-      return res.status(400).json({ error: "يرجى كتابة سبب الرفض أو الإلغاء" });
-    }
-
-    const result = await pool.query(
-      `
-      UPDATE leave_requests
-      SET status = $1,
-          admin_notes = $2,
-          decision_reason = $3,
-          decided_by = $4,
-          decided_at = CASE WHEN $1 = 'pending' THEN NULL ELSE CURRENT_TIMESTAMP END,
-          updated_at = CURRENT_TIMESTAMP
-      WHERE id = $5
-      RETURNING *, (end_date - start_date + 1)::int AS days_count
-      `,
-      [status, admin_notes || null, decision_reason || null, req.user?.id || null, id]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: "طلب الإجازة غير موجود" });
-    }
-
-    res.status(200).json({ message: "تم تحديث حالة الإجازة بنجاح", leave: result.rows[0] });
+    res.status(201).json({ message: "تم إنشاء طلب الإجازة بنجاح", leave: addDaysCount(result.rows[0]) });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -153,13 +109,47 @@ const updateLeave = async (req, res) => {
           admin_notes = $6,
           updated_at = CURRENT_TIMESTAMP
       WHERE id = $7
-      RETURNING *, (end_date - start_date + 1)::int AS days_count
+      RETURNING *
       `,
       [employee_id, leave_type || "annual", start_date, end_date, reason || null, admin_notes || null, id]
     );
 
     if (result.rows.length === 0) return res.status(404).json({ error: "طلب الإجازة غير موجود" });
-    res.status(200).json({ message: "تم تعديل طلب الإجازة بنجاح", leave: result.rows[0] });
+    res.status(200).json({ message: "تم تعديل طلب الإجازة بنجاح", leave: addDaysCount(result.rows[0]) });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+const updateLeaveStatus = async (req, res) => {
+  try {
+    await ensureLeaveSchema();
+    const { id } = req.params;
+    const { status, admin_notes, decision_reason } = req.body;
+    const allowedStatuses = ["pending", "approved", "rejected", "cancelled"];
+
+    if (!allowedStatuses.includes(status)) return res.status(400).json({ error: "حالة الطلب غير صحيحة" });
+    if ((status === "rejected" || status === "cancelled") && !decision_reason && !admin_notes) {
+      return res.status(400).json({ error: "يرجى كتابة سبب الرفض أو الإلغاء" });
+    }
+
+    const result = await pool.query(
+      `
+      UPDATE leave_requests
+      SET status = $1,
+          admin_notes = $2,
+          decision_reason = $3,
+          decided_by = $4,
+          decided_at = CASE WHEN $1 = 'pending' THEN NULL ELSE CURRENT_TIMESTAMP END,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = $5
+      RETURNING *
+      `,
+      [status, admin_notes || null, decision_reason || null, req.user?.id || null, id]
+    );
+
+    if (result.rows.length === 0) return res.status(404).json({ error: "طلب الإجازة غير موجود" });
+    res.status(200).json({ message: "تم تحديث حالة الإجازة بنجاح", leave: addDaysCount(result.rows[0]) });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

@@ -16,7 +16,7 @@ const getAttendanceSummary = async (req, res) => {
 
 const getAttendanceDetailedReport = async (req, res) => {
   try {
-    const { employee_id, department_id, sub_department_id, month, status } = req.query;
+    const { employee_id, department_id, sub_department_id, month, status, absence_reason } = req.query;
     const values = [];
     const conditions = [];
 
@@ -40,8 +40,31 @@ const getAttendanceDetailedReport = async (req, res) => {
       values.push(status);
       conditions.push(`a.status = $${values.length}`);
     }
+    if (absence_reason === "excused") {
+      conditions.push(`a.status = 'absent' AND approved_leave.id IS NOT NULL`);
+    }
+    if (absence_reason === "unexcused") {
+      conditions.push(`a.status = 'absent' AND approved_leave.id IS NULL`);
+    }
 
     const whereClause = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+    const baseFrom = `
+      FROM attendance_records a
+      JOIN employees e ON e.id = a.employee_id
+      LEFT JOIN employee_departments epd ON epd.employee_id = e.id AND epd.is_primary = true
+      LEFT JOIN departments pd ON pd.id = COALESCE(epd.department_id, e.department_id)
+      LEFT JOIN employee_departments esd ON esd.employee_id = e.id AND esd.is_primary = false
+      LEFT JOIN departments sd ON sd.id = esd.department_id
+      LEFT JOIN LATERAL (
+        SELECT l.id, l.leave_type, l.reason, l.start_date, l.end_date
+        FROM leave_requests l
+        WHERE l.employee_id = a.employee_id
+          AND l.status = 'approved'
+          AND a.attendance_date BETWEEN l.start_date AND l.end_date
+        ORDER BY l.id DESC
+        LIMIT 1
+      ) approved_leave ON true
+    `;
 
     const recordsResult = await pool.query(
       `
@@ -54,18 +77,21 @@ const getAttendanceDetailedReport = async (req, res) => {
         a.check_in,
         a.check_out,
         a.status,
+        CASE
+          WHEN a.status = 'absent' AND approved_leave.id IS NOT NULL THEN 'excused_absence'
+          WHEN a.status = 'absent' AND approved_leave.id IS NULL THEN 'unexcused_absence'
+          ELSE a.status
+        END AS effective_status,
         a.notes,
         COALESCE(a.source, 'system') AS source,
         pd.id AS primary_department_id,
         pd.name AS primary_department_name,
         sd.id AS sub_department_id,
-        sd.name AS sub_department_name
-      FROM attendance_records a
-      JOIN employees e ON e.id = a.employee_id
-      LEFT JOIN employee_departments epd ON epd.employee_id = e.id AND epd.is_primary = true
-      LEFT JOIN departments pd ON pd.id = COALESCE(epd.department_id, e.department_id)
-      LEFT JOIN employee_departments esd ON esd.employee_id = e.id AND esd.is_primary = false
-      LEFT JOIN departments sd ON sd.id = esd.department_id
+        sd.name AS sub_department_name,
+        approved_leave.id AS approved_leave_id,
+        approved_leave.leave_type AS approved_leave_type,
+        approved_leave.reason AS approved_leave_reason
+      ${baseFrom}
       ${whereClause}
       ORDER BY a.attendance_date DESC, e.full_name ASC, a.id DESC
       `,
@@ -82,15 +108,12 @@ const getAttendanceDetailedReport = async (req, res) => {
         COUNT(*)::int AS total_records,
         COUNT(*) FILTER (WHERE a.status = 'present')::int AS present_days,
         COUNT(*) FILTER (WHERE a.status = 'absent')::int AS absent_days,
+        COUNT(*) FILTER (WHERE a.status = 'absent' AND approved_leave.id IS NOT NULL)::int AS excused_absent_days,
+        COUNT(*) FILTER (WHERE a.status = 'absent' AND approved_leave.id IS NULL)::int AS unexcused_absent_days,
         COUNT(*) FILTER (WHERE a.status = 'late')::int AS late_days,
         COUNT(*) FILTER (WHERE a.status = 'early_leave')::int AS early_leave_days,
         COUNT(*) FILTER (WHERE a.status = 'leave')::int AS leave_days
-      FROM attendance_records a
-      JOIN employees e ON e.id = a.employee_id
-      LEFT JOIN employee_departments epd ON epd.employee_id = e.id AND epd.is_primary = true
-      LEFT JOIN departments pd ON pd.id = COALESCE(epd.department_id, e.department_id)
-      LEFT JOIN employee_departments esd ON esd.employee_id = e.id AND esd.is_primary = false
-      LEFT JOIN departments sd ON sd.id = esd.department_id
+      ${baseFrom}
       ${whereClause}
       GROUP BY a.employee_id, e.full_name, pd.name, sd.name
       ORDER BY e.full_name ASC
@@ -100,34 +123,38 @@ const getAttendanceDetailedReport = async (req, res) => {
 
     const statusResult = await pool.query(
       `
-      SELECT a.status, COUNT(*)::int AS count
-      FROM attendance_records a
-      JOIN employees e ON e.id = a.employee_id
-      LEFT JOIN employee_departments epd ON epd.employee_id = e.id AND epd.is_primary = true
-      LEFT JOIN departments pd ON pd.id = COALESCE(epd.department_id, e.department_id)
-      LEFT JOIN employee_departments esd ON esd.employee_id = e.id AND esd.is_primary = false
-      LEFT JOIN departments sd ON sd.id = esd.department_id
+      SELECT
+        CASE
+          WHEN a.status = 'absent' AND approved_leave.id IS NOT NULL THEN 'excused_absence'
+          WHEN a.status = 'absent' AND approved_leave.id IS NULL THEN 'unexcused_absence'
+          ELSE a.status
+        END AS status,
+        COUNT(*)::int AS count
+      ${baseFrom}
       ${whereClause}
-      GROUP BY a.status
-      ORDER BY a.status ASC
+      GROUP BY 1
+      ORDER BY 1 ASC
       `,
       values
     );
 
+    const records = recordsResult.rows;
     const totals = {
-      total_records: recordsResult.rows.length,
-      present: recordsResult.rows.filter((row) => row.status === "present").length,
-      absent: recordsResult.rows.filter((row) => row.status === "absent").length,
-      late: recordsResult.rows.filter((row) => row.status === "late").length,
-      early_leave: recordsResult.rows.filter((row) => row.status === "early_leave").length,
-      leave: recordsResult.rows.filter((row) => row.status === "leave").length,
+      total_records: records.length,
+      present: records.filter((row) => row.status === "present").length,
+      absent: records.filter((row) => row.status === "absent").length,
+      excused_absent: records.filter((row) => row.effective_status === "excused_absence").length,
+      unexcused_absent: records.filter((row) => row.effective_status === "unexcused_absence").length,
+      late: records.filter((row) => row.status === "late").length,
+      early_leave: records.filter((row) => row.status === "early_leave").length,
+      leave: records.filter((row) => row.status === "leave").length,
     };
 
     res.status(200).json({
       totals,
       status_summary: statusResult.rows,
       monthly_by_employee: monthlyResult.rows,
-      records: recordsResult.rows,
+      records,
     });
   } catch (error) {
     res.status(500).json({ error: error.message });

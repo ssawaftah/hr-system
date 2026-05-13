@@ -12,14 +12,14 @@ const {
 } = require("../controllers/employee.controller");
 
 const authMiddleware = require("../middlewares/auth.middleware");
-const roleMiddleware = require("../middlewares/role.middleware");
+const permissionMiddleware = require("../middlewares/permission.middleware");
 
-router.get("/", authMiddleware, roleMiddleware("admin", "hr"), getEmployees);
-router.get("/:id", authMiddleware, roleMiddleware("admin", "hr"), getEmployeeById);
-router.post("/", authMiddleware, roleMiddleware("admin", "hr"), createEmployee);
-router.put("/:id", authMiddleware, roleMiddleware("admin", "hr"), updateEmployee);
-router.patch("/:id/disable", authMiddleware, roleMiddleware("admin"), disableEmployee);
-router.patch("/:id/archive", authMiddleware, roleMiddleware("admin"), archiveEmployee);
-router.delete("/:id", authMiddleware, roleMiddleware("admin"), deleteEmployee);
+router.get("/", authMiddleware, permissionMiddleware("employees.view"), getEmployees);
+router.get("/:id", authMiddleware, permissionMiddleware("employees.view"), getEmployeeById);
+router.post("/", authMiddleware, permissionMiddleware("employees.create"), createEmployee);
+router.put("/:id", authMiddleware, permissionMiddleware("employees.update"), updateEmployee);
+router.patch("/:id/disable", authMiddleware, permissionMiddleware("employees.delete"), disableEmployee);
+router.patch("/:id/archive", authMiddleware, permissionMiddleware("employees.delete"), archiveEmployee);
+router.delete("/:id", authMiddleware, permissionMiddleware("employees.delete"), deleteEmployee);
 
 module.exports = router;

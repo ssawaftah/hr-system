@@ -19,14 +19,9 @@ const fallbackNavigationConfig = [
   { id: "announcements", label: "الإعلانات", path: "./announcements.html", icon: "✦", group: "النظام", requiredPermissions: ["announcements.view.self", "announcements.view.department", "announcements.view.all", "announcements.manage"], showInSidebar: true, showInShortcutMenu: true, order: 45 },
   { id: "users", label: "الصلاحيات", path: "./users.html", icon: "◌", group: "النظام", requiredPermissions: ["users.view", "permissions.view"], showInSidebar: true, showInShortcutMenu: false, order: 50 },
 ];
-
 const getNavigationConfig = () => Array.isArray(window.navigationConfig) ? window.navigationConfig : fallbackNavigationConfig;
 const shellRoleLabels = { admin: "مدير النظام", hr: "الموارد البشرية", employee: "موظف", manager: "مدير قسم", finance: "المالية" };
-const normalizeList = (value) => {
-  if (!value) return [];
-  if (Array.isArray(value)) return value.flatMap(normalizeList);
-  return String(value).split(",").map((item) => item.trim()).filter(Boolean);
-};
+const normalizeList = (value) => !value ? [] : Array.isArray(value) ? value.flatMap(normalizeList) : String(value).split(",").map((item) => item.trim()).filter(Boolean);
 const hasPermission = (permission) => loggedAccess.roles.includes("admin") || loggedAccess.permissions.includes(permission) || loggedAccess.permissions.includes("system.admin");
 const hasAnyPermission = (permissions = []) => loggedAccess.roles.includes("admin") || permissions.length === 0 || permissions.some((permission) => hasPermission(permission));
 const getCurrentPageName = () => window.location.pathname.split("/").pop() || "dashboard.html";
@@ -47,18 +42,20 @@ const readAccessCache = () => {
 const writeAccessCache = (user, access) => {
   try { sessionStorage.setItem("hr_access_cache_v2", JSON.stringify({ token, user, access, time: Date.now() })); } catch (_) {}
 };
-const injectAsset = (tag, attr, value, attrs = {}) => {
-  if (document.querySelector(`${tag}[${attr}*="${value}"]`)) return;
-  const el = document.createElement(tag);
-  el[attr] = value;
-  Object.entries(attrs).forEach(([k, v]) => el.setAttribute(k, v));
+const injectStylesheet = (href) => {
+  if (document.querySelector(`link[href*="${href.split('?')[0]}"]`)) return;
+  const el = document.createElement("link");
+  el.rel = "stylesheet";
+  el.href = href;
   document.head.appendChild(el);
 };
 const ensureUxFixes = () => {
-  injectAsset("link", "href", "ux-fixes.css", { rel: "stylesheet" });
+  injectStylesheet("./css/ux-fixes.css?v=enterprise-redesign-3");
+  injectStylesheet("./css/enterprise-redesign.css?v=enterprise-redesign-3");
   document.documentElement.lang = "ar";
   document.documentElement.dir = "rtl";
   document.body.dir = "rtl";
+  document.body.classList.add("enterprise-mode");
 };
 const closeSidebar = () => {
   document.querySelector(".app-layout")?.classList.remove("sidebar-open");
@@ -73,10 +70,7 @@ const toggleSidebar = () => {
   backdrop?.classList.toggle("is-visible", willOpen);
   document.body.classList.toggle("no-scroll", willOpen);
 };
-const getAllowedNavigation = (shortcutOnly = false) => getNavigationConfig()
-  .filter((item) => shortcutOnly ? item.showInShortcutMenu : item.showInSidebar)
-  .filter((item) => hasAnyPermission(item.requiredPermissions || []))
-  .sort((a, b) => (a.order || 0) - (b.order || 0));
+const getAllowedNavigation = (shortcutOnly = false) => getNavigationConfig().filter((item) => shortcutOnly ? item.showInShortcutMenu : item.showInSidebar).filter((item) => hasAnyPermission(item.requiredPermissions || [])).sort((a, b) => (a.order || 0) - (b.order || 0));
 const rebuildSidebar = () => {
   const menu = document.querySelector(".sidebar-menu");
   if (!menu) return;
@@ -105,8 +99,25 @@ const applyActionPermissions = () => {
     if (permissions.length && !hasAnyPermission(permissions)) el.style.display = "none";
   });
 };
+const wrapField = (field) => {
+  if (!field || field.closest(".field-shell") || field.type === "hidden" || field.closest("label") || field.classList.contains("skip-field-wrap")) return;
+  const placeholder = field.getAttribute("placeholder") || field.getAttribute("aria-label") || "الحقل";
+  const wrapper = document.createElement("div");
+  wrapper.className = field.classList.contains("full-width") ? "field-shell full-width" : "field-shell";
+  const label = document.createElement("label");
+  label.className = "field-label";
+  label.textContent = placeholder;
+  if (field.id) label.setAttribute("for", field.id);
+  field.parentNode.insertBefore(wrapper, field);
+  wrapper.appendChild(label);
+  wrapper.appendChild(field);
+  field.classList.remove("full-width");
+};
 const enhanceTables = () => {
   document.querySelectorAll("table").forEach((table) => {
+    table.classList.add("erp-card-table");
+    const headers = Array.from(table.querySelectorAll("thead th")).map((th) => th.textContent.trim());
+    table.querySelectorAll("tbody tr").forEach((tr) => Array.from(tr.children).forEach((td, index) => td.setAttribute("data-label", headers[index] || "")));
     if (table.parentElement?.classList.contains("table-scroll")) return;
     const wrapper = document.createElement("div");
     wrapper.className = "table-scroll";
@@ -117,6 +128,8 @@ const enhanceTables = () => {
 const enhancePageStructure = () => {
   document.querySelectorAll(".content-card, .table-container").forEach((card) => card.classList.add("ui-card"));
   document.querySelectorAll("form").forEach((form) => form.classList.add("ui-form"));
+  document.querySelectorAll("form input, form select, form textarea").forEach(wrapField);
+  document.querySelectorAll(".section-header, .topbar > div:first-child").forEach((el) => el.classList.add("erp-surface-title"));
   enhanceTables();
 };
 const setupResponsiveShell = () => {
@@ -179,6 +192,8 @@ const applyLoadedUser = (user, access) => {
   applyActionPermissions();
   enhancePageStructure();
   if (!enforcePagePermission()) return null;
+  setTimeout(enhanceTables, 250);
+  setTimeout(enhanceTables, 1200);
   return { ...loggedUser, roles: loggedAccess.roles, permissions: loggedAccess.permissions, employee_id: loggedAccess.employee_id, employee_number: loggedAccess.employee_number };
 };
 const loadLoggedUser = async () => {

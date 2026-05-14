@@ -43,7 +43,7 @@ const loadGlobalCounts = async () => {
     safeCount(`SELECT COUNT(*) FROM departments`),
     safeCount(`SELECT COUNT(*) FROM employees`),
     safeCount(`SELECT COUNT(*) FROM attendance_records`),
-    safeCount(`SELECT COUNT(DISTINCT employee_id) FROM attendance_records WHERE attendance_date = ${jordanTodaySql} AND (status IN ('present','late','early_leave') OR check_in IS NOT NULL)`),
+    safeCount(`SELECT COUNT(DISTINCT employee_id) FROM attendance_records WHERE attendance_date = ${jordanTodaySql} AND (check_in IS NOT NULL OR status IN ('present','early_leave'))`),
     safeCount(`SELECT COUNT(DISTINCT employee_id) FROM attendance_records WHERE attendance_date = ${jordanTodaySql} AND status = 'late'`),
     safeCount(`SELECT COUNT(DISTINCT employee_id) FROM attendance_records WHERE attendance_date = ${jordanTodaySql} AND status = 'absent'`),
     safeCount(`SELECT COUNT(*) FROM employee_requests WHERE status = 'pending'`),

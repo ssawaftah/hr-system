@@ -2,6 +2,11 @@ const typeLabel=(t)=>t==='general'?'إعلان عام':'إعلان خاص';
 const fmtDate=(x)=>x?String(x).slice(0,10):'غير محدد';
 const setText=(id,value)=>{const node=document.getElementById(id);if(node)node.textContent=value??0};
 
+const todayInJordan=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Amman',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+const rowDate=(row)=>String(row.attendance_date||row.date||row.created_at||'').slice(0,10);
+const rowStatus=(row)=>String(row.status||'').toLowerCase();
+const employeeKey=(row)=>String(row.employee_id||row.employee_number||row.id||Math.random());
+
 const renderDashboardAnnouncements=(items=[])=>{
   const box=document.getElementById('dashboardAnnouncements');
   if(!box)return;
@@ -23,17 +28,66 @@ const renderTodayReport=(today={},user=null)=>{
   }
 };
 
+const computeTodayFromAttendance=(rows=[])=>{
+  const today=todayInJordan();
+  const present=new Set();
+  const late=new Set();
+  const absent=new Set();
+  rows.filter(row=>rowDate(row)===today).forEach(row=>{
+    const key=employeeKey(row);
+    const status=rowStatus(row);
+    const hasCheckIn=Boolean(row.check_in||row.checkIn||row.time_in);
+    if(status==='absent'||status==='غائب') absent.add(key);
+    if(status==='late'||status==='متأخر'||status==='متاخر') late.add(key);
+    if(hasCheckIn||['present','late','early_leave','حاضر','متأخر','متاخر'].includes(status)) present.add(key);
+  });
+  return {date:today,present:present.size,absent:absent.size,late:late.size};
+};
+
+const loadAttendanceTodayFallback=async()=>{
+  try{
+    const r=await fetch(`${API_BASE_URL}/attendance?auto=1&_=${Date.now()}`,{headers:{Authorization:`Bearer ${token}`}});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok)throw new Error(d.error||'attendance failed');
+    return computeTodayFromAttendance(d.attendance||d.records||[]);
+  }catch(error){
+    console.warn('Dashboard attendance fallback failed:',error.message);
+    return null;
+  }
+};
+
+const loadPendingRequestsFallback=async()=>{
+  try{
+    const r=await fetch(`${API_BASE_URL}/leaves?_=${Date.now()}`,{headers:{Authorization:`Bearer ${token}`}});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok)throw new Error(d.error||'requests failed');
+    return (d.requests||[]).filter(x=>['pending','needs_info'].includes(String(x.status||''))).length;
+  }catch(error){
+    console.warn('Dashboard requests fallback failed:',error.message);
+    return 0;
+  }
+};
+
 const initDashboard = async () => {
   const user = await loadLoggedUser();
   if (!user) return;
   try {
-    const [statsResponse,announcementsResponse] = await Promise.all([
-      fetch(`${API_BASE_URL}/dashboard/stats`, { headers: { Authorization: `Bearer ${token}` } }),
-      fetch(`${API_BASE_URL}/announcements/visible`, { headers: { Authorization: `Bearer ${token}` } }).catch(()=>null)
+    const [statsResponse,announcementsResponse,attendanceToday,pendingRequests] = await Promise.all([
+      fetch(`${API_BASE_URL}/dashboard/stats?_=${Date.now()}`, { headers: { Authorization: `Bearer ${token}` } }).catch(()=>null),
+      fetch(`${API_BASE_URL}/announcements/visible?_=${Date.now()}`, { headers: { Authorization: `Bearer ${token}` } }).catch(()=>null),
+      loadAttendanceTodayFallback(),
+      loadPendingRequestsFallback()
     ]);
-    const data = await statsResponse.json().catch(()=>({}));
-    if (statsResponse.ok) renderTodayReport(data.today||{},user);
-    else renderTodayReport({},user);
+    const data = statsResponse ? await statsResponse.json().catch(()=>({})) : {};
+    const backendToday = statsResponse&&statsResponse.ok ? (data.today||{}) : {};
+    const today = {
+      date: attendanceToday?.date || backendToday.date || todayInJordan(),
+      present: attendanceToday ? attendanceToday.present : (backendToday.present||0),
+      absent: attendanceToday ? attendanceToday.absent : (backendToday.absent||0),
+      late: attendanceToday ? attendanceToday.late : (backendToday.late||0),
+      pendingRequests: pendingRequests || backendToday.pendingRequests || 0,
+    };
+    renderTodayReport(today,user);
     if(announcementsResponse&&announcementsResponse.ok){
       const a=await announcementsResponse.json();
       renderDashboardAnnouncements(a.announcements||[]);

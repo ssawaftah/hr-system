@@ -13,13 +13,14 @@ const {
   addSalaryItem,
   updateSalaryItem,
   deleteSalaryItem,
-  updateSalaryStatus,
   deleteSalary,
   createAdvance,
   getAdvances,
   getLeaveBalance,
   saveLeaveBalance,
 } = require("../controllers/finance.controller");
+
+const { updateSalaryStatusSafe } = require("../controllers/salary-status.controller");
 
 const authMiddleware = require("../middlewares/auth.middleware");
 const permissionMiddleware = require("../middlewares/permission.middleware");
@@ -44,8 +45,8 @@ router.get("/:id", authMiddleware, permissionMiddleware("salaries.view"), getSal
 router.post("/:id/items", authMiddleware, permissionMiddleware("salaries.create"), addSalaryItem);
 router.put("/:id/items/:itemId", authMiddleware, permissionMiddleware("salaries.create"), updateSalaryItem);
 router.delete("/:id/items/:itemId", authMiddleware, permissionMiddleware("salaries.create"), deleteSalaryItem);
-router.patch("/:id/status", authMiddleware, permissionMiddleware("salaries.review", "salaries.approve", "salaries.publish"), updateSalaryStatus);
-router.put("/:id/status", authMiddleware, permissionMiddleware("salaries.review", "salaries.approve", "salaries.publish"), updateSalaryStatus);
+router.patch("/:id/status", authMiddleware, permissionMiddleware("salaries.review", "salaries.approve", "salaries.publish"), updateSalaryStatusSafe);
+router.put("/:id/status", authMiddleware, permissionMiddleware("salaries.review", "salaries.approve", "salaries.publish"), updateSalaryStatusSafe);
 router.delete("/:id", authMiddleware, permissionMiddleware("salaries.delete"), deleteSalary);
 
 module.exports = router;

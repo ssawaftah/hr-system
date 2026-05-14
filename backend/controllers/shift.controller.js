@@ -1,7 +1,46 @@
 const pool = require("../db");
 
-const ensureShiftSchema = async () => {
-  await pool.query(`
+const todayIso = () => new Date().toISOString().split("T")[0];
+const getActorId = (req) => req.user?.id || null;
+const dayKeys = ["saturday", "sunday", "monday", "tuesday", "wednesday", "thursday", "friday"];
+
+const normalizeBoolean = (value, fallback = false) => {
+  if (value === undefined || value === null || value === "") return fallback;
+  if (typeof value === "boolean") return value;
+  if (value === "true") return true;
+  if (value === "false") return false;
+  return Boolean(value);
+};
+
+const normalizeDays = (value) => {
+  const source = Array.isArray(value) ? value : String(value || "").split(",");
+  const days = source.map((item) => String(item).trim()).filter((item) => dayKeys.includes(item));
+  return [...new Set(days.length ? days : ["saturday", "sunday", "monday", "tuesday", "wednesday", "thursday"])];
+};
+
+const normalizeEmployeeIds = (body) => {
+  const raw = Array.isArray(body.employee_ids) ? body.employee_ids : body.employee_id ? [body.employee_id] : [];
+  return [...new Set(raw.map((id) => Number(id)).filter((id) => Number.isInteger(id) && id > 0))];
+};
+
+const getShiftPayload = (body) => ({
+  name: (body.name || "").trim(),
+  shift_type: body.shift_type || "custom",
+  start_time: body.start_time || null,
+  end_time: body.end_time || null,
+  work_days: normalizeDays(body.work_days),
+  effective_from: body.effective_from || todayIso(),
+  effective_to: body.effective_to || null,
+  repeats_weekly: normalizeBoolean(body.repeats_weekly, true),
+  late_grace_minutes: Number(body.late_grace_minutes || 0),
+  absent_after_minutes: Number(body.absent_after_minutes || 180),
+  official_work_hours: Number(body.official_work_hours || 8),
+  notes: body.notes || null,
+  is_active: normalizeBoolean(body.is_active, true),
+});
+
+const ensureShiftSchema = async (client = pool) => {
+  await client.query(`
     CREATE TABLE IF NOT EXISTS work_shifts (
       id SERIAL PRIMARY KEY,
       name VARCHAR(120) NOT NULL,
@@ -14,8 +53,16 @@ const ensureShiftSchema = async () => {
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `);
+  await client.query(`ALTER TABLE work_shifts ADD COLUMN IF NOT EXISTS shift_type VARCHAR(30) DEFAULT 'custom'`);
+  await client.query(`ALTER TABLE work_shifts ADD COLUMN IF NOT EXISTS work_days JSONB DEFAULT '["saturday","sunday","monday","tuesday","wednesday","thursday"]'::jsonb`);
+  await client.query(`ALTER TABLE work_shifts ADD COLUMN IF NOT EXISTS effective_from DATE DEFAULT CURRENT_DATE`);
+  await client.query(`ALTER TABLE work_shifts ADD COLUMN IF NOT EXISTS effective_to DATE`);
+  await client.query(`ALTER TABLE work_shifts ADD COLUMN IF NOT EXISTS repeats_weekly BOOLEAN DEFAULT true`);
+  await client.query(`ALTER TABLE work_shifts ADD COLUMN IF NOT EXISTS official_work_hours NUMERIC(5,2) DEFAULT 8`);
+  await client.query(`ALTER TABLE work_shifts ADD COLUMN IF NOT EXISTS notes TEXT`);
+  await client.query(`ALTER TABLE work_shifts ADD COLUMN IF NOT EXISTS archived_at TIMESTAMP`);
 
-  await pool.query(`
+  await client.query(`
     CREATE TABLE IF NOT EXISTS employee_shift_assignments (
       id SERIAL PRIMARY KEY,
       employee_id INTEGER NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
@@ -27,69 +74,206 @@ const ensureShiftSchema = async () => {
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `);
+  await client.query(`ALTER TABLE employee_shift_assignments ADD COLUMN IF NOT EXISTS removed_at TIMESTAMP`);
+  await client.query(`ALTER TABLE employee_shift_assignments ADD COLUMN IF NOT EXISTS removal_reason TEXT`);
 
-  await pool.query(`CREATE INDEX IF NOT EXISTS employee_shift_assignments_employee_idx ON employee_shift_assignments(employee_id)`);
-  await pool.query(`CREATE INDEX IF NOT EXISTS employee_shift_assignments_shift_idx ON employee_shift_assignments(shift_id)`);
+  await client.query(`
+    CREATE TABLE IF NOT EXISTS audit_logs (
+      id SERIAL PRIMARY KEY,
+      actor_user_id INTEGER,
+      target_type VARCHAR(80),
+      target_id INTEGER,
+      action VARCHAR(120) NOT NULL,
+      old_value JSONB,
+      new_value JSONB,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  await client.query(`CREATE INDEX IF NOT EXISTS employee_shift_assignments_employee_idx ON employee_shift_assignments(employee_id)`);
+  await client.query(`CREATE INDEX IF NOT EXISTS employee_shift_assignments_shift_idx ON employee_shift_assignments(shift_id)`);
+};
+
+const writeAuditLog = async (client, req, action, targetId, oldValue = null, newValue = null) => {
+  await client.query(
+    `INSERT INTO audit_logs (actor_user_id, target_type, target_id, action, old_value, new_value) VALUES ($1,'shift',$2,$3,$4,$5)`,
+    [getActorId(req), targetId, action, oldValue ? JSON.stringify(oldValue) : null, newValue ? JSON.stringify(newValue) : null]
+  );
+};
+
+const shiftSelectSql = `
+  SELECT ws.*,
+    COALESCE(active_counts.employee_count, 0)::int AS employee_count,
+    COALESCE(active_counts.department_names, '') AS department_names
+  FROM work_shifts ws
+  LEFT JOIN (
+    SELECT esa.shift_id,
+      COUNT(DISTINCT esa.employee_id) AS employee_count,
+      STRING_AGG(DISTINCT COALESCE(d.name, 'بدون قسم'), '، ') AS department_names
+    FROM employee_shift_assignments esa
+    JOIN employees e ON e.id = esa.employee_id
+    LEFT JOIN departments d ON d.id = e.department_id
+    WHERE esa.is_active = true
+    GROUP BY esa.shift_id
+  ) active_counts ON active_counts.shift_id = ws.id
+`;
+
+const getAssignments = async (client, shiftId = null) => {
+  const params = [];
+  let where = "";
+  if (shiftId) { params.push(shiftId); where = "WHERE esa.shift_id=$1"; }
+  const result = await client.query(`
+    SELECT esa.id, esa.employee_id, e.full_name AS employee_name, e.employee_number,
+      COALESCE(e.job_title_name, e.job_title) AS job_title, e.department_id, d.name AS department_name,
+      esa.shift_id, ws.name AS shift_name, ws.shift_type, ws.start_time, ws.end_time, ws.work_days,
+      esa.effective_from, esa.effective_to, esa.is_active
+    FROM employee_shift_assignments esa
+    JOIN employees e ON e.id = esa.employee_id
+    JOIN work_shifts ws ON ws.id = esa.shift_id
+    LEFT JOIN departments d ON d.id = e.department_id
+    ${where}
+    ORDER BY esa.is_active DESC, esa.id DESC
+  `, params);
+  return result.rows;
+};
+
+const getEmployeesWithoutActiveShift = async (client) => {
+  const result = await client.query(`
+    SELECT e.id, e.full_name, e.employee_number, COALESCE(e.job_title_name, e.job_title) AS job_title, e.department_id, d.name AS department_name
+    FROM employees e
+    LEFT JOIN departments d ON d.id = e.department_id
+    WHERE COALESCE(e.is_active, true) = true
+      AND NOT EXISTS (
+        SELECT 1 FROM employee_shift_assignments esa
+        WHERE esa.employee_id = e.id AND esa.is_active = true AND COALESCE(esa.effective_to, DATE '9999-12-31') >= CURRENT_DATE
+      )
+    ORDER BY d.name NULLS LAST, e.full_name ASC
+  `);
+  return result.rows;
+};
+
+const getFridayEmployees = async (client) => {
+  const result = await client.query(`
+    SELECT DISTINCT e.id, e.full_name, e.employee_number, COALESCE(e.job_title_name, e.job_title) AS job_title, d.name AS department_name,
+      ws.id AS shift_id, ws.name AS shift_name, esa.effective_from, esa.effective_to
+    FROM employee_shift_assignments esa
+    JOIN work_shifts ws ON ws.id = esa.shift_id
+    JOIN employees e ON e.id = esa.employee_id
+    LEFT JOIN departments d ON d.id = e.department_id
+    WHERE esa.is_active = true AND (ws.shift_type = 'friday' OR ws.work_days ? 'friday')
+    ORDER BY d.name NULLS LAST, e.full_name ASC
+  `);
+  return result.rows;
+};
+
+const getWeekDistribution = async (client) => {
+  const result = await client.query(`
+    SELECT e.id AS employee_id, e.full_name, e.employee_number, d.name AS department_name,
+      ws.id AS shift_id, ws.name AS shift_name, ws.shift_type, ws.work_days
+    FROM employees e
+    LEFT JOIN departments d ON d.id = e.department_id
+    LEFT JOIN employee_shift_assignments esa ON esa.employee_id = e.id AND esa.is_active = true AND COALESCE(esa.effective_to, DATE '9999-12-31') >= CURRENT_DATE
+    LEFT JOIN work_shifts ws ON ws.id = esa.shift_id AND ws.is_active = true
+    WHERE COALESCE(e.is_active, true) = true
+    ORDER BY d.name NULLS LAST, e.full_name ASC
+  `);
+  return result.rows.map((row) => {
+    const workDays = Array.isArray(row.work_days) ? row.work_days : [];
+    const schedule = dayKeys.reduce((map, day) => ({ ...map, [day]: row.shift_id && workDays.includes(day) ? row.shift_name : "-" }), {});
+    return { ...row, schedule };
+  });
+};
+
+const findConflicts = async (client, employeeIds, shiftId, effectiveFrom, effectiveTo, excludeAssignmentId = null) => {
+  if (!employeeIds.length) return [];
+  const result = await client.query(
+    `SELECT esa.id, esa.employee_id, e.full_name AS employee_name, e.employee_number, ws.name AS shift_name, esa.effective_from, esa.effective_to
+     FROM employee_shift_assignments esa
+     JOIN employees e ON e.id = esa.employee_id
+     JOIN work_shifts ws ON ws.id = esa.shift_id
+     WHERE esa.is_active = true
+       AND esa.employee_id = ANY($1::int[])
+       AND ($2::int IS NULL OR esa.shift_id <> $2)
+       AND ($5::int IS NULL OR esa.id <> $5)
+       AND NOT (COALESCE(esa.effective_to, DATE '9999-12-31') < $3::date OR COALESCE($4::date, DATE '9999-12-31') < esa.effective_from)
+     ORDER BY e.full_name ASC`,
+    [employeeIds, shiftId || null, effectiveFrom || todayIso(), effectiveTo || null, excludeAssignmentId || null]
+  );
+  return result.rows;
 };
 
 const getShifts = async (req, res) => {
   try {
     await ensureShiftSchema();
-    const shifts = await pool.query(`SELECT * FROM work_shifts ORDER BY id ASC`);
-    const assignments = await pool.query(`
-      SELECT
-        esa.id,
-        esa.employee_id,
-        e.full_name AS employee_name,
-        esa.shift_id,
-        ws.name AS shift_name,
-        esa.effective_from,
-        esa.effective_to,
-        esa.is_active
-      FROM employee_shift_assignments esa
-      JOIN employees e ON e.id = esa.employee_id
-      JOIN work_shifts ws ON ws.id = esa.shift_id
-      ORDER BY esa.id DESC
-    `);
-    res.status(200).json({ shifts: shifts.rows, assignments: assignments.rows });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+    const shifts = await pool.query(`${shiftSelectSql} ORDER BY ws.is_active DESC, ws.id ASC`);
+    const assignments = await getAssignments(pool);
+    const without_shift = await getEmployeesWithoutActiveShift(pool);
+    const friday_employees = await getFridayEmployees(pool);
+    const week_distribution = await getWeekDistribution(pool);
+    res.status(200).json({ shifts: shifts.rows, assignments, without_shift, friday_employees, week_distribution });
+  } catch (error) { res.status(500).json({ error: error.message }); }
 };
 
-const createShift = async (req, res) => {
-  try {
-    await ensureShiftSchema();
-    const { name, start_time, end_time, late_grace_minutes, absent_after_minutes, is_active } = req.body;
-    if (!name || !start_time || !end_time) return res.status(400).json({ error: "اسم الشفت ووقت البداية والنهاية مطلوبة" });
-    const result = await pool.query(
-      `INSERT INTO work_shifts (name, start_time, end_time, late_grace_minutes, absent_after_minutes, is_active, updated_at)
-       VALUES ($1,$2,$3,$4,$5,$6,CURRENT_TIMESTAMP) RETURNING *`,
-      [name.trim(), start_time, end_time, Number(late_grace_minutes || 0), Number(absent_after_minutes || 180), is_active !== false]
-    );
-    res.status(201).json({ message: "تم إنشاء الشفت بنجاح", shift: result.rows[0] });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
-
-const updateShift = async (req, res) => {
+const getShiftById = async (req, res) => {
   try {
     await ensureShiftSchema();
     const { id } = req.params;
-    const { name, start_time, end_time, late_grace_minutes, absent_after_minutes, is_active } = req.body;
-    if (!name || !start_time || !end_time) return res.status(400).json({ error: "اسم الشفت ووقت البداية والنهاية مطلوبة" });
-    const result = await pool.query(
-      `UPDATE work_shifts
-       SET name=$1, start_time=$2, end_time=$3, late_grace_minutes=$4, absent_after_minutes=$5, is_active=$6, updated_at=CURRENT_TIMESTAMP
-       WHERE id=$7 RETURNING *`,
-      [name.trim(), start_time, end_time, Number(late_grace_minutes || 0), Number(absent_after_minutes || 180), is_active !== false, id]
+    const shift = await pool.query(`${shiftSelectSql} WHERE ws.id=$1`, [id]);
+    if (!shift.rows.length) return res.status(404).json({ error: "الشفت غير موجود" });
+    const assignments = await getAssignments(pool, id);
+    const audit = await pool.query(`SELECT * FROM audit_logs WHERE target_type='shift' AND target_id=$1 ORDER BY id DESC LIMIT 40`, [id]);
+    res.status(200).json({ shift: shift.rows[0], assignments, audit_logs: audit.rows });
+  } catch (error) { res.status(500).json({ error: error.message }); }
+};
+
+const createShift = async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await ensureShiftSchema(client);
+    const data = getShiftPayload(req.body);
+    if (!data.name || !data.start_time || !data.end_time) { await client.query("ROLLBACK"); return res.status(400).json({ error: "اسم الشفت ووقت البداية والنهاية مطلوبة" }); }
+    const result = await client.query(
+      `INSERT INTO work_shifts (name, shift_type, start_time, end_time, work_days, effective_from, effective_to, repeats_weekly, late_grace_minutes, absent_after_minutes, official_work_hours, notes, is_active, updated_at)
+       VALUES ($1,$2,$3,$4,$5::jsonb,$6,$7,$8,$9,$10,$11,$12,$13,CURRENT_TIMESTAMP) RETURNING *`,
+      [data.name, data.shift_type, data.start_time, data.end_time, JSON.stringify(data.work_days), data.effective_from, data.effective_to, data.repeats_weekly, data.late_grace_minutes, data.absent_after_minutes, data.official_work_hours, data.notes, data.is_active]
     );
-    if (!result.rows.length) return res.status(404).json({ error: "الشفت غير موجود" });
-    res.status(200).json({ message: "تم تعديل الشفت بنجاح", shift: result.rows[0] });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+    await writeAuditLog(client, req, "تم إنشاء الشفت", result.rows[0].id, null, result.rows[0]);
+    await client.query("COMMIT");
+    res.status(201).json({ message: "تم إنشاء الشفت بنجاح", shift: result.rows[0] });
+  } catch (error) { await client.query("ROLLBACK"); res.status(500).json({ error: error.message }); } finally { client.release(); }
+};
+
+const updateShift = async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await ensureShiftSchema(client);
+    const { id } = req.params;
+    const data = getShiftPayload(req.body);
+    if (!data.name || !data.start_time || !data.end_time) { await client.query("ROLLBACK"); return res.status(400).json({ error: "اسم الشفت ووقت البداية والنهاية مطلوبة" }); }
+    const oldResult = await client.query(`SELECT * FROM work_shifts WHERE id=$1`, [id]);
+    if (!oldResult.rows.length) { await client.query("ROLLBACK"); return res.status(404).json({ error: "الشفت غير موجود" }); }
+    const result = await client.query(
+      `UPDATE work_shifts SET name=$1, shift_type=$2, start_time=$3, end_time=$4, work_days=$5::jsonb, effective_from=$6, effective_to=$7, repeats_weekly=$8, late_grace_minutes=$9, absent_after_minutes=$10, official_work_hours=$11, notes=$12, is_active=$13, updated_at=CURRENT_TIMESTAMP WHERE id=$14 RETURNING *`,
+      [data.name, data.shift_type, data.start_time, data.end_time, JSON.stringify(data.work_days), data.effective_from, data.effective_to, data.repeats_weekly, data.late_grace_minutes, data.absent_after_minutes, data.official_work_hours, data.notes, data.is_active, id]
+    );
+    await writeAuditLog(client, req, "تم تعديل الشفت - قد يؤثر على الحضور والرواتب", Number(id), oldResult.rows[0], result.rows[0]);
+    await client.query("COMMIT");
+    res.status(200).json({ message: "تم تعديل الشفت بنجاح. انتبه: تعديل وقت الشفت قد يؤثر على احتساب التأخير والإضافي والرواتب.", shift: result.rows[0] });
+  } catch (error) { await client.query("ROLLBACK"); res.status(500).json({ error: error.message }); } finally { client.release(); }
+};
+
+const archiveShift = async (req, res) => {
+  try {
+    await ensureShiftSchema();
+    const { id } = req.params;
+    const oldResult = await pool.query(`SELECT * FROM work_shifts WHERE id=$1`, [id]);
+    if (!oldResult.rows.length) return res.status(404).json({ error: "الشفت غير موجود" });
+    const result = await pool.query(`UPDATE work_shifts SET is_active=false, archived_at=CURRENT_TIMESTAMP, updated_at=CURRENT_TIMESTAMP WHERE id=$1 RETURNING *`, [id]);
+    await writeAuditLog(pool, req, "تم أرشفة الشفت", Number(id), oldResult.rows[0], result.rows[0]);
+    res.status(200).json({ message: "تم أرشفة الشفت بنجاح", shift: result.rows[0] });
+  } catch (error) { res.status(500).json({ error: error.message }); }
 };
 
 const deleteShift = async (req, res) => {
@@ -97,40 +281,75 @@ const deleteShift = async (req, res) => {
     await ensureShiftSchema();
     const { id } = req.params;
     const linked = await pool.query(`SELECT COUNT(*)::int AS count FROM employee_shift_assignments WHERE shift_id=$1 AND is_active=true`, [id]);
-    if (linked.rows[0].count > 0) return res.status(409).json({ error: "لا يمكن حذف شفت مرتبط بموظفين. عطّله بدل الحذف." });
+    if (linked.rows[0].count > 0) return res.status(409).json({ error: "لا يمكن حذف شفت مرتبط بموظفين. أزل الموظفين أو أرشف الشفت بدل الحذف.", code: "SHIFT_HAS_EMPLOYEES" });
     const result = await pool.query(`DELETE FROM work_shifts WHERE id=$1 RETURNING id`, [id]);
     if (!result.rows.length) return res.status(404).json({ error: "الشفت غير موجود" });
+    await writeAuditLog(pool, req, "تم حذف الشفت", Number(id), null, null);
     res.status(200).json({ message: "تم حذف الشفت بنجاح" });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+  } catch (error) { res.status(500).json({ error: error.message }); }
 };
 
 const assignShift = async (req, res) => {
+  const client = await pool.connect();
   try {
-    await ensureShiftSchema();
-    const { employee_id, shift_id, effective_from, effective_to } = req.body;
-    if (!employee_id || !shift_id) return res.status(400).json({ error: "الموظف والشفت مطلوبان" });
-
-    const employee = await pool.query(`SELECT id FROM employees WHERE id=$1`, [employee_id]);
-    if (!employee.rows.length) return res.status(404).json({ error: "الموظف غير موجود" });
-    const shift = await pool.query(`SELECT id FROM work_shifts WHERE id=$1 AND is_active=true`, [shift_id]);
-    if (!shift.rows.length) return res.status(404).json({ error: "الشفت غير موجود أو غير نشط" });
-
-    await pool.query(
-      `UPDATE employee_shift_assignments SET is_active=false, effective_to=COALESCE(effective_to, CURRENT_DATE), updated_at=CURRENT_TIMESTAMP WHERE employee_id=$1 AND is_active=true`,
-      [employee_id]
-    );
-
-    const result = await pool.query(
-      `INSERT INTO employee_shift_assignments (employee_id, shift_id, effective_from, effective_to, is_active, updated_at)
-       VALUES ($1,$2,$3,$4,true,CURRENT_TIMESTAMP) RETURNING *`,
-      [employee_id, shift_id, effective_from || new Date().toISOString().split("T")[0], effective_to || null]
-    );
-    res.status(201).json({ message: "تم ربط الموظف بالشفت بنجاح", assignment: result.rows[0] });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+    await client.query("BEGIN");
+    await ensureShiftSchema(client);
+    const employeeIds = normalizeEmployeeIds(req.body);
+    const { shift_id, effective_from, effective_to } = req.body;
+    const transferExisting = normalizeBoolean(req.body.transfer_existing, false);
+    if (!employeeIds.length || !shift_id) { await client.query("ROLLBACK"); return res.status(400).json({ error: "يجب اختيار موظف واحد على الأقل والشفت" }); }
+    const shift = await client.query(`SELECT * FROM work_shifts WHERE id=$1 AND is_active=true`, [shift_id]);
+    if (!shift.rows.length) { await client.query("ROLLBACK"); return res.status(404).json({ error: "الشفت غير موجود أو مؤرشف" }); }
+    const conflicts = await findConflicts(client, employeeIds, Number(shift_id), effective_from || todayIso(), effective_to || null);
+    if (conflicts.length && !transferExisting) { await client.query("ROLLBACK"); return res.status(409).json({ error: "يوجد موظفون مرتبطون بشفت آخر في نفس الفترة", code: "SHIFT_ASSIGNMENT_CONFLICT", conflicts }); }
+    if (conflicts.length && transferExisting) {
+      await client.query(`UPDATE employee_shift_assignments SET is_active=false, effective_to=COALESCE($2::date - INTERVAL '1 day', CURRENT_DATE), updated_at=CURRENT_TIMESTAMP WHERE employee_id = ANY($1::int[]) AND is_active=true`, [employeeIds, effective_from || todayIso()]);
+    }
+    const created = [];
+    for (const employeeId of employeeIds) {
+      const result = await client.query(
+        `INSERT INTO employee_shift_assignments (employee_id, shift_id, effective_from, effective_to, is_active, updated_at)
+         VALUES ($1,$2,$3,$4,true,CURRENT_TIMESTAMP) RETURNING *`,
+        [employeeId, shift_id, effective_from || todayIso(), effective_to || null]
+      );
+      created.push(result.rows[0]);
+    }
+    await writeAuditLog(client, req, "تم ربط موظفين بالشفت", Number(shift_id), null, { employee_ids: employeeIds });
+    await client.query("COMMIT");
+    res.status(201).json({ message: "تم ربط الموظفين بالشفت بنجاح", assignments: created });
+  } catch (error) { await client.query("ROLLBACK"); res.status(500).json({ error: error.message }); } finally { client.release(); }
 };
 
-module.exports = { ensureShiftSchema, getShifts, createShift, updateShift, deleteShift, assignShift };
+const removeAssignment = async (req, res) => {
+  try {
+    await ensureShiftSchema();
+    const { id } = req.params;
+    const oldResult = await pool.query(`SELECT * FROM employee_shift_assignments WHERE id=$1`, [id]);
+    if (!oldResult.rows.length) return res.status(404).json({ error: "ارتباط الشفت غير موجود" });
+    const result = await pool.query(`UPDATE employee_shift_assignments SET is_active=false, effective_to=COALESCE(effective_to, CURRENT_DATE), removed_at=CURRENT_TIMESTAMP, removal_reason=$2, updated_at=CURRENT_TIMESTAMP WHERE id=$1 RETURNING *`, [id, req.body?.reason || "إزالة من الشفت"]);
+    await writeAuditLog(pool, req, "تمت إزالة موظف من الشفت", result.rows[0].shift_id, oldResult.rows[0], result.rows[0]);
+    res.status(200).json({ message: "تمت إزالة الموظف من الشفت", assignment: result.rows[0] });
+  } catch (error) { res.status(500).json({ error: error.message }); }
+};
+
+const moveAssignment = async (req, res) => {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await ensureShiftSchema(client);
+    const { id } = req.params;
+    const { new_shift_id, effective_from, effective_to } = req.body;
+    const old = await client.query(`SELECT * FROM employee_shift_assignments WHERE id=$1 AND is_active=true`, [id]);
+    if (!old.rows.length) { await client.query("ROLLBACK"); return res.status(404).json({ error: "ارتباط الشفت غير موجود أو غير نشط" }); }
+    if (!new_shift_id) { await client.query("ROLLBACK"); return res.status(400).json({ error: "الشفت الجديد مطلوب" }); }
+    const conflicts = await findConflicts(client, [old.rows[0].employee_id], Number(new_shift_id), effective_from || todayIso(), effective_to || null, Number(id));
+    if (conflicts.length) { await client.query("ROLLBACK"); return res.status(409).json({ error: "الموظف مرتبط بشفت آخر في نفس الفترة", code: "SHIFT_ASSIGNMENT_CONFLICT", conflicts }); }
+    await client.query(`UPDATE employee_shift_assignments SET is_active=false, effective_to=COALESCE($2::date - INTERVAL '1 day', CURRENT_DATE), updated_at=CURRENT_TIMESTAMP WHERE id=$1`, [id, effective_from || todayIso()]);
+    const created = await client.query(`INSERT INTO employee_shift_assignments (employee_id, shift_id, effective_from, effective_to, is_active, updated_at) VALUES ($1,$2,$3,$4,true,CURRENT_TIMESTAMP) RETURNING *`, [old.rows[0].employee_id, new_shift_id, effective_from || todayIso(), effective_to || null]);
+    await writeAuditLog(client, req, "تم نقل موظف إلى شفت آخر", Number(new_shift_id), old.rows[0], created.rows[0]);
+    await client.query("COMMIT");
+    res.status(200).json({ message: "تم نقل الموظف إلى الشفت الجديد", assignment: created.rows[0] });
+  } catch (error) { await client.query("ROLLBACK"); res.status(500).json({ error: error.message }); } finally { client.release(); }
+};
+
+module.exports = { ensureShiftSchema, getShifts, getShiftById, createShift, updateShift, archiveShift, deleteShift, assignShift, removeAssignment, moveAssignment };

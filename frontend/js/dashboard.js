@@ -37,9 +37,16 @@ const computeTodayFromAttendance=(rows=[])=>{
     const key=employeeKey(row);
     const status=rowStatus(row);
     const hasCheckIn=Boolean(row.check_in||row.checkIn||row.time_in);
-    if(status==='absent'||status==='غائب') absent.add(key);
-    if(status==='late'||status==='متأخر'||status==='متاخر') late.add(key);
-    if(hasCheckIn||['present','late','early_leave','حاضر','متأخر','متاخر'].includes(status)) present.add(key);
+    const isAbsent=status==='absent'||status==='غائب';
+    const isLate=status==='late'||status==='متأخر'||status==='متاخر';
+    const isPresentStatus=status==='present'||status==='حاضر'||status==='early_leave';
+
+    if(isAbsent) absent.add(key);
+    if(isLate) late.add(key);
+
+    // مهم: المتأخر بدون check_in لا يُحسب حضورًا.
+    // يُحسب حضور فقط إذا سجّل دخول فعليًا، أو حالته صريحة حاضر.
+    if(hasCheckIn||isPresentStatus) present.add(key);
   });
   return {date:today,present:present.size,absent:absent.size,late:late.size};
 };

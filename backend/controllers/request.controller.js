@@ -1,5 +1,6 @@
 const pool = require("../db");
 const { ensureAttendanceSchema, upsertAutoAttendance } = require("./attendance.controller");
+const { ensureSalarySchema } = require("./salary.controller");
 const { getUserAccess, hasPermissionValue } = require("../services/permission.service");
 
 const REQUEST_TYPES = ["leave", "exit", "advance", "resignation", "complaint", "custom"];
@@ -53,6 +54,8 @@ const can = (access, permission) => hasPermissionValue(access, permission);
 const canAny = (access, permissions) => permissions.some((permission) => can(access, permission));
 const asInt = (value) => (value === undefined || value === null || value === "" ? null : Number(value));
 const asText = (value) => (value === undefined || value === null || value === "" ? null : String(value));
+const money = (value) => Number(value || 0);
+const currentMonth = () => new Date().toISOString().slice(0, 7);
 
 const getCurrentEmployeeId = async (req) => {
   if (req.user?.employee_id) return Number(req.user.employee_id);
@@ -104,6 +107,9 @@ const validateRequest = (type, data) => {
   if (type === "advance") {
     if (!Number(data.amount) || Number(data.amount) <= 0) return "يرجى إدخال قيمة صحيحة للمبلغ";
     if (!data.reason) return "يجب إدخال سبب السلفة";
+    if (!data.deduction_method) return "طريقة خصم السلفة مطلوبة";
+    if (data.deduction_method === "installments" && (!Number(data.installments_count) || Number(data.installments_count) < 1)) return "عدد الأقساط مطلوب";
+    if (!data.deduction_start_month) return "شهر بداية الخصم مطلوب";
   }
   if (type === "resignation") {
     if (!data.last_working_day) return "تاريخ آخر يوم عمل مطلوب";
@@ -122,6 +128,7 @@ const validateRequest = (type, data) => {
 
 const titleFor = (type, data) => {
   const labels = { leave: "طلب إجازة", exit: "طلب مغادرة", advance: "طلب سلفة", resignation: "طلب استقالة", complaint: "شكوى", custom: "طلب مخصص" };
+  if (type === "advance") return `طلب سلفة - ${money(data.amount).toFixed(2)}`;
   return data.title || labels[type] || "طلب";
 };
 
@@ -151,6 +158,34 @@ const materializeApprovedLeave = async (request) => {
   }
 };
 
+const materializeApprovedAdvance = async (request, req) => {
+  if (!request || request.request_type !== "advance" || request.status !== "approved") return;
+  await ensureSalarySchema();
+  const existing = await pool.query(`SELECT id FROM employee_advances WHERE request_id=$1`, [request.id]);
+  if (existing.rows.length) return;
+  const data = request.request_data || {};
+  const amount = money(data.amount);
+  if (amount <= 0) return;
+  const deductionMethod = data.deduction_method || "installments";
+  const installmentsCount = deductionMethod === "one_time" ? 1 : Number(data.installments_count || 1);
+  const monthlyAmount = money(data.monthly_installment_amount || (amount / installmentsCount));
+  const startMonth = data.deduction_start_month || currentMonth();
+  const paidAt = data.paid_at || new Date().toISOString().slice(0, 10);
+
+  const advance = await pool.query(
+    `INSERT INTO employee_advances (employee_id, request_id, amount, paid_at, deduction_method, installments_count, monthly_installment_amount, deduction_start_month, status, reason, notes, created_by)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'active',$9,$10,$11) RETURNING *`,
+    [request.employee_id, request.id, amount, paidAt, deductionMethod, installmentsCount, monthlyAmount, startMonth, data.reason || null, data.notes || null, asInt(req.user?.id)]
+  );
+
+  const [startYear, startMonthNumber] = startMonth.split("-").map(Number);
+  for (let i = 0; i < installmentsCount; i += 1) {
+    const date = new Date(Date.UTC(startYear, startMonthNumber - 1 + i, 1));
+    const salaryMonth = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
+    await pool.query(`INSERT INTO advance_installments (advance_id, salary_month, amount, status) VALUES ($1,$2,$3,'due')`, [advance.rows[0].id, salaryMonth, monthlyAmount]);
+  }
+};
+
 const baseSelect = `
   SELECT r.id, r.employee_id, r.department_id, r.request_type, r.request_title, r.request_data, r.status,
          r.priority, r.submitted_at, r.completed_at, r.cancelled_at, r.final_decision_reason,
@@ -167,16 +202,12 @@ const getRequests = async (req, res) => {
     const employeeId = await getCurrentEmployeeId(req);
     let where = "";
     const params = [];
-    if (canAny(access, ["requests.view.all", "requests.manage"])) {
-      where = "";
-    } else if (can(access, "requests.view.department")) {
+    if (canAny(access, ["requests.view.all", "requests.manage"])) where = "";
+    else if (can(access, "requests.view.department")) {
       const departmentId = await getPrimaryDepartmentId(employeeId);
       if (!departmentId) { where = "WHERE r.employee_id=$1::int"; params.push(asInt(employeeId) || 0); }
       else { where = "WHERE r.department_id=$1::int OR r.employee_id=$2::int"; params.push(asInt(departmentId), asInt(employeeId) || 0); }
-    } else {
-      where = "WHERE r.employee_id=$1::int";
-      params.push(asInt(employeeId) || 0);
-    }
+    } else { where = "WHERE r.employee_id=$1::int"; params.push(asInt(employeeId) || 0); }
     const result = await pool.query(`${baseSelect} ${where} ORDER BY CASE WHEN r.status='pending' THEN 0 WHEN r.status='needs_info' THEN 1 ELSE 2 END, r.id DESC LIMIT 150`, params);
     res.status(200).json({ requests: result.rows });
   } catch (error) { res.status(500).json({ error: error.message }); }
@@ -192,9 +223,7 @@ const getRequestById = async (req, res) => {
     const request = result.rows[0];
     const sameEmployee = Number(request.employee_id) === Number(employeeId);
     const sameDepartment = request.department_id && Number(request.department_id) === await getPrimaryDepartmentId(employeeId);
-    if (!sameEmployee && !canAny(access, ["requests.view.all", "requests.manage"]) && !(sameDepartment && can(access, "requests.view.department"))) {
-      return res.status(403).json({ error: "لا تملك صلاحية الوصول" });
-    }
+    if (!sameEmployee && !canAny(access, ["requests.view.all", "requests.manage"]) && !(sameDepartment && can(access, "requests.view.department"))) return res.status(403).json({ error: "لا تملك صلاحية الوصول" });
     const logs = await pool.query(`SELECT * FROM employee_request_action_logs WHERE request_id=$1::int ORDER BY id ASC`, [asInt(req.params.id)]);
     res.status(200).json({ request, logs: logs.rows });
   } catch (error) { res.status(500).json({ error: error.message }); }
@@ -261,9 +290,7 @@ const actOnRequest = async (req, res) => {
     } else if (action === "comment") {
       if (!canAny(access, ["requests.comment", "requests.manage"]) && Number(request.employee_id) !== Number(employeeId)) return res.status(403).json({ error: "لا تملك صلاحية تنفيذ هذا الإجراء" });
       if (!note) return res.status(400).json({ error: "يجب إدخال تعليق" });
-    } else {
-      return res.status(400).json({ error: "الإجراء غير صحيح" });
-    }
+    } else return res.status(400).json({ error: "الإجراء غير صحيح" });
 
     const now = new Date();
     const isFinal = ["approved", "rejected", "cancelled"].includes(newStatus);
@@ -274,16 +301,7 @@ const actOnRequest = async (req, res) => {
     const finalReason = isFinal ? (note || null) : (request.final_decision_reason || null);
 
     const result = await pool.query(
-      `UPDATE employee_requests
-       SET status=$1::text,
-           final_decision_reason=$2::text,
-           final_decision_by=$3::int,
-           final_decision_at=$4::timestamp,
-           completed_at=$5::timestamp,
-           cancelled_at=$6::timestamp,
-           updated_at=CURRENT_TIMESTAMP
-       WHERE id=$7::int
-       RETURNING *`,
+      `UPDATE employee_requests SET status=$1::text, final_decision_reason=$2::text, final_decision_by=$3::int, final_decision_at=$4::timestamp, completed_at=$5::timestamp, cancelled_at=$6::timestamp, updated_at=CURRENT_TIMESTAMP WHERE id=$7::int RETURNING *`,
       [asText(newStatus), asText(finalReason), asInt(finalDecisionBy), finalDecisionAt, completedAt, cancelledAt, requestId]
     );
 
@@ -291,6 +309,7 @@ const actOnRequest = async (req, res) => {
     const comment = ["approve", "request_info", "respond_info", "comment"].includes(action) ? note || null : null;
     await addLog({ requestId, action, req, reason, comment, oldStatus: request.status, newStatus });
     await materializeApprovedLeave(result.rows[0]);
+    await materializeApprovedAdvance(result.rows[0], req);
     const enriched = await pool.query(`${baseSelect} WHERE r.id=$1::int`, [requestId]);
     res.status(200).json({ message: "تم تنفيذ الإجراء بنجاح", request: enriched.rows[0] || result.rows[0] });
   } catch (error) { res.status(500).json({ error: error.message }); }

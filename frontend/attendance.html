@@ -2,115 +2,105 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>إدارة الحضور</title>
-  <link rel="stylesheet" href="./css/style.css" />
-  <link rel="stylesheet" href="./css/employees.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>الحضور والانصراف</title>
+  <link rel="stylesheet" href="./css/app.css?v=clean-10" />
 </head>
-<body>
+<body class="apple-system-ui attendance-page">
   <div class="app-layout">
     <aside class="sidebar">
-      <div class="sidebar-logo">HR System V2</div>
-      <nav class="sidebar-menu">
-        <a href="./dashboard.html" data-role-link="dashboard">لوحة التحكم</a>
-        <a href="./users.html" data-role-link="users">المستخدمون</a>
-        <a href="./departments.html" data-role-link="departments">الأقسام</a>
-        <a href="./employees.html" data-role-link="employees">الموظفون</a>
-        <a href="./attendance.html" class="active" data-role-link="attendance">الحضور</a>
-        <a href="./leaves.html" data-role-link="leaves">الإجازات</a>
-        <a href="./salaries.html" data-role-link="salaries">الرواتب</a>
-        <a href="./reports.html" data-role-link="reports">التقارير</a>
-      </nav>
+      <div class="sidebar-logo"><span class="brand-mark">HR</span><span>نظام الموارد البشرية</span></div>
+      <nav class="sidebar-menu"></nav>
     </aside>
 
-    <main class="main-content">
+    <main class="main-content page-shell">
       <header class="topbar">
-        <div>
-          <h1>إدارة الحضور</h1>
+        <div class="header-title-area">
+          <h1>الحضور والانصراف</h1>
           <p id="pageSubtitle">لوحة تشغيل لمتابعة الحضور والانصراف يوميًا</p>
         </div>
-        <button id="logoutBtn" class="logout-btn">تسجيل الخروج</button>
+        <div class="header-actions">
+          <a href="./dashboard.html" class="header-icon-btn button-link" title="الرئيسية" aria-label="الرئيسية">
+            <svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1v-9.5Z"/></svg>
+            <span>الرئيسية</span>
+          </a>
+          <button id="logoutBtn" class="logout-btn" title="تسجيل الخروج" aria-label="تسجيل الخروج">تسجيل الخروج</button>
+        </div>
       </header>
 
-      <section class="profile-summary-grid">
-        <div class="summary-card"><span>إجمالي السجلات</span><strong id="totalAttendanceCard">0</strong></div>
-        <div class="summary-card"><span>حاضر</span><strong id="presentAttendanceCard">0</strong></div>
-        <div class="summary-card"><span>متأخر</span><strong id="lateAttendanceCard">0</strong></div>
-        <div class="summary-card"><span>غائب</span><strong id="absentAttendanceCard">0</strong></div>
+      <section class="page-header attendance-hero">
+        <div>
+          <span class="page-kicker">التشغيل اليومي</span>
+          <h1>إدارة الحضور والانصراف</h1>
+          <p>تسجيل ومتابعة حركات الموظفين مع الفلاتر والتقارير اليومية.</p>
+        </div>
+        <div class="hero-actions">
+          <button id="refreshAttendanceBtn" class="secondary-btn">تحديث</button>
+          <button id="exportAttendanceBtn" class="secondary-btn">تصدير CSV</button>
+        </div>
       </section>
 
-      <section class="content-card">
+      <section class="profile-summary-grid grid-4">
+        <article class="summary-card"><span>إجمالي السجلات</span><strong id="totalAttendanceCard">0</strong></article>
+        <article class="summary-card"><span>حاضر</span><strong id="presentAttendanceCard">0</strong></article>
+        <article class="summary-card"><span>متأخر</span><strong id="lateAttendanceCard">0</strong></article>
+        <article class="summary-card"><span>غائب</span><strong id="absentAttendanceCard">0</strong></article>
+      </section>
+
+      <section class="content-card attendance-check-card">
         <div class="section-header">
           <div>
+            <span class="page-kicker">حركة جديدة</span>
             <h2>تسجيل حركة حضور/انصراف</h2>
-            <p>إدخال يدوي من الإدارة مع تحديد المصدر والحالة</p>
+            <p>إدخال يدوي من الإدارة مع تحديد المصدر والحالة.</p>
           </div>
         </div>
-        <form id="attendanceForm" class="form-grid employee-form-grid">
-          <select id="employee_id" required><option value="">اختر الموظف</option></select>
-          <input type="date" id="attendance_date" required />
-          <input type="time" id="check_in" title="وقت الدخول" />
-          <input type="time" id="check_out" title="وقت الخروج" />
-          <select id="status">
-            <option value="present">حاضر</option>
-            <option value="late">متأخر</option>
-            <option value="absent">غائب</option>
-            <option value="early_leave">خروج مبكر</option>
-            <option value="leave">إجازة</option>
-          </select>
-          <select id="source">
-            <option value="system">النظام</option>
-            <option value="fingerprint">البصمة</option>
-            <option value="manual">إدخال يدوي</option>
-          </select>
-          <input type="text" id="notes" placeholder="ملاحظات" />
-          <button type="submit">حفظ السجل</button>
+        <form id="attendanceForm" class="form-grid">
+          <div class="field-shell"><label class="field-label">الموظف</label><select id="employee_id" required><option value="">اختر الموظف</option></select></div>
+          <div class="field-shell"><label class="field-label">التاريخ</label><input type="date" id="attendance_date" required /></div>
+          <div class="field-shell"><label class="field-label">وقت الدخول</label><input type="time" id="check_in" title="وقت الدخول" /></div>
+          <div class="field-shell"><label class="field-label">وقت الخروج</label><input type="time" id="check_out" title="وقت الخروج" /></div>
+          <div class="field-shell"><label class="field-label">الحالة</label><select id="status"><option value="present">حاضر</option><option value="late">متأخر</option><option value="absent">غائب</option><option value="early_leave">خروج مبكر</option><option value="leave">إجازة</option></select></div>
+          <div class="field-shell"><label class="field-label">المصدر</label><select id="source"><option value="system">النظام</option><option value="fingerprint">البصمة</option><option value="manual">إدخال يدوي</option></select></div>
+          <div class="field-shell full-width"><label class="field-label">ملاحظات</label><input type="text" id="notes" placeholder="ملاحظات" /></div>
+          <button type="submit" class="primary-action">حفظ السجل</button>
         </form>
         <p id="formMessage" class="inline-message"></p>
       </section>
 
-      <section class="content-card">
+      <section class="content-card attendance-last-card">
         <div class="section-header">
           <div>
+            <span class="page-kicker">آخر حركة</span>
             <h2>آخر حركة للموظف</h2>
-            <p>اختر موظفًا من الفلاتر أو نموذج التسجيل لعرض آخر حركة له</p>
+            <p>اختر موظفًا من الفلاتر أو نموذج التسجيل لعرض آخر حركة له.</p>
           </div>
         </div>
-        <div id="lastMovementBox" class="details-grid">
-          <div><strong>الموظف:</strong> -</div>
-          <div><strong>آخر تاريخ:</strong> -</div>
-          <div><strong>الدخول:</strong> -</div>
-          <div><strong>الخروج:</strong> -</div>
-          <div><strong>الحالة:</strong> -</div>
-          <div><strong>المصدر:</strong> -</div>
+        <div id="lastMovementBox" class="details-grid attendance-last-grid">
+          <div class="detail-item"><span class="detail-label">الموظف</span><span class="detail-value">اختر موظفًا لعرض آخر حركة</span></div>
+          <div class="detail-item"><span class="detail-label">آخر تاريخ</span><span class="detail-value">-</span></div>
+          <div class="detail-item"><span class="detail-label">الدخول</span><span class="detail-value">-</span></div>
+          <div class="detail-item"><span class="detail-label">الخروج</span><span class="detail-value">-</span></div>
+          <div class="detail-item"><span class="detail-label">الحالة</span><span class="detail-value">-</span></div>
+          <div class="detail-item"><span class="detail-label">المصدر</span><span class="detail-value">-</span></div>
         </div>
       </section>
 
-      <section class="table-container">
+      <section class="content-card attendance-records-card">
         <div class="section-header">
           <div>
+            <span class="page-kicker">السجلات</span>
             <h2>سجلات الحضور</h2>
             <p id="attendanceCountText">جاري تحميل البيانات...</p>
           </div>
-          <div class="actions-row">
-            <button id="refreshAttendanceBtn" class="secondary-btn">تحديث</button>
-            <button id="exportAttendanceBtn" class="secondary-btn">تصدير CSV</button>
-          </div>
         </div>
 
-        <div class="filters-grid attendance-filters-grid">
+        <div class="filter-bar attendance-filters-grid">
           <input type="text" id="attendanceSearchInput" placeholder="بحث باسم الموظف أو الملاحظات" />
           <select id="attendanceEmployeeFilter"><option value="">كل الموظفين</option></select>
           <select id="attendanceMainDepartmentFilter"><option value="">كل الأقسام الرئيسية</option></select>
           <select id="attendanceSubDepartmentFilter"><option value="">كل الأقسام الفرعية</option></select>
-          <select id="attendanceStatusFilter">
-            <option value="">كل الحالات</option>
-            <option value="present">حاضر</option>
-            <option value="late">متأخر</option>
-            <option value="absent">غائب</option>
-            <option value="early_leave">خروج مبكر</option>
-            <option value="leave">إجازة</option>
-          </select>
+          <select id="attendanceStatusFilter"><option value="">كل الحالات</option><option value="present">حاضر</option><option value="late">متأخر</option><option value="absent">غائب</option><option value="early_leave">خروج مبكر</option><option value="leave">إجازة</option></select>
           <input type="month" id="attendanceMonthFilter" title="الشهر" />
           <input type="date" id="attendanceFromDate" title="من تاريخ" />
           <input type="date" id="attendanceToDate" title="إلى تاريخ" />
@@ -118,28 +108,17 @@
 
         <div class="table-scroll">
           <table>
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>الموظف</th>
-                <th>القسم الرئيسي</th>
-                <th>القسم الفرعي</th>
-                <th>التاريخ</th>
-                <th>الدخول</th>
-                <th>الخروج</th>
-                <th>الحالة</th>
-                <th>المصدر</th>
-                <th>ملاحظات</th>
-                <th>إجراءات</th>
-              </tr>
-            </thead>
+            <thead><tr><th>#</th><th>الموظف</th><th>القسم الرئيسي</th><th>القسم الفرعي</th><th>التاريخ</th><th>الدخول</th><th>الخروج</th><th>الحالة</th><th>المصدر</th><th>ملاحظات</th><th>إجراءات</th></tr></thead>
             <tbody id="attendanceTableBody"></tbody>
           </table>
         </div>
+        <div id="attendanceCards" class="attendance-cards cards-list"></div>
       </section>
     </main>
   </div>
-  <script src="./js/auth-guard.js"></script>
-  <script src="./js/attendance.js"></script>
+
+  <script src="./js/navigation-config.js?v=clean-10"></script>
+  <script src="./js/auth-guard.js?v=clean-10"></script>
+  <script src="./js/attendance.js?v=clean-10"></script>
 </body>
 </html>

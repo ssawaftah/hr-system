@@ -9,6 +9,7 @@ const personalDetails = document.getElementById("personalDetails");
 const loginDetails = document.getElementById("loginDetails");
 const jobDetails = document.getElementById("jobDetails");
 const financialDetails = document.getElementById("financialDetails");
+const leaveBalanceDetails = document.getElementById("leaveBalanceDetails");
 const permissionsDetails = document.getElementById("permissionsDetails");
 const attendanceBody = document.getElementById("attendanceBody");
 const salariesBody = document.getElementById("salariesBody");
@@ -18,11 +19,12 @@ const editEmployeeBtn = document.getElementById("editEmployeeBtn");
 const managePermissionsBtn = document.getElementById("managePermissionsBtn");
 const summaryStatus = document.getElementById("summaryStatus");
 const summaryMainDepartment = document.getElementById("summaryMainDepartment");
-const summarySubDepartment = document.getElementById("summarySubDepartment");
+const summaryLeaveRemaining = document.getElementById("summaryLeaveRemaining");
 const summarySalary = document.getElementById("summarySalary");
 
 let loadedEmployee = null;
 let currentUser = null;
+let loadedLeaveBalance = null;
 
 const roleLabels = { employee: "موظف", manager: "مدير قسم", hr: "الموارد البشرية", finance: "المالية", admin: "مدير النظام" };
 const accountStatusLabels = { active: "نشط", disabled: "معطل", locked: "مقفل" };
@@ -43,6 +45,7 @@ const initEmployeeProfile = async () => {
 
 const formatDate = (date) => date ? String(date).split("T")[0] : "-";
 const formatMoney = (value) => Number(value || 0).toLocaleString("ar-JO", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const formatDays = (value) => Number(value || 0).toLocaleString("ar-JO", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const employmentTypeLabel = (value) => ({ full_time: "دوام كامل", part_time: "دوام جزئي", contract: "عقد" }[value] || value || "-");
 const statusText = (value, isActive) => ({ active: "نشط", inactive: "غير نشط", suspended: "موقوف", resigned: "مستقيل", terminated: "منتهي", archived: "مؤرشف" }[value] || (isActive ? "نشط" : "غير نشط"));
 const leaveLabel = (value) => ({ annual: "سنوية", sick: "مرضية", unpaid: "بدون راتب", emergency: "طارئة", other: "أخرى" }[value] || value || "-");
@@ -77,6 +80,44 @@ const detailItem = (label, value) => `
 `;
 const fillEmpty = (tbody, colspan, text) => { tbody.innerHTML = `<tr><td colspan="${colspan}">${text}</td></tr>`; };
 
+const fetchJson = async (url) => {
+  const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || "تعذر تحميل البيانات");
+  return data;
+};
+
+const loadLeaveBalance = async () => {
+  try {
+    const data = await fetchJson(`${API_BASE_URL}/salaries/leave-balances/${employeeId}`);
+    loadedLeaveBalance = data.balance;
+  } catch (error) {
+    loadedLeaveBalance = null;
+  }
+};
+
+const renderLeaveBalance = () => {
+  if (!leaveBalanceDetails) return;
+  if (!loadedLeaveBalance) {
+    leaveBalanceDetails.innerHTML = [
+      detailItem("الرصيد الحالي", "غير محدد"),
+      detailItem("الأيام المستهلكة", "غير محدد"),
+      detailItem("المتبقي", "غير محدد"),
+      detailItem("ملاحظة", "يتم ضبط الرصيد من قسم المالية"),
+    ].join("");
+    if (summaryLeaveRemaining) summaryLeaveRemaining.textContent = "-";
+    return;
+  }
+  const remaining = Number(loadedLeaveBalance.remaining_days || 0);
+  if (summaryLeaveRemaining) summaryLeaveRemaining.textContent = `${formatDays(remaining)} يوم`;
+  leaveBalanceDetails.innerHTML = [
+    detailItem("رصيد الإجازات الحالي", `${formatDays(loadedLeaveBalance.current_balance)} يوم`),
+    detailItem("الأيام المستهلكة", `${formatDays(loadedLeaveBalance.consumed_days)} يوم`),
+    detailItem("المتبقي", `${formatDays(remaining)} يوم`),
+    detailItem("آخر تحديث", formatDate(loadedLeaveBalance.updated_at)),
+  ].join("");
+};
+
 const loadEmployee = async () => {
   employeeName.textContent = "جاري التحميل...";
   const response = await fetch(`${API_BASE_URL}/employees/${employeeId}`, { headers: { Authorization: `Bearer ${token}` } });
@@ -86,6 +127,8 @@ const loadEmployee = async () => {
     employeeMeta.textContent = "تأكد من وجود الموظف ومن صلاحيتك للوصول";
     return;
   }
+
+  await loadLeaveBalance();
 
   loadedEmployee = data.employee;
   const employee = loadedEmployee;
@@ -101,8 +144,9 @@ const loadEmployee = async () => {
   employeeStatusBadge.outerHTML = badge(status, employee.is_active ? "status-active" : "status-inactive");
   summaryStatus.textContent = status;
   summaryMainDepartment.textContent = departmentInfo.main;
-  summarySubDepartment.textContent = departmentInfo.sub;
   summarySalary.textContent = `${formatMoney(employee.basic_salary)} د.أ`;
+
+  renderLeaveBalance();
 
   if (managePermissionsBtn && !hasAnyPermission(["employees.manage_permissions", "permissions.view", "permissions.manage"])) managePermissionsBtn.style.display = "none";
   if (editEmployeeBtn && !hasAnyPermission(["employees.update"])) editEmployeeBtn.style.display = "none";
@@ -140,7 +184,7 @@ const loadEmployee = async () => {
     detailItem("الراتب الأساسي", `${formatMoney(employee.basic_salary)} د.أ`),
     detailItem("خصم الضمان", employee.social_security_enabled ? "مفعل" : "غير مفعل"),
     detailItem("نسبة الضمان", `${employee.social_security_rate || 0}%`),
-    detailItem("ملاحظة", "التعديل يؤثر على الكشوف المستقبلية فقط"),
+    detailItem("ملاحظة", "يتم تعديل الراتب والضمان من قسم المالية فقط"),
   ].join("");
 
   permissionsDetails.innerHTML = `

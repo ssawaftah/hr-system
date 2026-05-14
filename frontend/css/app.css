@@ -1,11 +1,35 @@
 @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap');
-@import url('./variables.css?v=clean-16');
-@import url('./reset.css?v=clean-16');
-@import url('./layout.css?v=clean-16');
-@import url('./navigation.css?v=clean-16');
-@import url('./components.css?v=clean-16');
-@import url('./forms.css?v=clean-16');
-@import url('./tables.css?v=clean-16');
-@import url('./modals.css?v=clean-16');
-@import url('./responsive.css?v=clean-16');
-@import url('./modules.css?v=clean-16');
+@import url('./variables.css?v=clean-17');
+@import url('./reset.css?v=clean-17');
+@import url('./layout.css?v=clean-17');
+@import url('./navigation.css?v=clean-17');
+@import url('./components.css?v=clean-17');
+@import url('./forms.css?v=clean-17');
+@import url('./tables.css?v=clean-17');
+@import url('./modals.css?v=clean-17');
+@import url('./responsive.css?v=clean-17');
+@import url('./modules.css?v=clean-17');
+
+/* Departments accordion tree - override generic button/card conflicts */
+.departments-page .pro-tree{display:grid!important;gap:12px!important;max-height:720px;overflow:auto;padding:4px!important}
+.departments-page .org-accordion-node{border:1px solid var(--border)!important;border-radius:24px!important;background:linear-gradient(135deg,#fff,#fbfbfd)!important;box-shadow:var(--shadow-xs)!important;overflow:hidden!important;margin:0 0 10px 0!important;color:var(--text)!important}
+.departments-page .org-accordion-node .org-accordion-node{margin:10px 18px 0 0!important}
+.departments-page .org-accordion-node summary{list-style:none!important;cursor:pointer!important;padding:14px 16px!important;display:grid!important;grid-template-columns:auto minmax(0,1fr)!important;gap:8px 12px!important;align-items:center!important;color:var(--text)!important;background:#fff!important}
+.departments-page .org-accordion-node summary::-webkit-details-marker{display:none!important}
+.departments-page .org-accordion-node summary::before{content:'›';width:32px;height:32px;border-radius:13px;display:inline-flex;align-items:center;justify-content:center;background:#f4f0ff;color:var(--primary);font-weight:900;transition:.2s ease;grid-row:1/3}
+.departments-page .org-accordion-node[open]>summary::before{transform:rotate(-90deg)}
+.departments-page .org-kind{width:max-content;border-radius:999px;padding:5px 10px;background:#f4f0ff;color:var(--primary);font-size:11px;font-weight:900;line-height:1.2}
+.departments-page .org-accordion-node summary strong{display:block;font-size:17px;font-weight:900;line-height:1.35;color:var(--text);overflow-wrap:anywhere;min-width:0}
+.departments-page .org-accordion-node summary small{grid-column:2/3;color:var(--muted);font-size:12px;font-weight:800;line-height:1.55;overflow-wrap:anywhere}
+.departments-page .org-accordion-body{padding:0 16px 14px 16px;display:grid;gap:12px;border-top:1px solid var(--border);background:#fbfbfd}
+.departments-page .org-accordion-body p{margin:12px 0 0;color:var(--muted);font-weight:800;line-height:1.7}
+.departments-page .org-actions{display:flex;gap:8px;flex-wrap:wrap}
+.departments-page .org-actions button{width:auto!important;min-width:auto!important;height:38px!important;min-height:38px!important;padding:8px 12px!important;border-radius:14px!important;font-size:12px!important;white-space:nowrap!important}
+.departments-page .org-children{display:grid;gap:10px}
+.departments-page .dept-color-purple{box-shadow:inset 5px 0 0 rgba(124,58,237,.55),var(--shadow-xs)!important}
+.departments-page .dept-color-blue{box-shadow:inset 5px 0 0 rgba(0,122,255,.55),var(--shadow-xs)!important}
+.departments-page .dept-color-green{box-shadow:inset 5px 0 0 rgba(52,199,89,.55),var(--shadow-xs)!important}
+.departments-page .dept-color-orange{box-shadow:inset 5px 0 0 rgba(255,149,0,.55),var(--shadow-xs)!important}
+.departments-page .dept-color-red{box-shadow:inset 5px 0 0 rgba(255,59,48,.55),var(--shadow-xs)!important}
+.departments-page .dept-color-gray{box-shadow:inset 5px 0 0 rgba(142,142,147,.55),var(--shadow-xs)!important}
+@media(max-width:760px){.departments-page .pro-tree{max-height:none!important}.departments-page .org-accordion-node summary{grid-template-columns:32px minmax(0,1fr)!important}.departments-page .org-accordion-node .org-accordion-node{margin-right:8px!important}.departments-page .org-accordion-node summary strong{font-size:16px!important}}

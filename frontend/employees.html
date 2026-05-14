@@ -4,9 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>الموظفون</title>
-  <link rel="stylesheet" href="./css/app.css?v=employees-apple-2" />
-  <link rel="stylesheet" href="./css/icons.css?v=employees-apple-2" />
-  <link rel="stylesheet" href="./css/employees-page.css?v=employees-apple-2" />
+  <link rel="stylesheet" href="./css/app.css?v=clean-2" />
 </head>
 <body class="apple-system-ui employees-page">
   <div class="app-layout">
@@ -15,19 +13,22 @@
       <nav class="sidebar-menu"></nav>
     </aside>
 
-    <main class="main-content">
-      <header class="topbar employees-topbar">
-        <div>
+    <main class="main-content page-shell">
+      <header class="topbar">
+        <div class="header-title-area">
           <h1>الموظفون</h1>
           <p>إدارة بيانات الموظفين وحساباتهم وصلاحياتهم</p>
         </div>
         <div class="header-actions">
-          <a class="secondary-btn button-link" href="./dashboard.html">العودة للرئيسية</a>
-          <button id="logoutBtn" class="logout-btn">تسجيل الخروج</button>
+          <a class="header-icon-btn button-link" href="./dashboard.html" title="الرئيسية" aria-label="الرئيسية">
+            <svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1v-9.5Z"/></svg>
+            <span>الرئيسية</span>
+          </a>
+          <button id="logoutBtn" class="logout-btn" title="تسجيل الخروج" aria-label="تسجيل الخروج">تسجيل الخروج</button>
         </div>
       </header>
 
-      <section class="content-card employee-page-hero">
+      <section class="page-header employee-page-hero">
         <div>
           <span class="page-kicker">الموارد البشرية</span>
           <h1>إدارة الموظفين</h1>
@@ -39,17 +40,16 @@
         </div>
       </section>
 
-      <section class="employees-stats">
-        <article class="content-card employee-stat"><div class="stat-top"><span class="metric-icon"><svg class="app-icon" viewBox="0 0 24 24"><path d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 2c-4 0-6 2-6 5v1h12v-1c0-3-2-5-6-5Z"/><path d="M17 11a3 3 0 1 0 0-6M16 14c3 .2 5 1.7 5 4v1h-4"/></svg></span><small>إجمالي الموظفين</small></div><strong id="statTotalEmployees">0</strong></article>
-        <article class="content-card employee-stat"><div class="stat-top"><span class="metric-icon"><svg class="app-icon" viewBox="0 0 24 24"><path d="m9 12 2 2 4-5"/><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z"/></svg></span><small>الموظفون النشطون</small></div><strong id="statActiveEmployees">0</strong></article>
-        <article class="content-card employee-stat"><div class="stat-top"><span class="metric-icon"><svg class="app-icon" viewBox="0 0 24 24"><path d="M6 18 18 6M6 6l12 12"/></svg></span><small>غير النشطين</small></div><strong id="statInactiveEmployees">0</strong></article>
-        <article class="content-card employee-stat"><div class="stat-top"><span class="metric-icon"><svg class="app-icon" viewBox="0 0 24 24"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"/></svg></span><small>بدون قسم</small></div><strong id="statWithoutDepartment">0</strong></article>
-        <article class="content-card employee-stat"><div class="stat-top"><span class="metric-icon"><svg class="app-icon" viewBox="0 0 24 24"><path d="M12 3 5 6v5c0 4.5 2.8 8 7 10 4.2-2 7-5.5 7-10V6l-7-3Z"/></svg></span><small>بدون مسمى</small></div><strong id="statWithoutJobTitle">0</strong></article>
+      <section class="employees-stats grid-4">
+        <article class="metric-card employee-stat"><span class="metric-icon"><svg class="app-icon" viewBox="0 0 24 24"><path d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 2c-4 0-6 2-6 5v1h12v-1c0-3-2-5-6-5Z"/><path d="M17 11a3 3 0 1 0 0-6M16 14c3 .2 5 1.7 5 4v1h-4"/></svg></span><small>إجمالي الموظفين</small><strong id="statTotalEmployees">0</strong></article>
+        <article class="metric-card employee-stat"><span class="metric-icon"><svg class="app-icon" viewBox="0 0 24 24"><path d="m9 12 2 2 4-5"/><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z"/></svg></span><small>الموظفون النشطون</small><strong id="statActiveEmployees">0</strong></article>
+        <article class="metric-card employee-stat"><span class="metric-icon"><svg class="app-icon" viewBox="0 0 24 24"><path d="M6 18 18 6M6 6l12 12"/></svg></span><small>غير النشطين</small><strong id="statInactiveEmployees">0</strong></article>
+        <article class="metric-card employee-stat"><span class="metric-icon"><svg class="app-icon" viewBox="0 0 24 24"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"/></svg></span><small>بدون قسم</small><strong id="statWithoutDepartment">0</strong></article>
       </section>
 
       <section class="content-card employee-filters-card">
         <div class="section-header"><div><h2>البحث والفلاتر</h2><p>ابحث بسرعة وفلتر النتائج بدون ازدحام.</p></div></div>
-        <div class="employee-filters">
+        <div class="employee-filters filter-bar">
           <input type="text" id="employeeSearchInput" placeholder="بحث باسم الموظف أو الرقم الوظيفي" />
           <select id="departmentFilter"><option value="">كل الأقسام</option></select>
           <select id="jobTitleFilter"><option value="">كل المسميات</option></select>
@@ -60,7 +60,7 @@
       </section>
 
       <section class="content-card employees-workspace">
-        <div class="employees-view-toolbar">
+        <div class="employees-view-toolbar section-header">
           <div><h2>دليل الموظفين</h2><p id="employeesCountText">جاري تحميل البيانات...</p></div>
           <button id="refreshEmployeesBtn" class="secondary-btn">تحديث</button>
         </div>
@@ -70,35 +70,35 @@
             <tbody id="employeesTableBody"></tbody>
           </table>
         </div>
-        <div id="employeesCards" class="employees-cards"></div>
+        <div id="employeesCards" class="employees-cards cards-list"></div>
       </section>
     </main>
   </div>
 
-  <div id="employeeModal" class="employee-modal" aria-hidden="true">
-    <div class="employee-modal-backdrop" data-close-employee-modal></div>
-    <div class="employee-modal-card" role="dialog" aria-modal="true">
-      <div class="employee-modal-header">
+  <div id="employeeModal" class="employee-modal modal" aria-hidden="true">
+    <div class="employee-modal-backdrop modal-backdrop" data-close-employee-modal></div>
+    <div class="employee-modal-card modal-card" role="dialog" aria-modal="true">
+      <div class="employee-modal-header modal-header">
         <div><span class="page-kicker">بيانات الموظف</span><h2 id="employeeFormTitle">إضافة موظف</h2><p>أدخل بيانات الموظف وحساب الدخول والصلاحيات.</p></div>
         <button type="button" class="secondary-btn" data-close-employee-modal>إغلاق</button>
       </div>
       <form id="employeeForm" class="employee-form-sections">
-        <div class="employee-modal-body">
+        <div class="employee-modal-body modal-body">
           <input type="hidden" id="employeeId" />
-          <section class="form-panel"><h3>البيانات الشخصية</h3><div class="form-grid">
+          <section class="form-panel"><h3>البيانات الشخصية</h3><div class="form-grid two">
             <div class="field-shell"><label class="field-label">الاسم الكامل</label><input type="text" id="full_name" required /></div>
             <div class="field-shell"><label class="field-label">الرقم الوطني</label><input type="text" id="national_id" /></div>
             <div class="field-shell"><label class="field-label">الهاتف</label><input type="text" id="phone" /></div>
             <div class="field-shell"><label class="field-label">البريد الإلكتروني</label><input type="email" id="email" /></div>
             <div class="field-shell full-width"><label class="field-label">العنوان</label><input type="text" id="address" /></div>
           </div></section>
-          <section class="form-panel"><h3>بيانات الدخول</h3><div class="form-grid">
+          <section class="form-panel"><h3>بيانات الدخول</h3><div class="form-grid two">
             <div class="field-shell"><label class="field-label">الرقم الوظيفي</label><input type="text" id="employee_number" required /></div>
             <div class="field-shell"><label class="field-label">كلمة المرور</label><input type="password" id="password" /></div>
             <div class="field-shell"><label class="field-label">تفعيل الدخول للنظام</label><select id="is_login_enabled"><option value="true">تفعيل الدخول للنظام</option><option value="false">تعطيل الدخول للنظام</option></select></div>
             <div class="field-shell"><label class="field-label">حالة الحساب</label><select id="account_status"><option value="active">حساب نشط</option><option value="disabled">حساب معطل</option><option value="locked">حساب مقفل</option></select></div>
           </div></section>
-          <section class="form-panel"><h3>البيانات الوظيفية</h3><div class="form-grid">
+          <section class="form-panel"><h3>البيانات الوظيفية</h3><div class="form-grid two">
             <div class="field-shell"><label class="field-label">المسمى الوظيفي</label><select id="job_title_id" required><option value="">اختر المسمى الوظيفي</option></select></div>
             <div class="field-shell"><label class="field-label">القسم الأساسي</label><select id="department_id"><option value="">اختر القسم الرئيسي</option></select></div>
             <div id="jobTitlePreviewBox" class="full-width" style="display:none"><div class="soft-badge" style="display:block;line-height:1.8;white-space:normal">سيتم منح الصلاحيات الافتراضية لهذا المسمى تلقائيًا. <span id="jobTitlePreviewText"></span></div></div>
@@ -107,7 +107,7 @@
             <div class="field-shell"><label class="field-label">نوع التوظيف</label><select id="employment_type"><option value="full_time">دوام كامل</option><option value="part_time">دوام جزئي</option><option value="contract">عقد</option></select></div>
             <div class="field-shell"><label class="field-label">الحالة الوظيفية</label><select id="is_active"><option value="true">نشط</option><option value="false">غير نشط</option></select></div>
           </div></section>
-          <section class="form-panel"><h3>البيانات المالية الأساسية</h3><div class="form-grid">
+          <section class="form-panel"><h3>البيانات المالية الأساسية</h3><div class="form-grid two">
             <div class="field-shell"><label class="field-label">الراتب الأساسي</label><input type="number" id="basic_salary" min="0" step="0.01" /></div>
             <div class="field-shell"><label class="field-label">خصم الضمان</label><select id="social_security_enabled"><option value="true">خصم الضمان مفعل</option><option value="false">خصم الضمان غير مفعل</option></select></div>
             <div class="field-shell"><label class="field-label">نسبة الضمان</label><input type="number" id="social_security_rate" min="0" step="0.01" value="7.5" /></div>
@@ -120,14 +120,14 @@
             <label class="mini-badge"><input type="checkbox" name="roleCheck" value="admin" /> مدير النظام</label>
           </div><div class="field-shell full-width" style="margin-top:14px"><label class="field-label">صلاحيات مباشرة</label><input type="text" id="direct_permissions" placeholder="افصل الصلاحيات بفاصلة" /></div></section>
         </div>
-        <div class="employee-modal-footer"><button type="submit">حفظ الموظف</button><button type="button" id="cancelEditBtn" class="secondary-btn">إلغاء</button></div>
+        <div class="employee-modal-footer modal-footer"><button type="submit">حفظ الموظف</button><button type="button" id="cancelEditBtn" class="secondary-btn">إلغاء</button></div>
       </form>
       <p id="formMessage" class="inline-message"></p>
     </div>
   </div>
 
-  <script src="./js/navigation-config.js?v=employees-apple-2"></script>
-  <script src="./js/auth-guard.js?v=employees-apple-2"></script>
-  <script src="./js/employees.js?v=employees-apple-2"></script>
+  <script src="./js/navigation-config.js?v=clean-2"></script>
+  <script src="./js/auth-guard.js?v=clean-2"></script>
+  <script src="./js/employees.js?v=clean-2"></script>
 </body>
 </html>

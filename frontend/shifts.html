@@ -4,9 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
   <title>الشفتات</title>
-  <link rel="stylesheet" href="./css/app.css?v=clean-14" />
+  <link rel="stylesheet" href="./css/app.css?v=clean-15" />
 </head>
-<body class="apple-system-ui shifts-page">
+<body class="apple-system-ui shifts-page advanced-shifts-page">
   <div class="app-layout">
     <aside class="sidebar">
       <div class="sidebar-logo"><span class="brand-mark">HR</span><span>نظام الموارد البشرية</span></div>
@@ -17,7 +17,7 @@
       <header class="topbar">
         <div class="header-title-area">
           <h1>الشفتات</h1>
-          <p>إنشاء الشفتات وربطها بالموظفين لاستخدامها في تحليل الحضور</p>
+          <p>إدارة الدوام الافتراضي والشفتات المخصصة ودوام الجمعة</p>
         </div>
         <div class="header-actions">
           <a href="./dashboard.html" class="header-icon-btn button-link" title="الرئيسية" aria-label="الرئيسية">
@@ -32,30 +32,64 @@
         <div>
           <span class="page-kicker">إدارة الدوام</span>
           <h1>إدارة الشفتات</h1>
-          <p>إنشاء الشفتات وربطها بالموظفين لتحليل الحضور والتأخير والغياب.</p>
+          <p>بناء شفتات صباحية ومسائية وجمعة، وربطها بالموظفين مع منع التعارضات.</p>
         </div>
         <div class="hero-actions">
           <button id="refreshShiftsBtn" class="secondary-btn">تحديث</button>
+          <button id="openShiftFormBtn" class="primary-action">إضافة شفت</button>
+        </div>
+      </section>
+
+      <section class="grid-4 shifts-summary-grid">
+        <article class="summary-card"><span>إجمالي الشفتات</span><strong id="summaryShiftsCount">0</strong></article>
+        <article class="summary-card"><span>الموظفون المرتبطون</span><strong id="summaryAssignedCount">0</strong></article>
+        <article class="summary-card"><span>بدون شفت مخصص</span><strong id="summaryWithoutShiftCount">0</strong></article>
+        <article class="summary-card"><span>دوام الجمعة</span><strong id="summaryFridayCount">0</strong></article>
+      </section>
+
+      <section class="content-card default-shift-card">
+        <div class="section-header">
+          <div>
+            <span class="page-kicker">الدوام الافتراضي</span>
+            <h2>الشفت المطبق تلقائيًا</h2>
+            <p>أي موظف لا يملك شفتًا مخصصًا سيُحسب حضوره وتأخيره حسب هذا الدوام.</p>
+          </div>
+          <button id="editDefaultShiftBtn" class="secondary-btn">تعديل الدوام الافتراضي</button>
+        </div>
+        <div id="defaultShiftBox" class="details-grid shift-details-grid">
+          <div class="detail-item"><span class="detail-label">الشفت</span><span class="detail-value">جاري التحميل...</span></div>
+          <div class="detail-item"><span class="detail-label">الوقت</span><span class="detail-value">-</span></div>
+          <div class="detail-item"><span class="detail-label">أيام العمل</span><span class="detail-value">-</span></div>
+          <div class="detail-item"><span class="detail-label">سماح التأخير</span><span class="detail-value">-</span></div>
         </div>
       </section>
 
       <section class="grid-2 shifts-forms-layout">
-        <article class="content-card shifts-form-card">
+        <article class="content-card shifts-form-card" id="shiftFormCard">
           <div class="section-header">
             <div>
               <span class="page-kicker">تعريف شفت</span>
               <h2 id="shiftFormTitle">إضافة شفت</h2>
-              <p>حدد أوقات الشفت وسماح التأخير وقاعدة الغياب.</p>
+              <p>املأ بيانات الشفت كاملة. تعديل الوقت قد يؤثر على الحضور والرواتب.</p>
             </div>
           </div>
           <form id="shiftForm" class="form-grid two">
             <input type="hidden" id="shiftId" />
-            <div class="field-shell full-width"><label class="field-label">اسم الشفت</label><input type="text" id="shiftName" placeholder="صباحي / ليلي / إداري" required /></div>
-            <div class="field-shell"><label class="field-label">وقت البداية</label><input type="time" id="shiftStart" value="07:00" required /></div>
-            <div class="field-shell"><label class="field-label">وقت النهاية</label><input type="time" id="shiftEnd" value="15:00" required /></div>
-            <div class="field-shell"><label class="field-label">سماح التأخير بالدقائق</label><input type="number" id="lateGraceMinutes" min="0" value="0" placeholder="0" /></div>
-            <div class="field-shell"><label class="field-label">يعتبر غائبًا بعد كم دقيقة</label><input type="number" id="absentAfterMinutes" min="1" value="180" placeholder="180" /></div>
-            <div class="field-shell"><label class="field-label">الحالة</label><select id="shiftActive"><option value="true">نشط</option><option value="false">معطل</option></select></div>
+            <div class="field-shell full-width"><label class="field-label">اسم الشفت</label><input type="text" id="shiftName" required /></div>
+            <div class="field-shell"><label class="field-label">نوع الشفت</label><select id="shiftType"><option value="morning">صباحي</option><option value="evening">مسائي</option><option value="friday">جمعة</option><option value="default">افتراضي</option><option value="custom">مخصص</option></select></div>
+            <div class="field-shell"><label class="field-label">الحالة</label><select id="shiftActive"><option value="true">نشط</option><option value="false">مؤرشف</option></select></div>
+            <div class="field-shell"><label class="field-label">وقت البداية</label><input type="time" id="shiftStart" required /></div>
+            <div class="field-shell"><label class="field-label">وقت النهاية</label><input type="time" id="shiftEnd" required /></div>
+            <div class="field-shell"><label class="field-label">ساعات العمل الرسمية</label><input type="number" id="officialWorkHours" min="0" step="0.25" value="8" /></div>
+            <div class="field-shell"><label class="field-label">تاريخ بداية التطبيق</label><input type="date" id="shiftEffectiveFrom" /></div>
+            <div class="field-shell"><label class="field-label">تاريخ نهاية اختياري</label><input type="date" id="shiftEffectiveTo" /></div>
+            <div class="field-shell"><label class="field-label">سماح التأخير بالدقائق</label><input type="number" id="lateGraceMinutes" min="0" value="0" /></div>
+            <div class="field-shell"><label class="field-label">يعتبر غائبًا بعد كم دقيقة</label><input type="number" id="absentAfterMinutes" min="1" value="180" /></div>
+            <div class="field-shell"><label class="field-label">متكرر أسبوعيًا</label><select id="repeatsWeekly"><option value="true">نعم</option><option value="false">لا</option></select></div>
+            <div class="field-shell"><label class="field-label">شفت افتراضي</label><select id="isDefaultShift"><option value="false">لا</option><option value="true">نعم</option></select></div>
+            <div class="field-shell full-width"><label class="field-label">أيام العمل</label><div id="workDaysBox" class="days-picker"></div></div>
+            <div class="field-shell full-width"><label class="field-label">ملاحظات</label><textarea id="shiftNotes"></textarea></div>
+            <div class="warning-box full-width" id="timeImpactWarning" hidden>تنبيه: تعديل وقت الشفت قد يغير احتساب التأخير، الإضافي، وتقارير الرواتب للفترات المرتبطة بهذا الشفت.</div>
             <div class="form-actions full-width"><button type="submit" class="primary-action">حفظ الشفت</button><button type="button" id="cancelShiftEditBtn" class="secondary-btn">إلغاء التعديل</button></div>
           </form>
           <p id="shiftMessage" class="inline-message"></p>
@@ -65,44 +99,59 @@
           <div class="section-header">
             <div>
               <span class="page-kicker">ربط الموظفين</span>
-              <h2>ربط موظف بشفت</h2>
-              <p>حدد الموظف والشفت وفترة التطبيق.</p>
+              <h2>ربط موظفين بشفت</h2>
+              <p>اختر القسم أولًا، ثم اختر موظفًا واحدًا أو أكثر من نفس القسم.</p>
             </div>
           </div>
           <form id="assignmentForm" class="form-grid two">
-            <div class="field-shell full-width"><label class="field-label">الموظف</label><select id="assignmentEmployee" required><option value="">اختر الموظف</option></select></div>
+            <div class="field-shell full-width"><label class="field-label">القسم</label><select id="assignmentDepartment"><option value="">اختر القسم</option></select></div>
+            <div class="field-shell full-width"><label class="field-label">الموظفون</label><select id="assignmentEmployees" multiple size="8"></select><small class="form-help">يمكن اختيار أكثر من موظف.</small></div>
             <div class="field-shell full-width"><label class="field-label">الشفت</label><select id="assignmentShift" required><option value="">اختر الشفت</option></select></div>
             <div class="field-shell"><label class="field-label">من تاريخ</label><input type="date" id="assignmentFrom" /></div>
             <div class="field-shell"><label class="field-label">إلى تاريخ</label><input type="date" id="assignmentTo" /></div>
-            <div class="form-actions full-width"><button type="submit" class="primary-action">ربط الشفت</button></div>
+            <div class="field-shell full-width"><label class="field-label">عند وجود تعارض</label><select id="transferExisting"><option value="false">أظهر تحذيرًا ولا تنقل</option><option value="true">انقل الموظف للشفت الجديد</option></select></div>
+            <div id="assignmentConflictBox" class="warning-box full-width" hidden></div>
+            <div class="form-actions full-width"><button type="submit" class="primary-action">ربط الموظفين</button></div>
           </form>
           <p id="assignmentMessage" class="inline-message"></p>
         </article>
       </section>
 
       <section class="content-card shifts-table-card records-card">
-        <div class="section-header"><div><span class="page-kicker">السجلات</span><h2>قائمة الشفتات</h2><p id="shiftsCountText">جاري تحميل البيانات...</p></div></div>
-        <div class="table-scroll">
-          <table>
-            <thead><tr><th>#</th><th>الاسم</th><th>البداية</th><th>النهاية</th><th>سماح التأخير</th><th>غياب بعد</th><th>الحالة</th><th>إجراءات</th></tr></thead>
-            <tbody id="shiftsTableBody"></tbody>
-          </table>
+        <div class="section-header"><div><span class="page-kicker">الشفتات</span><h2>جدول ارتباطات الشفتات</h2><p id="shiftsCountText">جاري تحميل البيانات...</p></div></div>
+        <div class="filter-bar shifts-filter-bar">
+          <input type="text" id="shiftSearchInput" placeholder="بحث باسم الشفت أو القسم" />
+          <select id="shiftTypeFilter"><option value="">كل الأنواع</option><option value="morning">صباحي</option><option value="evening">مسائي</option><option value="friday">جمعة</option><option value="default">افتراضي</option><option value="custom">مخصص</option></select>
+          <select id="shiftStatusFilter"><option value="">كل الحالات</option><option value="active">نشط</option><option value="archived">مؤرشف</option></select>
         </div>
+        <div class="table-scroll"><table><thead><tr><th>اسم الشفت</th><th>النوع</th><th>الوقت</th><th>أيام العمل</th><th>البداية</th><th>النهاية</th><th>الأقسام</th><th>الموظفون</th><th>الحالة</th><th>إجراءات</th></tr></thead><tbody id="shiftsTableBody"></tbody></table></div>
       </section>
 
-      <section class="content-card shifts-table-card records-card">
-        <div class="section-header"><div><span class="page-kicker">الارتباطات</span><h2>ربط الموظفين بالشفتات</h2><p>سجل ربط الموظفين بالشفتات وفترات التطبيق.</p></div></div>
-        <div class="table-scroll">
-          <table>
-            <thead><tr><th>#</th><th>الموظف</th><th>الشفت</th><th>من</th><th>إلى</th><th>الحالة</th></tr></thead>
-            <tbody id="assignmentsTableBody"></tbody>
-          </table>
-        </div>
+      <section class="content-card shift-details-card records-card" id="shiftDetailsSection" hidden>
+        <div class="section-header"><div><span class="page-kicker">تفاصيل الشفت</span><h2 id="detailsShiftTitle">تفاصيل الشفت</h2><p id="detailsShiftMeta">-</p></div><button id="closeShiftDetailsBtn" class="secondary-btn">إغلاق التفاصيل</button></div>
+        <div class="table-scroll"><table><thead><tr><th>اسم الموظف</th><th>الرقم الوظيفي</th><th>القسم</th><th>المسمى الوظيفي</th><th>بداية الربط</th><th>نهاية الربط</th><th>الحالة</th><th>إجراءات</th></tr></thead><tbody id="shiftDetailsEmployeesBody"></tbody></table></div>
+      </section>
+
+      <section class="grid-2 shifts-lists-layout">
+        <article class="content-card records-card">
+          <div class="section-header"><div><span class="page-kicker">بدون شفت مخصص</span><h2>الموظفون على الدوام الافتراضي</h2><p>هؤلاء لا يملكون شفتًا مخصصًا حاليًا.</p></div></div>
+          <div class="table-scroll"><table><thead><tr><th>الموظف</th><th>رقم الموظف</th><th>القسم</th><th>المسمى</th><th>إجراء</th></tr></thead><tbody id="withoutShiftBody"></tbody></table></div>
+        </article>
+        <article class="content-card records-card">
+          <div class="section-header"><div><span class="page-kicker">دوام الجمعة</span><h2>موظفو الجمعة</h2><p>الموظفون المرتبطون بشفت جمعة أو شفت يحتوي يوم الجمعة.</p></div></div>
+          <div class="table-scroll"><table><thead><tr><th>الموظف</th><th>رقم الموظف</th><th>القسم</th><th>الشفت</th><th>الفترة</th></tr></thead><tbody id="fridayEmployeesBody"></tbody></table></div>
+        </article>
+      </section>
+
+      <section class="content-card records-card week-distribution-card">
+        <div class="section-header"><div><span class="page-kicker">توزيع الأسبوع</span><h2>توزيع الشفتات الأسبوعي</h2><p>يعرض كل موظف مقابل أيام الأسبوع، ويطبق الدوام الافتراضي عند عدم وجود شفت مخصص.</p></div></div>
+        <div class="table-scroll"><table><thead><tr><th>الموظف</th><th>القسم</th><th>السبت</th><th>الأحد</th><th>الإثنين</th><th>الثلاثاء</th><th>الأربعاء</th><th>الخميس</th><th>الجمعة</th></tr></thead><tbody id="weekDistributionBody"></tbody></table></div>
       </section>
     </main>
   </div>
-  <script src="./js/navigation-config.js?v=clean-14"></script>
-  <script src="./js/auth-guard.js?v=clean-14"></script>
-  <script src="./js/shifts.js?v=clean-14"></script>
+
+  <script src="./js/navigation-config.js?v=clean-15"></script>
+  <script src="./js/auth-guard.js?v=clean-15"></script>
+  <script src="./js/shifts.js?v=clean-15"></script>
 </body>
 </html>

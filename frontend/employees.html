@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>الموظفون</title>
-  <link rel="stylesheet" href="./css/app.css?v=clean-2" />
+  <link rel="stylesheet" href="./css/app.css?v=clean-18" />
 </head>
 <body class="apple-system-ui employees-page">
   <div class="app-layout">
@@ -107,10 +107,11 @@
             <div class="field-shell"><label class="field-label">نوع التوظيف</label><select id="employment_type"><option value="full_time">دوام كامل</option><option value="part_time">دوام جزئي</option><option value="contract">عقد</option></select></div>
             <div class="field-shell"><label class="field-label">الحالة الوظيفية</label><select id="is_active"><option value="true">نشط</option><option value="false">غير نشط</option></select></div>
           </div></section>
-          <section class="form-panel"><h3>البيانات المالية الأساسية</h3><div class="form-grid two">
-            <div class="field-shell"><label class="field-label">الراتب الأساسي</label><input type="number" id="basic_salary" min="0" step="0.01" /></div>
-            <div class="field-shell"><label class="field-label">خصم الضمان</label><select id="social_security_enabled"><option value="true">خصم الضمان مفعل</option><option value="false">خصم الضمان غير مفعل</option></select></div>
-            <div class="field-shell"><label class="field-label">نسبة الضمان</label><input type="number" id="social_security_rate" min="0" step="0.01" value="7.5" /></div>
+          <section class="form-panel finance-readonly-panel"><h3>البيانات المالية الأساسية</h3><p class="finance-lock-note">هذه البيانات للعرض فقط داخل ملف الموظف. يتم تعديل الراتب الأساسي ونسبة الضمان من قسم المالية فقط.</p><div class="form-grid two">
+            <div class="field-shell"><label class="field-label">الراتب الأساسي</label><input type="number" id="basic_salary" min="0" step="0.01" readonly disabled /></div>
+            <div class="field-shell"><label class="field-label">خصم الضمان</label><select id="social_security_enabled" disabled><option value="true">خصم الضمان مفعل</option><option value="false">خصم الضمان غير مفعل</option></select></div>
+            <div class="field-shell"><label class="field-label">نسبة الضمان</label><input type="number" id="social_security_rate" min="0" step="0.01" value="7.5" readonly disabled /></div>
+            <div class="field-shell"><label class="field-label">مصدر التعديل</label><a class="secondary-btn button-link" href="./salaries.html#settings">فتح إعدادات المالية</a></div>
           </div></section>
           <section class="form-panel"><h3>الأدوار والصلاحيات</h3><p>الأدوار تمنح صلاحيات عامة، ويمكن إضافة صلاحيات مباشرة عند الحاجة.</p><div class="role-pills">
             <label class="mini-badge"><input type="checkbox" name="roleCheck" value="employee" checked /> موظف</label>
@@ -126,8 +127,8 @@
     </div>
   </div>
 
-  <script src="./js/navigation-config.js?v=clean-2"></script>
-  <script src="./js/auth-guard.js?v=clean-2"></script>
-  <script src="./js/employees.js?v=clean-2"></script>
+  <script src="./js/navigation-config.js?v=clean-18"></script>
+  <script src="./js/auth-guard.js?v=clean-18"></script>
+  <script src="./js/employees.js?v=clean-18"></script>
 </body>
 </html>

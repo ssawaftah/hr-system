@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
   <title>ملف الموظف</title>
-  <link rel="stylesheet" href="./css/app.css?v=clean-9" />
+  <link rel="stylesheet" href="./css/app.css?v=clean-21" />
 </head>
 <body class="apple-system-ui employees-page profile-page">
   <div class="app-layout">
@@ -45,7 +45,7 @@
       <section class="profile-summary-grid grid-4" id="profileSummaryGrid">
         <article class="summary-card"><span>الحالة الوظيفية</span><strong id="summaryStatus">-</strong></article>
         <article class="summary-card"><span>القسم الأساسي</span><strong id="summaryMainDepartment">-</strong></article>
-        <article class="summary-card"><span>القسم الإضافي</span><strong id="summarySubDepartment">-</strong></article>
+        <article class="summary-card"><span>المتبقي من الإجازات</span><strong id="summaryLeaveRemaining">-</strong></article>
         <article class="summary-card"><span>الراتب الأساسي</span><strong id="summarySalary">-</strong></article>
       </section>
 
@@ -62,6 +62,7 @@
           <section class="form-panel"><h3>بيانات الدخول</h3><div class="details-grid" id="loginDetails"></div></section>
           <section class="form-panel"><h3>البيانات الوظيفية والأقسام</h3><div class="details-grid" id="jobDetails"></div></section>
           <section class="form-panel"><h3>البيانات المالية الأساسية</h3><div class="details-grid" id="financialDetails"></div></section>
+          <section class="form-panel leave-balance-panel"><h3>رصيد الإجازات</h3><p class="finance-lock-note">يتم تعديل الرصيد من قسم المالية، ويتم خصم الإجازات السنوية والمغادرات الشخصية تلقائيًا بعد الاعتماد.</p><div class="details-grid" id="leaveBalanceDetails"></div></section>
           <section class="form-panel"><h3>الأدوار والصلاحيات</h3><div id="permissionsDetails"></div></section>
         </div>
       </section>
@@ -90,8 +91,8 @@
     </main>
   </div>
 
-  <script src="./js/navigation-config.js?v=clean-9"></script>
-  <script src="./js/auth-guard.js?v=clean-9"></script>
-  <script src="./js/employee-profile.js?v=clean-9"></script>
+  <script src="./js/navigation-config.js?v=clean-21"></script>
+  <script src="./js/auth-guard.js?v=clean-21"></script>
+  <script src="./js/employee-profile.js?v=clean-21"></script>
 </body>
 </html>

@@ -2,73 +2,109 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
   <title>إدارة الأقسام</title>
-  <link rel="stylesheet" href="./css/style.css" />
-  <link rel="stylesheet" href="./css/employees.css" />
+  <link rel="stylesheet" href="./css/app.css?v=clean-16" />
 </head>
-<body>
+<body class="apple-system-ui departments-page">
   <div class="app-layout">
     <aside class="sidebar">
-      <div class="sidebar-logo">HR System</div>
-      <nav class="sidebar-menu">
-        <a href="./dashboard.html" data-role-link="dashboard">لوحة التحكم</a>
-        <a href="./users.html" data-role-link="users">المستخدمون</a>
-        <a href="./departments.html" class="active" data-role-link="departments">الأقسام</a>
-        <a href="./employees.html" data-role-link="employees">الموظفون</a>
-        <a href="./attendance.html" data-role-link="attendance">الحضور</a>
-        <a href="./leaves.html" data-role-link="leaves">الإجازات</a>
-        <a href="./salaries.html" data-role-link="salaries">الرواتب</a>
-        <a href="./reports.html" data-role-link="reports">التقارير</a>
-      </nav>
+      <div class="sidebar-logo"><span class="brand-mark">HR</span><span>نظام الموارد البشرية</span></div>
+      <nav class="sidebar-menu"></nav>
     </aside>
 
-    <main class="main-content">
+    <main class="main-content page-shell">
       <header class="topbar">
-        <div>
-          <h1>إدارة الأقسام</h1>
-          <p id="pageSubtitle">شجرة أقسام رئيسية وفرعية</p>
+        <div class="header-title-area">
+          <h1>الأقسام</h1>
+          <p>مركز إدارة الهيكل التنظيمي والأقسام والفرق</p>
         </div>
-        <button id="logoutBtn" class="logout-btn">تسجيل الخروج</button>
+        <div class="header-actions">
+          <a href="./dashboard.html" class="header-icon-btn button-link" title="الرئيسية" aria-label="الرئيسية">
+            <svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1v-9.5Z"/></svg>
+            <span>الرئيسية</span>
+          </a>
+          <button id="logoutBtn" class="logout-btn" title="تسجيل الخروج" aria-label="تسجيل الخروج">تسجيل الخروج</button>
+        </div>
       </header>
 
-      <section class="content-card">
-        <h2 id="departmentFormTitle">إضافة قسم</h2>
-        <form id="departmentForm" class="form-grid">
-          <input type="hidden" id="departmentId" />
-          <input type="text" id="departmentName" placeholder="اسم القسم" required />
-          <input type="text" id="departmentDescription" placeholder="الوصف" />
-          <select id="parentDepartmentId"><option value="">قسم رئيسي بدون أب</option></select>
-          <select id="departmentActive">
-            <option value="true">نشط</option>
-            <option value="false">معطل</option>
-          </select>
-          <button type="submit">حفظ</button>
-          <button type="button" id="cancelEditBtn" class="secondary-btn">إلغاء التعديل</button>
-        </form>
-        <p id="formMessage" class="inline-message"></p>
+      <section class="page-header departments-hero">
+        <div>
+          <span class="page-kicker">الهيكل التنظيمي</span>
+          <h1>إدارة الأقسام</h1>
+          <p>صمّم هيكل الشركة، اربط المدراء، راقب عدد الموظفين، وتابع الأقسام الرئيسية والفرعية من لوحة واحدة.</p>
+        </div>
+        <div class="hero-actions">
+          <button id="refreshDepartmentsBtn" class="secondary-btn">تحديث</button>
+          <button id="openDepartmentFormBtn" class="primary-action">إضافة قسم</button>
+        </div>
       </section>
 
-      <section class="table-container">
+      <section class="grid-4 departments-summary-grid">
+        <article class="summary-card"><span>إجمالي الأقسام</span><strong id="summaryDepartmentsTotal">0</strong></article>
+        <article class="summary-card"><span>الأقسام النشطة</span><strong id="summaryDepartmentsActive">0</strong></article>
+        <article class="summary-card"><span>الأقسام الرئيسية</span><strong id="summaryDepartmentsMain">0</strong></article>
+        <article class="summary-card"><span>إجمالي الموظفين</span><strong id="summaryDepartmentsEmployees">0</strong></article>
+      </section>
+
+      <section class="grid-2 departments-workspace">
+        <article class="content-card department-form-card" id="departmentFormCard">
+          <div class="section-header">
+            <div>
+              <span class="page-kicker">بيانات القسم</span>
+              <h2 id="departmentFormTitle">إضافة قسم</h2>
+              <p>أنشئ قسمًا رئيسيًا أو فرعيًا، وحدد المدير والحالة والوصف.</p>
+            </div>
+          </div>
+          <form id="departmentForm" class="form-grid two">
+            <input type="hidden" id="departmentId" />
+            <div class="field-shell full-width"><label class="field-label">اسم القسم</label><input type="text" id="departmentName" required /></div>
+            <div class="field-shell"><label class="field-label">القسم الأب</label><select id="parentDepartmentId"><option value="">قسم رئيسي بدون أب</option></select></div>
+            <div class="field-shell"><label class="field-label">مدير القسم</label><select id="departmentManagerId"><option value="">بدون مدير محدد</option></select></div>
+            <div class="field-shell"><label class="field-label">الحالة</label><select id="departmentActive"><option value="true">نشط</option><option value="false">معطل</option></select></div>
+            <div class="field-shell"><label class="field-label">لون تعريفي</label><select id="departmentColor"><option value="purple">بنفسجي</option><option value="blue">أزرق</option><option value="green">أخضر</option><option value="orange">برتقالي</option><option value="red">أحمر</option><option value="gray">رمادي</option></select></div>
+            <div class="field-shell full-width"><label class="field-label">الوصف</label><textarea id="departmentDescription"></textarea></div>
+            <div class="form-actions full-width"><button type="submit" class="primary-action">حفظ القسم</button><button type="button" id="cancelEditBtn" class="secondary-btn">إلغاء التعديل</button></div>
+          </form>
+          <p id="formMessage" class="inline-message"></p>
+        </article>
+
+        <article class="content-card department-tree-card">
+          <div class="section-header">
+            <div>
+              <span class="page-kicker">الخريطة التنظيمية</span>
+              <h2>شجرة الأقسام</h2>
+              <p>نظرة بصرية على الأقسام الرئيسية والفرعية.</p>
+            </div>
+          </div>
+          <div id="departmentTree" class="department-tree pro-tree"></div>
+        </article>
+      </section>
+
+      <section class="content-card departments-table-card records-card">
         <div class="section-header">
           <div>
-            <h2>شجرة الأقسام</h2>
-            <p>مثال: المالية ← التدقيق المالي</p>
+            <span class="page-kicker">السجلات</span>
+            <h2>كل الأقسام</h2>
+            <p id="departmentsCountText">جاري تحميل البيانات...</p>
           </div>
         </div>
-        <div id="departmentTree" class="department-tree"></div>
-      </section>
-
-      <section class="table-container">
-        <div class="section-header"><h2>كل الأقسام</h2></div>
+        <div class="filter-bar departments-filter-bar">
+          <input type="text" id="departmentSearchInput" placeholder="بحث باسم القسم أو المدير أو الوصف" />
+          <select id="departmentTypeFilter"><option value="">كل الأنواع</option><option value="main">رئيسي</option><option value="sub">فرعي</option></select>
+          <select id="departmentStatusFilter"><option value="">كل الحالات</option><option value="active">نشط</option><option value="inactive">معطل</option></select>
+        </div>
         <div class="table-scroll">
           <table>
             <thead>
               <tr>
-                <th>#</th>
-                <th>اسم القسم</th>
+                <th>القسم</th>
+                <th>النوع</th>
                 <th>القسم الأب</th>
-                <th>الوصف</th>
+                <th>المدير</th>
+                <th>الموظفون</th>
+                <th>الفروع</th>
+                <th>الشفتات</th>
                 <th>الحالة</th>
                 <th>إجراءات</th>
               </tr>
@@ -77,9 +113,33 @@
           </table>
         </div>
       </section>
+
+      <section class="content-card department-details-card records-card" id="departmentDetailsSection" hidden>
+        <div class="section-header">
+          <div>
+            <span class="page-kicker">تفاصيل القسم</span>
+            <h2 id="detailsDepartmentTitle">تفاصيل القسم</h2>
+            <p id="detailsDepartmentMeta">-</p>
+          </div>
+          <button id="closeDepartmentDetailsBtn" class="secondary-btn">إغلاق التفاصيل</button>
+        </div>
+        <div id="departmentDetailsBox" class="details-grid department-details-grid"></div>
+        <div class="grid-2 department-details-lists">
+          <article class="inner-panel records-card">
+            <div class="section-header"><div><h3>موظفو القسم</h3><p>الموظفون المرتبطون بهذا القسم.</p></div></div>
+            <div class="table-scroll"><table><thead><tr><th>الموظف</th><th>الرقم الوظيفي</th><th>المسمى</th><th>الشفت</th><th>الحالة</th></tr></thead><tbody id="departmentEmployeesBody"></tbody></table></div>
+          </article>
+          <article class="inner-panel records-card">
+            <div class="section-header"><div><h3>الأقسام الفرعية</h3><p>الفروع التابعة لهذا القسم.</p></div></div>
+            <div class="table-scroll"><table><thead><tr><th>القسم الفرعي</th><th>الوصف</th><th>الحالة</th></tr></thead><tbody id="departmentChildrenBody"></tbody></table></div>
+          </article>
+        </div>
+      </section>
     </main>
   </div>
-  <script src="./js/auth-guard.js"></script>
-  <script src="./js/departments.js"></script>
+
+  <script src="./js/navigation-config.js?v=clean-16"></script>
+  <script src="./js/auth-guard.js?v=clean-16"></script>
+  <script src="./js/departments.js?v=clean-16"></script>
 </body>
 </html>

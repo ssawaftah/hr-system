@@ -15,20 +15,34 @@ const CACHE_MS = 15000;
 
 const loadGlobalCounts = async () => {
   if (dashboardCache && Date.now() - dashboardCache.time < CACHE_MS) return dashboardCache.data;
-  const [users, departments, employees, attendance, lateToday, absentToday, leaveRequests, pendingLeaves, employeeRequestsPending, salaries, salariesReview] = await Promise.all([
+  const [
+    users,
+    departments,
+    employees,
+    attendance,
+    presentToday,
+    lateToday,
+    absentToday,
+    pendingRequests,
+    pendingLeaves,
+    employeeRequestsPending,
+    salaries,
+    salariesReview,
+  ] = await Promise.all([
     safeCount(`SELECT COUNT(*) FROM users`),
     safeCount(`SELECT COUNT(*) FROM departments`),
     safeCount(`SELECT COUNT(*) FROM employees`),
     safeCount(`SELECT COUNT(*) FROM attendance_records`),
+    safeCount(`SELECT COUNT(*) FROM attendance_records WHERE attendance_date = CURRENT_DATE AND status IN ('present','late','early_leave')`),
     safeCount(`SELECT COUNT(*) FROM attendance_records WHERE attendance_date = CURRENT_DATE AND status = 'late'`),
     safeCount(`SELECT COUNT(*) FROM attendance_records WHERE attendance_date = CURRENT_DATE AND status = 'absent'`),
-    safeCount(`SELECT COUNT(*) FROM leave_requests`),
+    safeCount(`SELECT COUNT(*) FROM employee_requests WHERE status = 'pending'`),
     safeCount(`SELECT COUNT(*) FROM leave_requests WHERE status = 'pending'`),
     safeCount(`SELECT COUNT(*) FROM employee_requests WHERE status IN ('pending','needs_info')`),
     safeCount(`SELECT COUNT(*) FROM salary_records`),
-    safeCount(`SELECT COUNT(*) FROM salary_records WHERE status IN ('review','pending_review','draft')`),
+    safeCount(`SELECT COUNT(*) FROM salary_records WHERE status IN ('review','pending_review','pending_approval','draft')`),
   ]);
-  const data = { users, departments, employees, attendance, lateToday, absentToday, leaveRequests, pendingLeaves, employeeRequestsPending, salaries, salariesReview };
+  const data = { users, departments, employees, attendance, presentToday, lateToday, absentToday, pendingRequests, pendingLeaves, employeeRequestsPending, salaries, salariesReview };
   dashboardCache = { time: Date.now(), data };
   return data;
 };
@@ -39,22 +53,16 @@ const getStats = async (req, res) => {
     const cards = [];
     const sections = [];
 
-    if (hasPermissionValue(access, "users.view") || hasPermissionValue(access, "permissions.view")) {
-      cards.push({ id: "users", title: "المستخدمون", value: counts.users });
-    }
-    if (hasPermissionValue(access, "departments.view")) {
-      cards.push({ id: "departments", title: "الأقسام", value: counts.departments });
-    }
-    if (hasPermissionValue(access, "employees.view")) {
-      cards.push({ id: "employees", title: "الموظفون", value: counts.employees });
-    }
+    if (hasPermissionValue(access, "users.view") || hasPermissionValue(access, "permissions.view")) cards.push({ id: "users", title: "المستخدمون", value: counts.users });
+    if (hasPermissionValue(access, "departments.view")) cards.push({ id: "departments", title: "الأقسام", value: counts.departments });
+    if (hasPermissionValue(access, "employees.view")) cards.push({ id: "employees", title: "الموظفون", value: counts.employees });
     if (hasPermissionValue(access, "attendance.view") || hasPermissionValue(access, "attendance.view.all")) {
       cards.push({ id: "attendance", title: "سجلات الحضور", value: counts.attendance });
       cards.push({ id: "late", title: "تأخير اليوم", value: counts.lateToday });
       cards.push({ id: "absent", title: "غياب اليوم", value: counts.absentToday });
     }
     if (hasPermissionValue(access, "leaves.view") || hasPermissionValue(access, "requests.view.all") || hasPermissionValue(access, "requests.manage")) {
-      cards.push({ id: "leaves", title: "الطلبات", value: counts.leaveRequests + counts.employeeRequestsPending });
+      cards.push({ id: "leaves", title: "الطلبات", value: counts.pendingLeaves + counts.employeeRequestsPending });
       sections.push({ title: "طلبات تحتاج مراجعة", value: counts.pendingLeaves + counts.employeeRequestsPending });
     }
     if (hasPermissionValue(access, "salaries.view") || hasPermissionValue(access, "finance.view")) {
@@ -73,7 +81,14 @@ const getStats = async (req, res) => {
         employees: counts.employees,
         attendance: counts.attendance,
         salaries: counts.salaries,
-        leaves: counts.leaveRequests,
+        leaves: counts.pendingLeaves + counts.employeeRequestsPending,
+      },
+      today: {
+        date: new Date().toISOString().slice(0, 10),
+        present: counts.presentToday,
+        absent: counts.absentToday,
+        late: counts.lateToday,
+        pendingRequests: counts.pendingRequests + counts.pendingLeaves,
       },
       cards,
       sections,

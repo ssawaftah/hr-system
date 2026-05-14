@@ -24,7 +24,7 @@ const renderTodayReport=(today={},user=null)=>{
   if(title)title.textContent='ملخص اليوم';
   if(subtitle){
     const name=user?.full_name?`مرحبًا ${user.full_name}، `:'';
-    subtitle.textContent=`${name}تقرير اليوم محدث حسب بيانات النظام${today.date?` - ${today.date}`:''}.`;
+    subtitle.textContent=`${name}تقرير اليوم${today.date?` - ${today.date}`:''}.`;
   }
 };
 

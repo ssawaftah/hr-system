@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
   <title>إدارة الأقسام</title>
-  <link rel="stylesheet" href="./css/app.css?v=clean-16" />
+  <link rel="stylesheet" href="./css/app.css?v=clean-34" />
 </head>
 <body class="apple-system-ui departments-page">
   <div class="app-layout">
@@ -88,6 +88,7 @@
             <h2>كل الأقسام</h2>
             <p id="departmentsCountText">جاري تحميل البيانات...</p>
           </div>
+          <button class="secondary-btn export-visible-table" data-table="departmentsTableBody" data-name="departments">تصدير النتائج الظاهرة</button>
         </div>
         <div class="filter-bar departments-filter-bar">
           <input type="text" id="departmentSearchInput" placeholder="بحث باسم القسم أو المدير أو الوصف" />
@@ -121,7 +122,10 @@
             <h2 id="detailsDepartmentTitle">تفاصيل القسم</h2>
             <p id="detailsDepartmentMeta">-</p>
           </div>
-          <button id="closeDepartmentDetailsBtn" class="secondary-btn">إغلاق التفاصيل</button>
+          <div class="row-actions">
+            <button class="secondary-btn export-visible-table" data-table="departmentEmployeesBody" data-name="department-employees">تصدير موظفي القسم</button>
+            <button id="closeDepartmentDetailsBtn" class="secondary-btn">إغلاق التفاصيل</button>
+          </div>
         </div>
         <div id="departmentDetailsBox" class="details-grid department-details-grid"></div>
         <div class="grid-2 department-details-lists">
@@ -130,7 +134,7 @@
             <div class="table-scroll"><table><thead><tr><th>الموظف</th><th>الرقم الوظيفي</th><th>المسمى</th><th>الشفت</th><th>الحالة</th></tr></thead><tbody id="departmentEmployeesBody"></tbody></table></div>
           </article>
           <article class="inner-panel records-card">
-            <div class="section-header"><div><h3>الأقسام الفرعية</h3><p>الفروع التابعة لهذا القسم.</p></div></div>
+            <div class="section-header"><div><h3>الأقسام الفرعية</h3><p>الفروع التابعة لهذا القسم.</p></div><button class="secondary-btn export-visible-table" data-table="departmentChildrenBody" data-name="department-children">تصدير</button></div>
             <div class="table-scroll"><table><thead><tr><th>القسم الفرعي</th><th>الوصف</th><th>الحالة</th></tr></thead><tbody id="departmentChildrenBody"></tbody></table></div>
           </article>
         </div>
@@ -138,8 +142,41 @@
     </main>
   </div>
 
-  <script src="./js/navigation-config.js?v=clean-16"></script>
-  <script src="./js/auth-guard.js?v=clean-16"></script>
-  <script src="./js/departments.js?v=clean-16"></script>
+  <script src="./js/navigation-config.js?v=clean-34"></script>
+  <script src="./js/auth-guard.js?v=clean-34"></script>
+  <script src="./js/departments.js?v=clean-34"></script>
+  <script>
+    (function(){
+      const cell=(v)=>`"${String(v??'').replace(/\r?\n|\r/g,' ').replace(/"/g,'""')}"`;
+      const exportBody=(tbodyId,name)=>{
+        const tbody=document.getElementById(tbodyId);
+        const table=tbody?.closest('table');
+        const msg=document.getElementById('formMessage');
+        if(!tbody||!table)return;
+        const headers=Array.from(table.querySelectorAll('thead th')).map(th=>th.innerText.trim());
+        const bodyRows=Array.from(tbody.querySelectorAll('tr')).filter(tr=>tr.querySelectorAll('td').length>1).map(tr=>Array.from(tr.querySelectorAll('td')).map(td=>td.innerText.trim().replace(/\s+/g,' ')));
+        const actionsIndex=headers.findIndex(h=>h.includes('إجراء'));
+        const usedHeaders=actionsIndex>-1?headers.filter((_,i)=>i!==actionsIndex):headers;
+        const rows=actionsIndex>-1?bodyRows.map(r=>r.filter((_,i)=>i!==actionsIndex)):bodyRows;
+        if(!rows.length){if(msg){msg.textContent='لا توجد بيانات ظاهرة لتصديرها';msg.className='inline-message error-message'};return;}
+        const csv=[usedHeaders,...rows].map(r=>r.map(cell).join(';')).join('\r\n');
+        const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+        const url=URL.createObjectURL(blob);
+        const a=document.createElement('a');
+        a.href=url;
+        a.download=`${name}-${new Date().toISOString().slice(0,10)}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+        if(msg){msg.textContent=`تم تصدير ${rows.length} سجل من النتائج الظاهرة`;msg.className='inline-message success-message';}
+      };
+      document.addEventListener('click',function(e){
+        const b=e.target.closest('.export-visible-table');
+        if(!b)return;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        exportBody(b.dataset.table,b.dataset.name||'export');
+      },true);
+    })();
+  </script>
 </body>
 </html>

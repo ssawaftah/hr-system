@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
   <title>المالية</title>
-  <link rel="stylesheet" href="./css/app.css?v=clean-19" />
+  <link rel="stylesheet" href="./css/app.css?v=clean-22" />
 </head>
 <body class="apple-system-ui finance-page salaries-page">
   <div class="app-layout">
@@ -15,29 +15,16 @@
 
     <main class="main-content page-shell">
       <header class="topbar">
-        <div class="header-title-area">
-          <h1>المالية</h1>
-          <p>إعدادات الرواتب، كشوف الراتب، السلف، الاعتمادات والمدفوعات</p>
-        </div>
+        <div class="header-title-area"><h1>المالية</h1><p>إعدادات الرواتب، كشوف الراتب، السلف، الاعتمادات والمدفوعات</p></div>
         <div class="header-actions">
-          <a class="header-icon-btn button-link" href="./dashboard.html" title="الرئيسية" aria-label="الرئيسية">
-            <svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1v-9.5Z"/></svg>
-            <span>الرئيسية</span>
-          </a>
+          <a class="header-icon-btn button-link" href="./dashboard.html" title="الرئيسية" aria-label="الرئيسية"><svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1v-9.5Z"/></svg><span>الرئيسية</span></a>
           <button id="logoutBtn" class="logout-btn" title="تسجيل الخروج" aria-label="تسجيل الخروج">تسجيل الخروج</button>
         </div>
       </header>
 
       <section class="page-header finance-hero">
-        <div>
-          <span class="page-kicker">المركز المالي</span>
-          <h1>إدارة المالية والرواتب</h1>
-          <p>من هنا يتم ضبط رواتب الموظفين، توليد كشوف الراتب، إدارة السلف، اعتماد الرواتب وتسجيل المدفوعات.</p>
-        </div>
-        <div class="hero-actions">
-          <button id="refreshFinanceBtn" class="secondary-btn">تحديث</button>
-          <button id="goGenerateSalaryBtn" class="primary-action">توليد كشف راتب</button>
-        </div>
+        <div><span class="page-kicker">المركز المالي</span><h1>إدارة المالية والرواتب</h1><p>ضبط الرواتب، خصم التأخير والغياب، رصيد الإجازات، توليد كشوف الراتب وإدارة السلف.</p></div>
+        <div class="hero-actions"><button id="refreshFinanceBtn" class="secondary-btn">تحديث</button><button id="goGenerateSalaryBtn" class="primary-action">توليد كشف راتب</button></div>
       </section>
 
       <nav class="finance-tabs" aria-label="أقسام المالية">
@@ -45,28 +32,24 @@
         <button class="finance-tab" data-finance-tab="settings">إعدادات الرواتب</button>
         <button class="finance-tab" data-finance-tab="payslips">كشوف الرواتب</button>
         <button class="finance-tab" data-finance-tab="advances">السلف</button>
-        <button class="finance-tab" data-finance-tab="items">البدلات والاقتطاعات</button>
         <button class="finance-tab" data-finance-tab="approval">اعتماد الرواتب</button>
         <button class="finance-tab" data-finance-tab="payments">سجل المدفوعات</button>
         <button class="finance-tab" data-finance-tab="reports">التقارير المالية</button>
       </nav>
 
-      <section class="finance-section active" id="finance-dashboard-section" data-finance-section="dashboard">
+      <section class="finance-section active" data-finance-section="dashboard">
         <div class="grid-4 finance-summary-grid">
           <article class="summary-card"><span>مسودات</span><strong id="draftSalaryCard">0</strong></article>
           <article class="summary-card"><span>بانتظار الاعتماد</span><strong id="pendingSalaryCard">0</strong></article>
           <article class="summary-card"><span>معتمدة</span><strong id="approvedSalaryCard">0</strong></article>
           <article class="summary-card"><span>مدفوعة</span><strong id="paidSalaryCard">0</strong></article>
         </div>
-        <section class="content-card finance-board-card">
-          <div class="section-header"><div><span class="page-kicker">نظرة عامة</span><h2>لوحة المالية</h2><p>ملخص سريع لحالة الرواتب والسلف والإعدادات.</p></div></div>
-          <div id="financeOverviewBox" class="details-grid finance-overview-grid"></div>
-        </section>
+        <section class="content-card finance-board-card"><div class="section-header"><div><span class="page-kicker">نظرة عامة</span><h2>لوحة المالية</h2><p>ملخص سريع لحالة الرواتب والسلف والإعدادات.</p></div></div><div id="financeOverviewBox" class="details-grid finance-overview-grid"></div></section>
       </section>
 
       <section class="finance-section" id="settings" data-finance-section="settings">
         <section class="content-card finance-settings-card">
-          <div class="section-header"><div><span class="page-kicker">إعدادات الرواتب</span><h2>إعداد راتب موظف</h2><p>الراتب الأساسي ونسبة الضمان يتم تعديلهما من هنا فقط.</p></div></div>
+          <div class="section-header"><div><span class="page-kicker">إعدادات الرواتب</span><h2>إعداد راتب موظف</h2><p>الراتب، الضمان، خصم التأخير، خصم الغياب ورصيد الإجازات يتم تعديلها من هنا فقط.</p></div></div>
           <form id="financeSettingForm" class="form-grid two">
             <div class="field-shell"><label class="field-label">القسم</label><select id="settingDepartment"><option value="">كل الأقسام</option></select></div>
             <div class="field-shell"><label class="field-label">الموظف</label><select id="settingEmployee" required><option value="">اختر الموظف</option></select></div>
@@ -74,8 +57,15 @@
             <div class="field-shell"><label class="field-label">نسبة الضمان الاجتماعي %</label><input type="number" id="settingSocialSecurityRate" min="0" step="0.01" value="7.5" required /></div>
             <div class="field-shell"><label class="field-label">معامل الإضافي العادي</label><input type="number" id="settingOvertimeMultiplier" min="0" step="0.01" value="1.25" /></div>
             <div class="field-shell"><label class="field-label">معامل الجمعة/العطلة</label><input type="number" id="settingHolidayMultiplier" min="0" step="0.01" value="1.5" /></div>
-            <div class="field-shell"><label class="field-label">طريقة خصم التأخير</label><select id="settingLateMethod"><option value="hourly">حسب الساعة</option><option value="fixed">قيمة ثابتة</option></select></div>
-            <div class="field-shell"><label class="field-label">طريقة خصم الغياب</label><select id="settingAbsenceMethod"><option value="daily">حسب اليوم</option><option value="fixed">قيمة ثابتة</option></select></div>
+            <div class="field-shell"><label class="field-label">طريقة خصم التأخير</label><select id="settingLateMethod"><option value="minutes_multiplier">كل دقيقة × معامل</option></select></div>
+            <div class="field-shell"><label class="field-label">معامل دقيقة التأخير</label><input type="number" id="settingLateMinuteMultiplier" min="0" step="0.01" value="2" /></div>
+            <div class="field-shell"><label class="field-label">تقريب التأخير كل كم دقيقة</label><input type="number" id="settingLateRoundMinutes" min="1" step="1" value="30" /></div>
+            <div class="field-shell"><label class="field-label">تقريب التأخير إلى ساعات</label><select id="settingLateRoundToHours"><option value="true">نعم</option><option value="false">لا</option></select></div>
+            <div class="field-shell"><label class="field-label">طريقة خصم الغياب</label><select id="settingAbsenceMethod"><option value="leave_balance_then_salary">بعذر من الرصيد / بدون عذر من الراتب</option></select></div>
+            <div class="field-shell"><label class="field-label">معامل الغياب بدون عذر</label><input type="number" id="settingUnexcusedAbsenceMultiplier" min="0" step="0.01" value="2" /></div>
+            <div class="field-shell"><label class="field-label">كل كم ساعة مغادرة = يوم إجازة</label><input type="number" id="settingExitHoursPerLeaveDay" min="1" step="0.5" value="8" /></div>
+            <div class="field-shell"><label class="field-label">رصيد الإجازات الحالي</label><input type="number" id="settingLeaveBalance" min="0" step="0.5" value="14" /></div>
+            <div class="field-shell"><label class="field-label">الأيام المستهلكة</label><input type="number" id="settingLeaveConsumed" min="0" step="0.5" value="0" /></div>
             <div class="field-shell"><label class="field-label">بداية دورة الراتب</label><input type="number" id="settingCycleStart" min="1" max="31" value="1" /></div>
             <div class="field-shell"><label class="field-label">نهاية دورة الراتب</label><input type="number" id="settingCycleEnd" min="1" max="31" value="31" /></div>
             <div class="field-shell full-width"><label class="field-label">ملاحظات</label><textarea id="settingNotes"></textarea></div>
@@ -83,113 +73,55 @@
           </form>
           <p id="settingsMessage" class="inline-message"></p>
         </section>
-        <section class="content-card records-card">
-          <div class="section-header"><div><h2>إعدادات الموظفين المحفوظة</h2><p id="settingsCountText">جاري تحميل البيانات...</p></div></div>
-          <div class="table-scroll"><table><thead><tr><th>الموظف</th><th>القسم</th><th>الراتب الأساسي</th><th>الضمان</th><th>الإضافي</th><th>الجمعة</th><th>دورة الراتب</th><th>آخر تحديث</th><th>إجراء</th></tr></thead><tbody id="settingsTableBody"></tbody></table></div>
-        </section>
-      </section>
 
-      <section class="finance-section" data-finance-section="payslips">
-        <section class="content-card payslip-generator-card" id="payslipGeneratorCard">
-          <div class="section-header"><div><span class="page-kicker">كشف راتب</span><h2>توليد كشف راتب</h2><p>اختر القسم ثم الموظف ثم الشهر والسنة. سيتم توليد كشف مبني على Snapshot.</p></div></div>
-          <form id="salaryGenerateForm" class="form-grid four">
-            <div class="field-shell"><label class="field-label">القسم</label><select id="salaryDepartment"><option value="">اختر القسم</option></select></div>
-            <div class="field-shell"><label class="field-label">الموظف</label><select id="salaryEmployee" required><option value="">اختر الموظف</option></select></div>
-            <div class="field-shell"><label class="field-label">الشهر</label><select id="salaryMonthSelect" required></select></div>
-            <div class="field-shell"><label class="field-label">السنة</label><input type="number" id="salaryYearInput" min="2020" max="2100" required /></div>
-            <div class="form-actions full-width"><button type="button" id="previewSalaryBtn" class="secondary-btn">معاينة قبل الحفظ</button><button type="submit" class="primary-action">توليد وحفظ Snapshot</button></div>
-          </form>
-          <p id="salaryMessage" class="inline-message"></p>
-        </section>
-
-        <section class="content-card payslip-card" id="payslipPreviewSection" hidden>
-          <div class="section-header"><div><span class="page-kicker">كشف الراتب</span><h2 id="payslipTitle">كشف راتب</h2><p id="payslipMeta">-</p></div><button id="recalculateSalaryBtn" class="secondary-btn">إعادة الحساب</button></div>
-          <div class="payslip-table-wrap">
-            <table class="payslip-table">
-              <thead><tr><th colspan="3">الدخل</th><th colspan="3">الاقتطاعات</th></tr></thead>
-              <tbody id="payslipTableBody"></tbody>
-              <tfoot id="payslipTotalsFoot"></tfoot>
-            </table>
-          </div>
-          <div class="grid-2 payslip-helper-layout">
-            <article class="inner-panel"><h3>ملخص مساعد</h3><div id="salaryHelperSummary" class="details-grid"></div></article>
-            <article class="inner-panel"><h3>تفاصيل طريقة الحساب</h3><div id="salaryCalculationDetails" class="details-grid"></div></article>
-          </div>
-        </section>
-
-        <section class="content-card records-card">
-          <div class="section-header"><div><h2>كشوف الرواتب</h2><p id="salariesCountText">جاري تحميل البيانات...</p></div><button id="exportSalariesBtn" class="secondary-btn">تصدير CSV</button></div>
-          <div class="filter-bar finance-filter-bar"><input type="text" id="salarySearchInput" placeholder="بحث باسم الموظف أو الرقم الوظيفي" /><select id="salaryStatusFilter"><option value="">كل الحالات</option><option value="draft">مسودة</option><option value="pending_approval">بانتظار الاعتماد</option><option value="approved">معتمد</option><option value="paid">مدفوع</option><option value="closed">مغلق</option></select><input type="month" id="salaryMonthFilter" /></div>
-          <div class="table-scroll"><table><thead><tr><th>#</th><th>الموظف</th><th>الشهر</th><th>إجمالي الدخل</th><th>إجمالي الاقتطاعات</th><th>الصافي</th><th>الحالة</th><th>إجراءات</th></tr></thead><tbody id="salariesTableBody"></tbody></table></div>
-        </section>
-      </section>
-
-      <section class="finance-section" data-finance-section="advances">
-        <section class="grid-2 finance-advances-layout">
-          <article class="content-card">
-            <div class="section-header"><div><span class="page-kicker">السلف</span><h2>إنشاء سلفة مباشرة</h2><p>طلبات السلفة المعتمدة تُنشئ سلفة تلقائيًا، ويمكن إنشاء سلفة مباشرة من المالية.</p></div></div>
-            <form id="advanceForm" class="form-grid two">
-              <div class="field-shell"><label class="field-label">الموظف</label><select id="advanceEmployee" required><option value="">اختر الموظف</option></select></div>
-              <div class="field-shell"><label class="field-label">مبلغ السلفة</label><input type="number" id="advanceAmount" min="0" step="0.01" required /></div>
-              <div class="field-shell"><label class="field-label">تاريخ الصرف</label><input type="date" id="advancePaidAt" /></div>
-              <div class="field-shell"><label class="field-label">طريقة الخصم</label><select id="advanceDeductionMethod"><option value="one_time">مرة واحدة</option><option value="installments">أقساط</option></select></div>
-              <div class="field-shell"><label class="field-label">عدد الأقساط</label><input type="number" id="advanceInstallmentsCount" min="1" value="1" /></div>
-              <div class="field-shell"><label class="field-label">قيمة القسط الشهري</label><input type="number" id="advanceMonthlyAmount" min="0" step="0.01" /></div>
-              <div class="field-shell"><label class="field-label">شهر بداية الخصم</label><input type="month" id="advanceStartMonth" required /></div>
-              <div class="field-shell full-width"><label class="field-label">السبب</label><input type="text" id="advanceReason" /></div>
-              <div class="field-shell full-width"><label class="field-label">ملاحظات</label><textarea id="advanceNotes"></textarea></div>
-              <div class="form-actions full-width"><button type="submit" class="primary-action">حفظ السلفة وجدولة الأقساط</button></div>
-            </form>
-            <p id="advanceMessage" class="inline-message"></p>
-          </article>
-          <article class="content-card records-card">
-            <div class="section-header"><div><h2>سجل السلف</h2><p id="advancesCountText">جاري تحميل البيانات...</p></div></div>
-            <div class="table-scroll"><table><thead><tr><th>الموظف</th><th>المبلغ</th><th>الصرف</th><th>طريقة الخصم</th><th>الأقساط</th><th>بداية الخصم</th><th>الحالة</th></tr></thead><tbody id="advancesTableBody"></tbody></table></div>
-          </article>
-        </section>
-      </section>
-
-      <section class="finance-section" data-finance-section="items">
-        <section class="content-card">
-          <div class="section-header"><div><span class="page-kicker">الحقول اليدوية</span><h2>إضافة بدل أو اقتطاع لكشف راتب</h2><p>لا يمكن تعديل كشف معتمد أو مدفوع إلا بصلاحية خاصة.</p></div></div>
+        <section class="content-card finance-item-inline-card">
+          <div class="section-header"><div><span class="page-kicker">بدلات واقتطاعات</span><h2>إضافة بند يدوي لكشف راتب</h2><p>هذه الإضافة أصبحت داخل إعدادات الراتب بدل قسم منفصل. يمكن تعديل أو حذف البند من داخل الفاتورة قبل الاعتماد.</p></div></div>
           <form id="salaryItemForm" class="form-grid two">
             <div class="field-shell"><label class="field-label">كشف الراتب</label><select id="itemSalaryRecord" required><option value="">اختر كشف راتب</option></select></div>
             <div class="field-shell"><label class="field-label">النوع</label><select id="itemType"><option value="income">دخل</option><option value="deduction">اقتطاع</option></select></div>
             <div class="field-shell"><label class="field-label">اسم الحقل</label><input type="text" id="itemName" required /></div>
             <div class="field-shell"><label class="field-label">المبلغ</label><input type="number" id="itemAmount" min="0" step="0.01" required /></div>
+            <div class="field-shell"><label class="field-label">الكمية</label><input type="number" id="itemQuantity" min="0" step="0.01" /></div>
+            <div class="field-shell"><label class="field-label">الوحدة</label><input type="text" id="itemUnit" placeholder="يوم / ساعة / مرة" /></div>
             <div class="field-shell full-width"><label class="field-label">السبب</label><input type="text" id="itemReason" /></div>
             <div class="field-shell full-width"><label class="field-label">ملاحظات</label><textarea id="itemNotes"></textarea></div>
-            <div class="form-actions full-width"><button type="submit" class="primary-action">إضافة الحقل إلى الكشف</button></div>
+            <div class="form-actions full-width"><button type="submit" class="primary-action" id="itemSubmitBtn">إضافة الحقل إلى الكشف</button><button type="button" id="cancelItemEditBtn" class="secondary-btn">إلغاء تعديل البند</button></div>
           </form>
           <p id="itemMessage" class="inline-message"></p>
         </section>
+
+        <section class="content-card records-card"><div class="section-header"><div><h2>إعدادات الموظفين المحفوظة</h2><p id="settingsCountText">جاري تحميل البيانات...</p></div></div><div class="table-scroll"><table><thead><tr><th>الموظف</th><th>القسم</th><th>الراتب</th><th>الضمان</th><th>التأخير</th><th>الغياب</th><th>رصيد الإجازات</th><th>آخر تحديث</th><th>إجراء</th></tr></thead><tbody id="settingsTableBody"></tbody></table></div></section>
       </section>
 
-      <section class="finance-section" data-finance-section="approval">
-        <section class="content-card records-card">
-          <div class="section-header"><div><span class="page-kicker">اعتماد الرواتب</span><h2>كشوف بانتظار الاعتماد</h2><p>راجع الكشف ثم اعتمده أو أعده كمسودة.</p></div></div>
-          <div class="table-scroll"><table><thead><tr><th>الموظف</th><th>الشهر</th><th>الصافي</th><th>الحالة</th><th>إجراءات</th></tr></thead><tbody id="approvalTableBody"></tbody></table></div>
+      <section class="finance-section" data-finance-section="payslips">
+        <section class="content-card payslip-generator-card" id="payslipGeneratorCard"><div class="section-header"><div><span class="page-kicker">كشف راتب</span><h2>توليد كشف راتب</h2><p>اختر القسم ثم الموظف ثم الشهر والسنة. سيتم توليد كشف مبني على Snapshot.</p></div></div><form id="salaryGenerateForm" class="form-grid four"><div class="field-shell"><label class="field-label">القسم</label><select id="salaryDepartment"><option value="">اختر القسم</option></select></div><div class="field-shell"><label class="field-label">الموظف</label><select id="salaryEmployee" required><option value="">اختر الموظف</option></select></div><div class="field-shell"><label class="field-label">الشهر</label><select id="salaryMonthSelect" required></select></div><div class="field-shell"><label class="field-label">السنة</label><input type="number" id="salaryYearInput" min="2020" max="2100" required /></div><div class="form-actions full-width"><button type="button" id="previewSalaryBtn" class="secondary-btn">معاينة قبل الحفظ</button><button type="submit" class="primary-action">توليد وحفظ Snapshot</button></div></form><p id="salaryMessage" class="inline-message"></p></section>
+
+        <section class="content-card payslip-card invoice-card" id="payslipPreviewSection" hidden>
+          <div class="section-header"><div><span class="page-kicker">فاتورة راتب</span><h2 id="payslipTitle">كشف راتب</h2><p id="payslipMeta">-</p></div><button id="recalculateSalaryBtn" class="secondary-btn">إعادة الحساب</button></div>
+          <div class="salary-invoice">
+            <div class="invoice-header"><div><span>الموظف</span><strong id="invoiceEmployeeName">-</strong></div><div><span>الشهر</span><strong id="invoiceSalaryMonth">-</strong></div><div><span>الحالة</span><strong id="invoiceStatus">-</strong></div></div>
+            <section class="invoice-section income"><h3>الدخل</h3><div id="invoiceIncomeList" class="invoice-lines"></div></section>
+            <section class="invoice-section deduction"><h3>الاقتطاعات</h3><div id="invoiceDeductionList" class="invoice-lines"></div></section>
+            <section class="invoice-total-box" id="payslipTotalsFoot"></section>
+          </div>
+          <div class="grid-2 payslip-helper-layout"><article class="inner-panel"><h3>ملخص مساعد</h3><div id="salaryHelperSummary" class="details-grid"></div></article><article class="inner-panel"><h3>تفاصيل طريقة الحساب</h3><div id="salaryCalculationDetails" class="details-grid"></div></article></div>
         </section>
+
+        <section class="content-card records-card"><div class="section-header"><div><h2>كشوف الرواتب</h2><p id="salariesCountText">جاري تحميل البيانات...</p></div><button id="exportSalariesBtn" class="secondary-btn">تصدير CSV</button></div><div class="filter-bar finance-filter-bar"><input type="text" id="salarySearchInput" placeholder="بحث باسم الموظف أو الرقم الوظيفي" /><select id="salaryStatusFilter"><option value="">كل الحالات</option><option value="draft">مسودة</option><option value="pending_approval">بانتظار الاعتماد</option><option value="approved">معتمد</option><option value="paid">مدفوع</option><option value="closed">مغلق</option></select><input type="month" id="salaryMonthFilter" /></div><div class="table-scroll"><table><thead><tr><th>#</th><th>الموظف</th><th>الشهر</th><th>إجمالي الدخل</th><th>إجمالي الاقتطاعات</th><th>الصافي</th><th>الحالة</th><th>إجراءات</th></tr></thead><tbody id="salariesTableBody"></tbody></table></div></section>
       </section>
 
-      <section class="finance-section" data-finance-section="payments">
-        <section class="content-card records-card">
-          <div class="section-header"><div><span class="page-kicker">المدفوعات</span><h2>سجل المدفوعات</h2><p>يعرض كشوف الرواتب المدفوعة حاليًا، وسيتم توسيعه لاحقًا لسندات الدفع.</p></div></div>
-          <div class="table-scroll"><table><thead><tr><th>الموظف</th><th>الشهر</th><th>المبلغ</th><th>تاريخ الدفع</th><th>الحالة</th></tr></thead><tbody id="paymentsTableBody"></tbody></table></div>
-        </section>
+      <section class="finance-section" data-finance-section="advances">
+        <section class="grid-2 finance-advances-layout"><article class="content-card"><div class="section-header"><div><span class="page-kicker">السلف</span><h2>إنشاء سلفة مباشرة</h2><p>طلبات السلفة المعتمدة تُنشئ سلفة تلقائيًا، ويمكن إنشاء سلفة مباشرة من المالية.</p></div></div><form id="advanceForm" class="form-grid two"><div class="field-shell"><label class="field-label">الموظف</label><select id="advanceEmployee" required><option value="">اختر الموظف</option></select></div><div class="field-shell"><label class="field-label">مبلغ السلفة</label><input type="number" id="advanceAmount" min="0" step="0.01" required /></div><div class="field-shell"><label class="field-label">تاريخ الصرف</label><input type="date" id="advancePaidAt" /></div><div class="field-shell"><label class="field-label">طريقة الخصم</label><select id="advanceDeductionMethod"><option value="one_time">مرة واحدة</option><option value="installments">أقساط</option></select></div><div class="field-shell"><label class="field-label">عدد الأقساط</label><input type="number" id="advanceInstallmentsCount" min="1" value="1" /></div><div class="field-shell"><label class="field-label">قيمة القسط الشهري</label><input type="number" id="advanceMonthlyAmount" min="0" step="0.01" /></div><div class="field-shell"><label class="field-label">شهر بداية الخصم</label><input type="month" id="advanceStartMonth" required /></div><div class="field-shell full-width"><label class="field-label">السبب</label><input type="text" id="advanceReason" /></div><div class="field-shell full-width"><label class="field-label">ملاحظات</label><textarea id="advanceNotes"></textarea></div><div class="form-actions full-width"><button type="submit" class="primary-action">حفظ السلفة وجدولة الأقساط</button></div></form><p id="advanceMessage" class="inline-message"></p></article><article class="content-card records-card"><div class="section-header"><div><h2>سجل السلف</h2><p id="advancesCountText">جاري تحميل البيانات...</p></div></div><div class="table-scroll"><table><thead><tr><th>الموظف</th><th>المبلغ</th><th>الصرف</th><th>طريقة الخصم</th><th>الأقساط</th><th>بداية الخصم</th><th>الحالة</th></tr></thead><tbody id="advancesTableBody"></tbody></table></div></article></section>
       </section>
 
-      <section class="finance-section" data-finance-section="reports">
-        <section class="content-card finance-reports-card">
-          <div class="section-header"><div><span class="page-kicker">التقارير</span><h2>التقارير المالية</h2><p>ملخصات مالية قابلة للتوسعة حسب الشهر والقسم والحالة.</p></div></div>
-          <div id="financeReportsBox" class="details-grid finance-overview-grid"></div>
-        </section>
-      </section>
+      <section class="finance-section" data-finance-section="approval"><section class="content-card records-card"><div class="section-header"><div><span class="page-kicker">اعتماد الرواتب</span><h2>كشوف بانتظار الاعتماد</h2><p>راجع الكشف ثم اعتمده أو أعده كمسودة.</p></div></div><div class="table-scroll"><table><thead><tr><th>الموظف</th><th>الشهر</th><th>الصافي</th><th>الحالة</th><th>إجراءات</th></tr></thead><tbody id="approvalTableBody"></tbody></table></div></section></section>
+      <section class="finance-section" data-finance-section="payments"><section class="content-card records-card"><div class="section-header"><div><span class="page-kicker">المدفوعات</span><h2>سجل المدفوعات</h2><p>يعرض كشوف الرواتب المدفوعة حاليًا.</p></div></div><div class="table-scroll"><table><thead><tr><th>الموظف</th><th>الشهر</th><th>المبلغ</th><th>تاريخ الدفع</th><th>الحالة</th></tr></thead><tbody id="paymentsTableBody"></tbody></table></div></section></section>
+      <section class="finance-section" data-finance-section="reports"><section class="content-card finance-reports-card"><div class="section-header"><div><span class="page-kicker">التقارير</span><h2>التقارير المالية</h2><p>ملخصات مالية قابلة للتوسعة حسب الشهر والقسم والحالة.</p></div></div><div id="financeReportsBox" class="details-grid finance-overview-grid"></div></section></section>
     </main>
   </div>
 
-  <script src="./js/navigation-config.js?v=clean-19"></script>
-  <script src="./js/auth-guard.js?v=clean-19"></script>
-  <script src="./js/salaries.js?v=clean-19"></script>
+  <script src="./js/navigation-config.js?v=clean-22"></script>
+  <script src="./js/auth-guard.js?v=clean-22"></script>
+  <script src="./js/salaries.js?v=clean-22"></script>
 </body>
 </html>

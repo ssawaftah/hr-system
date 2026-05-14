@@ -51,9 +51,16 @@ const departmentSelectSql = `
   LEFT JOIN employees m ON m.id = d.manager_id
   LEFT JOIN (
     SELECT department_id,
-      COUNT(*) AS employee_count,
-      COUNT(*) FILTER (WHERE COALESCE(is_active, true) = true) AS active_employee_count
-    FROM employees
+      COUNT(DISTINCT employee_id) AS employee_count,
+      COUNT(DISTINCT employee_id) FILTER (WHERE COALESCE(is_active, true) = true) AS active_employee_count
+    FROM (
+      SELECT id AS employee_id, department_id, is_active FROM employees WHERE department_id IS NOT NULL
+      UNION ALL
+      SELECT e.id AS employee_id, ed.department_id, e.is_active
+      FROM employee_departments ed
+      JOIN employees e ON e.id = ed.employee_id
+      WHERE ed.department_id IS NOT NULL
+    ) employee_links
     GROUP BY department_id
   ) employee_counts ON employee_counts.department_id = d.id
   LEFT JOIN (
@@ -63,10 +70,14 @@ const departmentSelectSql = `
     GROUP BY parent_id
   ) children_counts ON children_counts.parent_id = d.id
   LEFT JOIN (
-    SELECT e.department_id, COUNT(DISTINCT esa.shift_id) AS shift_count
-    FROM employees e
-    JOIN employee_shift_assignments esa ON esa.employee_id = e.id AND esa.is_active = true
-    GROUP BY e.department_id
+    SELECT employee_links.department_id, COUNT(DISTINCT esa.shift_id) AS shift_count
+    FROM (
+      SELECT id AS employee_id, department_id FROM employees WHERE department_id IS NOT NULL
+      UNION ALL
+      SELECT employee_id, department_id FROM employee_departments WHERE department_id IS NOT NULL
+    ) employee_links
+    JOIN employee_shift_assignments esa ON esa.employee_id = employee_links.employee_id AND esa.is_active = true
+    GROUP BY employee_links.department_id
   ) shifts_counts ON shifts_counts.department_id = d.id
 `;
 
@@ -90,12 +101,14 @@ const getDepartmentById = async (req, res) => {
     const departmentResult = await pool.query(`${departmentSelectSql} WHERE d.id=$1`, [id]);
     if (!departmentResult.rows.length) return res.status(404).json({ error: "القسم غير موجود" });
     const employees = await pool.query(`
-      SELECT e.id, e.full_name, e.employee_number, COALESCE(e.job_title_name, e.job_title) AS job_title, e.phone, e.email, e.is_active,
-        ws.name AS shift_name, ws.shift_type
+      SELECT DISTINCT e.id, e.full_name, e.employee_number, COALESCE(e.job_title_name, e.job_title) AS job_title, e.phone, e.email, e.is_active,
+        ws.name AS shift_name, ws.shift_type,
+        CASE WHEN e.department_id=$1 THEN 'أساسي' ELSE 'إضافي' END AS department_relation
       FROM employees e
+      LEFT JOIN employee_departments ed ON ed.employee_id = e.id
       LEFT JOIN employee_shift_assignments esa ON esa.employee_id = e.id AND esa.is_active = true AND COALESCE(esa.effective_to, DATE '9999-12-31') >= CURRENT_DATE
       LEFT JOIN work_shifts ws ON ws.id = esa.shift_id
-      WHERE e.department_id=$1
+      WHERE e.department_id=$1 OR ed.department_id=$1
       ORDER BY COALESCE(e.is_active,true) DESC, e.full_name ASC
     `, [id]);
     const children = await pool.query(`SELECT id, name, description, is_active FROM departments WHERE parent_id=$1 ORDER BY name ASC`, [id]);
@@ -165,12 +178,25 @@ const deleteDepartment = async (req, res) => {
     const { id } = req.params;
     const children = await pool.query(`SELECT COUNT(*)::int AS count FROM departments WHERE parent_id=$1`, [id]);
     if (children.rows[0].count) return res.status(409).json({ error: "لا يمكن حذف قسم يحتوي على أقسام فرعية" });
-    const employees = await pool.query(`SELECT COUNT(*)::int AS count FROM employees WHERE department_id=$1`, [id]);
-    if (employees.rows[0].count) return res.status(409).json({ error: "لا يمكن حذف قسم يحتوي على موظفين. انقل الموظفين أولًا أو عطّل القسم بدل الحذف." });
+
+    const primaryEmployees = await pool.query(`SELECT COUNT(*)::int AS count FROM employees WHERE department_id=$1`, [id]);
+    const extraEmployees = await pool.query(`SELECT COUNT(*)::int AS count FROM employee_departments WHERE department_id=$1`, [id]);
+    const totalLinks = Number(primaryEmployees.rows[0].count || 0) + Number(extraEmployees.rows[0].count || 0);
+
+    if (totalLinks) {
+      return res.status(409).json({
+        error: `لا يمكن حذف هذا القسم لأنه مرتبط بموظفين. يوجد ${primaryEmployees.rows[0].count} ارتباط أساسي و ${extraEmployees.rows[0].count} ارتباط إضافي. انقل الموظفين أو أزل ارتباطهم بالقسم أولًا، أو عطّل القسم بدل الحذف.`,
+        code: "DEPARTMENT_HAS_EMPLOYEE_LINKS",
+        primary_employee_links: primaryEmployees.rows[0].count,
+        extra_employee_links: extraEmployees.rows[0].count,
+      });
+    }
+
     const result = await pool.query(`DELETE FROM departments WHERE id=$1 RETURNING id`, [id]);
     if (!result.rows.length) return res.status(404).json({ error: "القسم غير موجود" });
     res.status(200).json({ message: "تم حذف القسم بنجاح" });
   } catch (error) {
+    if (error.code === "23503") return res.status(409).json({ error: "لا يمكن حذف القسم لأنه مرتبط ببيانات أخرى داخل النظام. عطّل القسم أو أزل الارتباطات أولًا." });
     res.status(500).json({ error: error.message });
   }
 };

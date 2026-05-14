@@ -2,104 +2,108 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
   <title>الإعلانات</title>
-  <link rel="stylesheet" href="./css/style.css" />
-  <link rel="stylesheet" href="./css/announcements.css" />
+  <link rel="stylesheet" href="./css/app.css?v=clean-35" />
 </head>
-<body>
+<body class="apple-system-ui announcements-page announcements-center-page">
   <div class="app-layout">
     <aside class="sidebar">
-      <div class="sidebar-logo">HR System V2</div>
-      <nav class="sidebar-menu">
-        <a href="./dashboard.html" data-role-link="dashboard">لوحة التحكم</a>
-        <a href="./employees.html" data-role-link="employees">الموظفون</a>
-        <a href="./departments.html" data-role-link="departments">الأقسام</a>
-        <a href="./leaves.html" data-role-link="leaves">الطلبات</a>
-        <a href="./announcements.html" class="active" data-role-link="announcements">الإعلانات</a>
-      </nav>
+      <div class="sidebar-logo"><span class="brand-mark">HR</span><span>نظام الموارد البشرية</span></div>
+      <nav class="sidebar-menu"></nav>
     </aside>
-    <main class="main-content">
+
+    <main class="main-content page-shell">
       <header class="topbar">
-        <div>
+        <div class="header-title-area">
           <h1>الإعلانات</h1>
-          <p>نشر وإدارة الإعلانات العامة والخاصة حسب الصلاحيات</p>
+          <p>مركز نشر وإدارة الإعلانات العامة والخاصة.</p>
         </div>
-        <button id="logoutBtn" class="logout-btn">تسجيل الخروج</button>
+        <div class="header-actions">
+          <a class="header-icon-btn button-link" href="./dashboard.html" title="الرئيسية" aria-label="الرئيسية">
+            <svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1v-9.5Z"/></svg>
+            <span>الرئيسية</span>
+          </a>
+          <button id="logoutBtn" class="logout-btn" title="تسجيل الخروج" aria-label="تسجيل الخروج">تسجيل الخروج</button>
+        </div>
       </header>
 
-      <section class="content-card announcement-form-card" data-permission="announcements.create.general.company,announcements.create.general.department,announcements.create.private.department,announcements.create.private.employee,announcements.create.private.all_departments,announcements.manage">
-        <div class="section-header">
-          <div>
-            <h2 id="formTitle">إنشاء إعلان</h2>
-            <p>الإعلان العام يظهر باللون الأزرق، والإعلان الخاص يظهر باللون الأحمر.</p>
-          </div>
-          <button id="resetAnnouncementBtn" class="secondary-btn" type="button">إعلان جديد</button>
+      <section class="page-header announcements-hero">
+        <div>
+          <span class="page-kicker">مركز الإعلانات</span>
+          <h1>مركز الإعلانات الذكي</h1>
+          <p>انشر إعلانًا عامًا لكل الشركة، أو إعلانًا خاصًا لقسم أو لموظف/عدة موظفين داخل قسم محدد.</p>
         </div>
-        <form id="announcementForm" class="announcement-form">
-          <input type="hidden" id="announcementId" />
-          <div>
-            <label for="announcementTitle">عنوان الإعلان</label>
-            <input id="announcementTitle" type="text" placeholder="اكتب عنوانًا واضحًا" required />
-          </div>
-          <div>
-            <label for="announcementType">نوع الإعلان</label>
-            <select id="announcementType" required>
-              <option value="general">إعلان عام</option>
-              <option value="private">إعلان خاص</option>
-            </select>
-          </div>
-          <div>
-            <label for="startDate">تاريخ بداية الظهور</label>
-            <input id="startDate" type="date" required />
-          </div>
-          <div>
-            <label for="endDate">تاريخ نهاية الظهور، اختياري</label>
-            <input id="endDate" type="date" />
-          </div>
-          <div class="full-width">
-            <label for="announcementContent">نص الإعلان</label>
-            <textarea id="announcementContent" placeholder="اكتب نص الإعلان" required></textarea>
-          </div>
-          <div>
-            <label for="targetType">الجمهور المستهدف</label>
-            <select id="targetType">
-              <option value="all">جميع موظفي الشركة</option>
-              <option value="department">قسم كامل</option>
-              <option value="employee">موظف محدد</option>
-            </select>
-          </div>
-          <div id="departmentField">
-            <label for="targetDepartmentId">القسم</label>
-            <select id="targetDepartmentId"><option value="">اختر القسم</option></select>
-          </div>
-          <div id="employeeField">
-            <label for="targetEmployeeId">الموظف</label>
-            <select id="targetEmployeeId"><option value="">اختر الموظف</option></select>
-          </div>
-          <div>
-            <label for="announcementStatus">الحالة</label>
-            <select id="announcementStatus">
-              <option value="published">منشور</option>
-              <option value="draft">مسودة</option>
-            </select>
-          </div>
-          <div class="announcement-actions full-width">
-            <button id="publishAnnouncementBtn" type="submit">نشر الإعلان</button>
-            <button id="draftAnnouncementBtn" type="button" class="secondary-btn">حفظ كمسودة</button>
-            <button id="cancelEditBtn" type="button" class="secondary-btn">إلغاء</button>
-          </div>
-        </form>
-        <p id="announcementMessage" class="inline-message"></p>
+        <div class="hero-actions">
+          <button id="refreshAnnouncementsBtn" class="secondary-btn" type="button">تحديث</button>
+          <button id="resetAnnouncementBtn" class="primary-action" type="button">إعلان جديد</button>
+        </div>
       </section>
 
-      <section class="content-card">
+      <section class="grid-4 announcements-summary-grid">
+        <article class="summary-card"><span>كل الإعلانات</span><strong id="annTotalCard">0</strong></article>
+        <article class="summary-card"><span>العامة</span><strong id="annGeneralCard">0</strong></article>
+        <article class="summary-card"><span>الخاصة</span><strong id="annPrivateCard">0</strong></article>
+        <article class="summary-card"><span>النشطة</span><strong id="annPublishedCard">0</strong></article>
+      </section>
+
+      <section class="grid-2 announcements-layout">
+        <article class="content-card announcement-composer-card" data-permission="announcements.create.general.company,announcements.create.general.department,announcements.create.private.department,announcements.create.private.employee,announcements.create.private.all_departments,announcements.manage">
+          <div class="section-header">
+            <div>
+              <span class="page-kicker">إنشاء ونشر</span>
+              <h2 id="formTitle">إنشاء إعلان</h2>
+              <p>حدد نوع الإعلان والجمهور المستهدف بدقة. الإعلان العام أزرق، والخاص أحمر.</p>
+            </div>
+          </div>
+
+          <form id="announcementForm" class="form-grid two announcement-form-modern">
+            <input type="hidden" id="announcementId" />
+            <div class="field-shell full-width"><label class="field-label">عنوان الإعلان</label><input id="announcementTitle" type="text" placeholder="مثال: اجتماع السلامة الأسبوعي" required /></div>
+            <div class="field-shell"><label class="field-label">نوع الإعلان</label><select id="announcementType" required><option value="general">إعلان عام</option><option value="private">إعلان خاص</option></select></div>
+            <div class="field-shell"><label class="field-label">الحالة</label><select id="announcementStatus"><option value="published">منشور</option><option value="draft">مسودة</option></select></div>
+            <div class="field-shell"><label class="field-label">تاريخ بداية الظهور</label><input id="startDate" type="date" required /></div>
+            <div class="field-shell"><label class="field-label">تاريخ نهاية الظهور</label><input id="endDate" type="date" /></div>
+            <div class="field-shell full-width"><label class="field-label">نص الإعلان</label><textarea id="announcementContent" placeholder="اكتب نص الإعلان بوضوح" required></textarea></div>
+
+            <div class="field-shell full-width"><label class="field-label">الجمهور المستهدف</label><select id="targetType"></select></div>
+            <div class="field-shell" id="departmentField"><label class="field-label">القسم</label><select id="targetDepartmentId"><option value="">اختر القسم</option></select></div>
+            <div class="field-shell" id="employeeField"><label class="field-label">الموظفون</label><select id="targetEmployeeId" multiple size="7"></select><small class="form-help">اختر موظفًا واحدًا أو أكثر. لن تظهر الأسماء إلا بعد اختيار القسم.</small></div>
+            <div class="full-width selected-recipients-box" id="selectedRecipientsBox">لم يتم اختيار مستلمين بعد.</div>
+
+            <div class="announcement-actions full-width form-actions">
+              <button id="publishAnnouncementBtn" type="submit">نشر الإعلان</button>
+              <button id="draftAnnouncementBtn" type="button" class="secondary-btn">حفظ كمسودة</button>
+              <button id="cancelEditBtn" type="button" class="secondary-btn">إلغاء</button>
+            </div>
+          </form>
+          <p id="announcementMessage" class="inline-message"></p>
+        </article>
+
+        <article class="content-card announcements-guide-card">
+          <div class="section-header">
+            <div>
+              <span class="page-kicker">آلية الاستهداف</span>
+              <h2>كيف يصل الإعلان؟</h2>
+              <p>تم تصميم الاستهداف ليكون واضحًا وقابلًا للتوسع.</p>
+            </div>
+          </div>
+          <div class="announcement-target-guide">
+            <article><strong>إعلان عام للشركة</strong><span>يظهر لجميع موظفي الشركة.</span></article>
+            <article><strong>إعلان عام لقسم</strong><span>يظهر لكل موظفي القسم المحدد.</span></article>
+            <article><strong>إعلان خاص لقسم</strong><span>رسالة داخلية موجهة لقسم كامل.</span></article>
+            <article><strong>إعلان خاص لموظفين</strong><span>اختر القسم، ثم موظفًا أو عدة موظفين من نفس القسم.</span></article>
+          </div>
+        </article>
+      </section>
+
+      <section class="content-card announcements-list-card">
         <div class="section-header">
           <div>
+            <span class="page-kicker">السجل</span>
             <h2>إدارة الإعلانات</h2>
-            <p>عرض الإعلانات النشطة والمنتهية والمسودات حسب صلاحياتك.</p>
+            <p id="announcementsCountText">جاري تحميل الإعلانات...</p>
           </div>
-          <button id="refreshAnnouncementsBtn" class="secondary-btn" type="button">تحديث</button>
         </div>
         <div class="announcement-filters">
           <button class="announcement-filter active" data-filter="all">الكل</button>
@@ -113,8 +117,9 @@
       </section>
     </main>
   </div>
-  <script src="./js/navigation-config.js?v=announcements-1"></script>
-  <script src="./js/auth-guard.js?v=shell-roles-fix-1"></script>
-  <script src="./js/announcements.js?v=1"></script>
+
+  <script src="./js/navigation-config.js?v=clean-35"></script>
+  <script src="./js/auth-guard.js?v=clean-35"></script>
+  <script src="./js/announcements.js?v=clean-35"></script>
 </body>
 </html>

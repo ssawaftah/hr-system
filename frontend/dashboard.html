@@ -4,21 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>الرئيسية</title>
-
-  <link rel="stylesheet" href="./css/app.css?v=dashboard-fix-10" />
-<link rel="stylesheet" href="./css/dashboard-header-fix.css?v=1" />
-<link rel="stylesheet" href="./css/icons.css?v=no-bottom-1" />
-  <style>
-    .bottom-shortcuts {
-      display: none !important;
-      visibility: hidden !important;
-      pointer-events: none !important;
-    }
-
-    .main-content {
-      padding-bottom: 40px !important;
-    }
-  </style>
+  <link rel="stylesheet" href="./css/app.css?v=clean-1" />
 </head>
 
 <body class="apple-system-ui dashboard-page">
@@ -28,48 +14,33 @@
         <span class="brand-mark">HR</span>
         <span>نظام الموارد البشرية</span>
       </div>
-
       <nav class="sidebar-menu"></nav>
     </aside>
 
-    <main class="main-content dashboard-main">
-      <!-- Header -->
-      <header class="topbar dashboard-header refined-dashboard-header">
+    <main class="main-content dashboard-main page-shell">
+      <header class="topbar">
         <div class="header-title-area">
-          <span class="page-kicker">لوحة التحكم</span>
           <h1>الرئيسية</h1>
           <p>نظرة سريعة على أهم أنشطة النظام وإجراءات اليوم.</p>
         </div>
 
-        <div class="header-actions refined-header-actions">
-          <a
-            class="header-icon-btn button-link"
-            href="./announcements.html"
-            data-role-link="announcements"
-            title="الإعلانات"
-          >
+        <div class="header-actions">
+          <a class="header-icon-btn button-link" href="./announcements.html" data-role-link="announcements" title="الإعلانات" aria-label="الإعلانات">
             <svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true">
               <path d="M4 10v4h3l7 4V6l-7 4H4Z"></path>
               <path d="M17 9c1 .8 1.5 1.8 1.5 3S18 14.2 17 15"></path>
             </svg>
             <span>الإعلانات</span>
           </a>
-
-          <button id="logoutBtn" class="logout-btn refined-logout-btn">
-            تسجيل الخروج
-          </button>
+          <button id="logoutBtn" class="logout-btn" title="تسجيل الخروج" aria-label="تسجيل الخروج">تسجيل الخروج</button>
         </div>
       </header>
 
-      <!-- Hero Section -->
-      <section class="dashboard-hero-layout">
+      <section class="dashboard-hero-layout grid-2">
         <article class="welcome-panel">
           <div class="panel-topline">
             <span class="soft-badge">لوحة العمل</span>
-            <span class="mini-status">
-              <span></span>
-              متصل بالنظام
-            </span>
+            <span class="mini-status"><span></span>متصل بالنظام</span>
           </div>
 
           <div>
@@ -78,23 +49,14 @@
           </div>
 
           <div class="hero-actions">
-            <a
-              class="button-link primary-action"
-              href="./attendance.html"
-              data-role-link="attendance"
-            >
+            <a class="button-link primary-action" href="./attendance.html" data-role-link="attendance">
               <svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z"></path>
                 <path d="M12 7v5l3 2"></path>
               </svg>
               متابعة الحضور
             </a>
-
-            <a
-              class="button-link secondary-action"
-              href="./leaves.html"
-              data-role-link="leaves"
-            >
+            <a class="button-link secondary-action" href="./leaves.html" data-role-link="leaves">
               <svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M7 3h7l4 4v14H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"></path>
                 <path d="M14 3v5h5M8 13h8M8 17h6"></path>
@@ -105,12 +67,11 @@
         </article>
 
         <aside class="today-panel">
-          <div class="today-header">
+          <div class="today-header section-header">
             <div>
               <span class="page-kicker">اختصار اليوم</span>
               <h2>أهم الإجراءات</h2>
             </div>
-
             <span class="today-icon">
               <svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="m9 12 2 2 4-5"></path>
@@ -121,228 +82,51 @@
 
           <div class="today-actions-list">
             <a href="./employees.html" data-role-link="employees">
-              <span class="list-icon">
-                <svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 2c-4 0-6 2-6 5v1h12v-1c0-3-2-5-6-5Z"></path>
-                  <path d="M17 11a3 3 0 1 0 0-6M16 14c3 .2 5 1.7 5 4v1h-4"></path>
-                </svg>
-              </span>
-
-              <span class="today-action-text">
-                <strong>الموظفون</strong>
-                <small>فتح</small>
-              </span>
+              <span class="list-icon"><svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 2c-4 0-6 2-6 5v1h12v-1c0-3-2-5-6-5Z"></path><path d="M17 11a3 3 0 1 0 0-6M16 14c3 .2 5 1.7 5 4v1h-4"></path></svg></span>
+              <span class="today-action-text"><strong>الموظفون</strong><small>فتح</small></span>
             </a>
-
             <a href="./leaves.html" data-role-link="leaves">
-              <span class="list-icon">
-                <svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M7 3h7l4 4v14H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"></path>
-                  <path d="M14 3v5h5M8 13h8M8 17h6"></path>
-                </svg>
-              </span>
-
-              <span class="today-action-text">
-                <strong>الطلبات</strong>
-                <small>مراجعة</small>
-              </span>
+              <span class="list-icon"><svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l4 4v14H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"></path><path d="M14 3v5h5M8 13h8M8 17h6"></path></svg></span>
+              <span class="today-action-text"><strong>الطلبات</strong><small>مراجعة</small></span>
             </a>
-
             <a href="./salaries.html" data-role-link="salaries">
-              <span class="list-icon">
-                <svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M4 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7Z"></path>
-                  <path d="M7 9h10M8 15h4M16 15h1"></path>
-                </svg>
-              </span>
-
-              <span class="today-action-text">
-                <strong>الرواتب</strong>
-                <small>إدارة</small>
-              </span>
+              <span class="list-icon"><svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7Z"></path><path d="M7 9h10M8 15h4M16 15h1"></path></svg></span>
+              <span class="today-action-text"><strong>الرواتب</strong><small>إدارة</small></span>
             </a>
           </div>
         </aside>
       </section>
 
-      <!-- Metrics -->
-      <section class="metrics-grid">
-        <article class="metric-card">
-          <span class="metric-icon">
-            <svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 2c-4 0-6 2-6 5v1h12v-1c0-3-2-5-6-5Z"></path>
-              <path d="M17 11a3 3 0 1 0 0-6M16 14c3 .2 5 1.7 5 4v1h-4"></path>
-            </svg>
-          </span>
-          <small>الحسابات النشطة</small>
-          <strong id="usersCount">0</strong>
-        </article>
-
-        <article class="metric-card">
-          <span class="metric-icon">
-            <svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"></path>
-            </svg>
-          </span>
-          <small>الأقسام</small>
-          <strong id="departmentsCount">0</strong>
-        </article>
-
-        <article class="metric-card">
-          <span class="metric-icon">
-            <svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 2c-4 0-6 2-6 5v1h12v-1c0-3-2-5-6-5Z"></path>
-              <path d="M17 11a3 3 0 1 0 0-6M16 14c3 .2 5 1.7 5 4v1h-4"></path>
-            </svg>
-          </span>
-          <small>الموظفون</small>
-          <strong id="employeesCount">0</strong>
-        </article>
-
-        <article class="metric-card">
-          <span class="metric-icon">
-            <svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z"></path>
-              <path d="M12 7v5l3 2"></path>
-            </svg>
-          </span>
-          <small>الحضور</small>
-          <strong id="attendanceCount">0</strong>
-        </article>
-
-        <article class="metric-card">
-          <span class="metric-icon">
-            <svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M7 3h7l4 4v14H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"></path>
-              <path d="M14 3v5h5M8 13h8M8 17h6"></path>
-            </svg>
-          </span>
-          <small>الطلبات</small>
-          <strong id="leavesCount">0</strong>
-        </article>
-
-        <article class="metric-card">
-          <span class="metric-icon">
-            <svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M4 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7Z"></path>
-              <path d="M7 9h10M8 15h4M16 15h1"></path>
-            </svg>
-          </span>
-          <small>الرواتب</small>
-          <strong id="salariesCount">0</strong>
-        </article>
+      <section class="metrics-grid grid-6">
+        <article class="metric-card"><span class="metric-icon"><svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 2c-4 0-6 2-6 5v1h12v-1c0-3-2-5-6-5Z"></path><path d="M17 11a3 3 0 1 0 0-6M16 14c3 .2 5 1.7 5 4v1h-4"></path></svg></span><small>الحسابات النشطة</small><strong id="usersCount">0</strong></article>
+        <article class="metric-card"><span class="metric-icon"><svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"></path></svg></span><small>الأقسام</small><strong id="departmentsCount">0</strong></article>
+        <article class="metric-card"><span class="metric-icon"><svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 2c-4 0-6 2-6 5v1h12v-1c0-3-2-5-6-5Z"></path><path d="M17 11a3 3 0 1 0 0-6M16 14c3 .2 5 1.7 5 4v1h-4"></path></svg></span><small>الموظفون</small><strong id="employeesCount">0</strong></article>
+        <article class="metric-card"><span class="metric-icon"><svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z"></path><path d="M12 7v5l3 2"></path></svg></span><small>الحضور</small><strong id="attendanceCount">0</strong></article>
+        <article class="metric-card"><span class="metric-icon"><svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l4 4v14H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"></path><path d="M14 3v5h5M8 13h8M8 17h6"></path></svg></span><small>الطلبات</small><strong id="leavesCount">0</strong></article>
+        <article class="metric-card"><span class="metric-icon"><svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7Z"></path><path d="M7 9h10M8 15h4M16 15h1"></path></svg></span><small>الرواتب</small><strong id="salariesCount">0</strong></article>
       </section>
 
-      <!-- Content -->
-      <section class="dashboard-content-layout">
+      <section class="dashboard-content-layout grid-2">
         <article class="dashboard-panel announcements-panel">
           <div class="panel-heading">
-            <div>
-              <span class="page-kicker">آخر التحديثات</span>
-              <h2>الإعلانات</h2>
-              <p>آخر الإعلانات النشطة الموجهة لك.</p>
-            </div>
-
-            <a
-              class="secondary-btn button-link"
-              href="./announcements.html"
-              data-role-link="announcements"
-            >
-              عرض الكل
-            </a>
+            <div><span class="page-kicker">آخر التحديثات</span><h2>الإعلانات</h2><p>آخر الإعلانات النشطة الموجهة لك.</p></div>
+            <a class="secondary-btn button-link" href="./announcements.html" data-role-link="announcements">عرض الكل</a>
           </div>
-
-          <div id="dashboardAnnouncements" class="dashboard-announcements">
-            <div class="empty-soft">جاري تحميل الإعلانات...</div>
-          </div>
+          <div id="dashboardAnnouncements" class="dashboard-announcements"><div class="empty-soft">جاري تحميل الإعلانات...</div></div>
         </article>
 
         <article class="dashboard-panel shortcuts-panel">
-          <div class="panel-heading">
-            <div>
-              <span class="page-kicker">تنقل سريع</span>
-              <h2>اختصارات ذكية</h2>
-              <p>وصول سريع لأكثر الصفحات استخدامًا.</p>
-            </div>
-          </div>
-
+          <div class="panel-heading"><div><span class="page-kicker">تنقل سريع</span><h2>اختصارات ذكية</h2><p>وصول سريع لأكثر الصفحات استخدامًا.</p></div></div>
           <div class="smart-shortcuts">
-            <a href="./employees.html" data-role-link="employees">
-              <span class="shortcut-icon">
-                <svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 2c-4 0-6 2-6 5v1h12v-1c0-3-2-5-6-5Z"></path>
-                  <path d="M17 11a3 3 0 1 0 0-6M16 14c3 .2 5 1.7 5 4v1h-4"></path>
-                </svg>
-              </span>
-
-              <span class="shortcut-copy">
-                <strong>الموظفون</strong>
-                <small>الملفات والأقسام وبيانات الدخول</small>
-              </span>
-
-              <b aria-hidden="true">‹</b>
-            </a>
-
-            <a href="./attendance.html" data-role-link="attendance">
-              <span class="shortcut-icon">
-                <svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z"></path>
-                  <path d="M12 7v5l3 2"></path>
-                </svg>
-              </span>
-
-              <span class="shortcut-copy">
-                <strong>الحضور والانصراف</strong>
-                <small>متابعة اليوم والحركات</small>
-              </span>
-
-              <b aria-hidden="true">‹</b>
-            </a>
-
-            <a href="./leaves.html" data-role-link="leaves">
-              <span class="shortcut-icon">
-                <svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M7 3h7l4 4v14H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"></path>
-                  <path d="M14 3v5h5M8 13h8M8 17h6"></path>
-                </svg>
-              </span>
-
-              <span class="shortcut-copy">
-                <strong>الطلبات</strong>
-                <small>إنشاء ومراجعة واعتماد</small>
-              </span>
-
-              <b aria-hidden="true">‹</b>
-            </a>
-
-            <a href="./reports.html" data-role-link="reports">
-              <span class="shortcut-icon">
-                <svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M5 4h14v16H5z"></path>
-                  <path d="M8 16V9M12 16v-5M16 16v-8"></path>
-                </svg>
-              </span>
-
-              <span class="shortcut-copy">
-                <strong>التقارير</strong>
-                <small>قراءة وتحليل البيانات</small>
-              </span>
-
-              <b aria-hidden="true">‹</b>
-            </a>
+            <a href="./employees.html" data-role-link="employees"><span class="shortcut-icon"><svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 2c-4 0-6 2-6 5v1h12v-1c0-3-2-5-6-5Z"></path><path d="M17 11a3 3 0 1 0 0-6M16 14c3 .2 5 1.7 5 4v1h-4"></path></svg></span><span class="shortcut-copy"><strong>الموظفون</strong><small>الملفات والأقسام وبيانات الدخول</small></span><b aria-hidden="true">‹</b></a>
+            <a href="./attendance.html" data-role-link="attendance"><span class="shortcut-icon"><svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z"></path><path d="M12 7v5l3 2"></path></svg></span><span class="shortcut-copy"><strong>الحضور والانصراف</strong><small>متابعة اليوم والحركات</small></span><b aria-hidden="true">‹</b></a>
+            <a href="./leaves.html" data-role-link="leaves"><span class="shortcut-icon"><svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l4 4v14H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"></path><path d="M14 3v5h5M8 13h8M8 17h6"></path></svg></span><span class="shortcut-copy"><strong>الطلبات</strong><small>إنشاء ومراجعة واعتماد</small></span><b aria-hidden="true">‹</b></a>
+            <a href="./reports.html" data-role-link="reports"><span class="shortcut-icon"><svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5z"></path><path d="M8 16V9M12 16v-5M16 16v-8"></path></svg></span><span class="shortcut-copy"><strong>التقارير</strong><small>قراءة وتحليل البيانات</small></span><b aria-hidden="true">‹</b></a>
           </div>
         </article>
       </section>
     </main>
   </div>
-
-  <script>
-    document.querySelectorAll('.bottom-shortcuts').forEach((el) => el.remove());
-
-    setInterval(() => {
-      document.querySelectorAll('.bottom-shortcuts').forEach((el) => el.remove());
-    }, 500);
-  </script>
 
   <script src="./js/navigation-config.js?v=no-bottom-1"></script>
   <script src="./js/auth-guard.js?v=no-bottom-1"></script>

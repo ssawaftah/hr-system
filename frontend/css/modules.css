@@ -1,0 +1,20 @@
+/* Shared module-level styles used by HR pages */
+
+/* Attendance page */
+.attendance-page{overflow-x:hidden}
+.attendance-page .main-content{width:100%;max-width:100%;overflow-x:hidden}
+.attendance-page .attendance-hero{overflow:hidden}
+.attendance-filters-grid{grid-template-columns:1.4fr repeat(3,minmax(150px,1fr));align-items:end;margin:16px 0}
+.attendance-last-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+.attendance-cards{gap:12px}
+.attendance-card{background:linear-gradient(135deg,#fff,#fbfbfd);border:1px solid var(--border);border-radius:28px;box-shadow:var(--shadow-sm);padding:16px;display:grid;gap:14px;width:100%;overflow:hidden}
+.attendance-card *{min-width:0}
+.attendance-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;border-bottom:1px solid var(--border);padding-bottom:12px}
+.attendance-card-head h3{margin:0;font-size:18px;font-weight:900;line-height:1.35;overflow-wrap:anywhere}
+.attendance-card-head p{margin:4px 0 0;color:var(--muted);font-weight:800;line-height:1.5;overflow-wrap:anywhere}
+.attendance-card-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.attendance-records-card{overflow:hidden}
+
+@media(max-width:1200px){.attendance-filters-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.attendance-last-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){.attendance-page .app-layout{padding-inline:10px!important}.attendance-page .content-card,.attendance-page .dashboard-panel,.attendance-page .page-header{padding:16px;border-radius:28px}.attendance-page .hero-actions{display:grid;grid-template-columns:1fr 1fr;width:100%}.attendance-page .hero-actions button{width:100%;padding-inline:10px}.attendance-filters-grid{grid-template-columns:1fr!important}.attendance-last-grid,.attendance-card-grid{grid-template-columns:1fr}.attendance-page .table-scroll{display:none!important}.attendance-cards{display:grid!important}.attendance-card-head{align-items:stretch;flex-direction:column}.attendance-card-head .mini-badge{width:max-content;max-width:100%}.attendance-page .form-grid{grid-template-columns:1fr}.attendance-page .summary-card strong{font-size:24px}}
+@media(max-width:420px){.attendance-page .app-layout{padding-inline:8px!important}.attendance-page .content-card,.attendance-page .dashboard-panel,.attendance-page .page-header{padding:14px;border-radius:26px}.attendance-page .page-header h1{font-size:24px}.attendance-page .hero-actions{grid-template-columns:1fr}.attendance-card{padding:14px;border-radius:24px}}

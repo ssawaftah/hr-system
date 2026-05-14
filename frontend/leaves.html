@@ -2,47 +2,55 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
   <title>الطلبات</title>
-  <link rel="stylesheet" href="./css/style.css" />
-  <link rel="stylesheet" href="./css/employees.css" />
-  <link rel="stylesheet" href="./css/requests.css" />
+  <link rel="stylesheet" href="./css/app.css?v=clean-13" />
 </head>
-<body>
+<body class="apple-system-ui requests-page">
   <div class="app-layout">
     <aside class="sidebar">
-      <div class="sidebar-logo">HR System V2</div>
-      <nav class="sidebar-menu">
-        <a href="./dashboard.html" data-role-link="dashboard">لوحة التحكم</a>
-        <a href="./departments.html" data-role-link="departments">الأقسام</a>
-        <a href="./employees.html" data-role-link="employees">الموظفون</a>
-        <a href="./attendance.html" data-role-link="attendance">الحضور</a>
-        <a href="./shifts.html" data-role-link="shifts">الشفتات</a>
-        <a href="./leaves.html" class="active" data-role-link="leaves">الطلبات</a>
-        <a href="./salaries.html" data-role-link="salaries">الرواتب</a>
-        <a href="./reports.html" data-role-link="reports">التقارير</a>
-      </nav>
+      <div class="sidebar-logo"><span class="brand-mark">HR</span><span>نظام الموارد البشرية</span></div>
+      <nav class="sidebar-menu"></nav>
     </aside>
 
-    <main class="main-content requests-page">
+    <main class="main-content page-shell">
       <header class="topbar">
-        <div>
+        <div class="header-title-area">
           <h1>الطلبات</h1>
           <p id="pageSubtitle">إنشاء ومتابعة واعتماد طلبات الموظفين من مكان واحد</p>
         </div>
-        <button id="logoutBtn" class="logout-btn">تسجيل الخروج</button>
+        <div class="header-actions">
+          <a href="./dashboard.html" class="header-icon-btn button-link" title="الرئيسية" aria-label="الرئيسية">
+            <svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1v-9.5Z"/></svg>
+            <span>الرئيسية</span>
+          </a>
+          <button id="logoutBtn" class="logout-btn" title="تسجيل الخروج" aria-label="تسجيل الخروج">تسجيل الخروج</button>
+        </div>
       </header>
 
-      <section class="profile-summary-grid requests-summary-grid">
-        <div class="summary-card"><span>إجمالي الطلبات</span><strong id="requestsTotalCard">0</strong></div>
-        <div class="summary-card"><span>قيد الانتظار</span><strong id="requestsPendingCard">0</strong></div>
-        <div class="summary-card"><span>يحتاج معلومات</span><strong id="requestsInfoCard">0</strong></div>
-        <div class="summary-card"><span>مغلقة</span><strong id="requestsClosedCard">0</strong></div>
+      <section class="page-header requests-hero">
+        <div>
+          <span class="page-kicker">التشغيل اليومي</span>
+          <h1>إدارة الطلبات</h1>
+          <p>إنشاء ومتابعة واعتماد طلبات الموظفين مع سجل إجراءات واضح.</p>
+        </div>
+        <div class="hero-actions">
+          <button id="refreshRequestsBtn" class="secondary-btn">تحديث</button>
+          <button id="exportRequestsBtn" class="secondary-btn">تصدير CSV</button>
+        </div>
+      </section>
+
+      <section class="profile-summary-grid requests-summary-grid grid-4">
+        <article class="summary-card"><span>إجمالي الطلبات</span><strong id="requestsTotalCard">0</strong></article>
+        <article class="summary-card"><span>قيد الانتظار</span><strong id="requestsPendingCard">0</strong></article>
+        <article class="summary-card"><span>يحتاج معلومات</span><strong id="requestsInfoCard">0</strong></article>
+        <article class="summary-card"><span>مغلقة</span><strong id="requestsClosedCard">0</strong></article>
       </section>
 
       <section class="content-card requests-create-card">
         <div class="section-header">
           <div>
+            <span class="page-kicker">طلب جديد</span>
             <h2>إنشاء طلب</h2>
             <p>اختر نوع الطلب، وسيظهر النموذج في نافذة مرتبة وسريعة.</p>
           </div>
@@ -58,19 +66,16 @@
         <p id="formMessage" class="inline-message"></p>
       </section>
 
-      <section class="table-container requests-list-section">
+      <section class="content-card requests-list-section records-card">
         <div class="section-header">
           <div>
+            <span class="page-kicker">السجلات</span>
             <h2>قائمة الطلبات</h2>
             <p id="requestsCountText">جاري تحميل البيانات...</p>
           </div>
-          <div class="actions-row">
-            <button id="refreshRequestsBtn" class="secondary-btn">تحديث</button>
-            <button id="exportRequestsBtn" class="secondary-btn">تصدير CSV</button>
-          </div>
         </div>
 
-        <div class="filters-grid attendance-filters-grid request-filter-bar">
+        <div class="filter-bar request-filter-bar">
           <input type="text" id="requestSearchInput" placeholder="بحث بالموظف أو رقم الموظف أو تفاصيل الطلب" />
           <select id="requestEmployeeFilter"><option value="">كل الموظفين</option></select>
           <select id="requestTypeFilter"><option value="">كل أنواع الطلبات</option></select>
@@ -97,12 +102,12 @@
             <tbody id="requestsTableBody"><tr><td colspan="9">جاري تحميل البيانات...</td></tr></tbody>
           </table>
         </div>
-        <div id="requestsCardsList" class="request-list-cards"></div>
+        <div id="requestsCardsList" class="request-list-cards cards-list"></div>
       </section>
     </main>
   </div>
 
-  <div class="modal-backdrop" id="requestModal" aria-hidden="true">
+  <div class="modal-backdrop request-overlay" id="requestModal" aria-hidden="true">
     <div class="modal-card request-modal-card" role="dialog" aria-modal="true">
       <div class="modal-header">
         <div><h2 id="requestFormTitle">إنشاء طلب</h2><p id="requestFormHelp">املأ البيانات المطلوبة ثم أرسل الطلب.</p></div>
@@ -125,7 +130,7 @@
     </div>
   </div>
 
-  <div class="modal-backdrop" id="detailsModal" aria-hidden="true">
+  <div class="modal-backdrop request-overlay" id="detailsModal" aria-hidden="true">
     <div class="modal-card details-modal-card" role="dialog" aria-modal="true">
       <div class="modal-header">
         <div><h2>تفاصيل الطلب</h2><p id="requestDetailsSubtitle">جاري تحميل التفاصيل...</p></div>
@@ -152,7 +157,7 @@
     </div>
   </div>
 
-  <div class="modal-backdrop" id="actionModal" aria-hidden="true">
+  <div class="modal-backdrop request-overlay" id="actionModal" aria-hidden="true">
     <div class="modal-card action-modal-card" role="dialog" aria-modal="true">
       <div class="modal-header">
         <div><h2 id="actionModalTitle">تنفيذ إجراء</h2><p id="actionModalHelp">اكتب الملاحظة المطلوبة إن وجدت.</p></div>
@@ -170,7 +175,8 @@
     </div>
   </div>
 
-  <script src="./js/auth-guard.js"></script>
-  <script src="./js/leaves.js?v=requests-ui-clean-1"></script>
+  <script src="./js/navigation-config.js?v=clean-13"></script>
+  <script src="./js/auth-guard.js?v=clean-13"></script>
+  <script src="./js/leaves.js?v=clean-13"></script>
 </body>
 </html>

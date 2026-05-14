@@ -4,9 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ملف الموظف</title>
-  <link rel="stylesheet" href="./css/app.css?v=employee-profile-apple-1" />
-  <link rel="stylesheet" href="./css/icons.css?v=employee-profile-apple-1" />
-  <link rel="stylesheet" href="./css/employees-page.css?v=employee-profile-apple-1" />
+  <link rel="stylesheet" href="./css/app.css?v=clean-5" />
 </head>
 <body class="apple-system-ui employees-page profile-page">
   <div class="app-layout">
@@ -15,42 +13,44 @@
       <nav class="sidebar-menu"></nav>
     </aside>
 
-    <main class="main-content">
+    <main class="main-content page-shell">
       <header class="topbar">
-        <div>
-          <span class="page-kicker">الموظفون</span>
+        <div class="header-title-area">
           <h1>ملف الموظف</h1>
           <p id="pageSubtitle">عرض شامل ومنظم لبيانات الموظف وحسابه وصلاحياته وسجلاته.</p>
         </div>
-        <div class="profile-top-actions">
-          <a href="./dashboard.html" class="secondary-btn button-link">الرئيسية</a>
+        <div class="profile-top-actions header-actions">
+          <a href="./dashboard.html" class="header-icon-btn button-link" title="الرئيسية" aria-label="الرئيسية">
+            <svg class="app-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1v-9.5Z"/></svg>
+            <span>الرئيسية</span>
+          </a>
           <a href="./employees.html" class="secondary-btn button-link">العودة للموظفين</a>
-          <button id="logoutBtn" class="logout-btn">تسجيل الخروج</button>
+          <button id="logoutBtn" class="logout-btn" title="تسجيل الخروج" aria-label="تسجيل الخروج">تسجيل الخروج</button>
         </div>
       </header>
 
       <section class="content-card employee-profile-hero">
-        <span id="employeeAvatar" class="employee-avatar">م</span>
-        <div>
+        <span id="employeeAvatar" class="employee-avatar profile-avatar">م</span>
+        <div class="profile-hero-copy">
           <span id="employeeStatusBadge" class="mini-badge">جاري التحميل</span>
           <h2 id="employeeName">جاري التحميل...</h2>
           <p id="employeeMeta">يرجى الانتظار</p>
         </div>
-        <div class="profile-top-actions">
+        <div class="profile-top-actions profile-hero-actions">
           <button id="editEmployeeBtn" class="primary-action">تعديل الموظف</button>
           <a href="./users.html" id="managePermissionsBtn" class="secondary-btn button-link">إدارة الصلاحيات</a>
         </div>
       </section>
 
-      <section class="profile-summary-grid" id="profileSummaryGrid">
+      <section class="profile-summary-grid grid-4" id="profileSummaryGrid">
         <article class="summary-card"><span>الحالة الوظيفية</span><strong id="summaryStatus">-</strong></article>
         <article class="summary-card"><span>القسم الأساسي</span><strong id="summaryMainDepartment">-</strong></article>
         <article class="summary-card"><span>القسم الإضافي</span><strong id="summarySubDepartment">-</strong></article>
         <article class="summary-card"><span>الراتب الأساسي</span><strong id="summarySalary">-</strong></article>
       </section>
 
-      <section class="content-card">
-        <div class="profile-section-title">
+      <section class="content-card profile-main-card">
+        <div class="profile-section-title section-header">
           <div>
             <span class="page-kicker">الملف الرئيسي</span>
             <h2>بيانات الموظف</h2>
@@ -66,24 +66,22 @@
         </div>
       </section>
 
-      <section class="dashboard-content-layout">
+      <section class="dashboard-content-layout grid-2">
         <article class="dashboard-panel">
           <div class="panel-heading"><div><span class="page-kicker">الحضور</span><h2>آخر سجلات الحضور</h2></div></div>
           <div class="table-scroll"><table><thead><tr><th>التاريخ</th><th>الدخول</th><th>الخروج</th><th>الحالة</th><th>المصدر</th></tr></thead><tbody id="attendanceBody"></tbody></table></div>
         </article>
-
         <article class="dashboard-panel">
           <div class="panel-heading"><div><span class="page-kicker">الطلبات</span><h2>آخر الطلبات</h2></div></div>
           <div class="table-scroll"><table><thead><tr><th>النوع</th><th>من</th><th>إلى</th><th>الأيام</th><th>الحالة</th></tr></thead><tbody id="leavesBody"></tbody></table></div>
         </article>
       </section>
 
-      <section class="dashboard-content-layout">
+      <section class="dashboard-content-layout grid-2">
         <article class="dashboard-panel">
           <div class="panel-heading"><div><span class="page-kicker">الرواتب</span><h2>آخر سجلات الرواتب</h2></div></div>
           <div class="table-scroll"><table><thead><tr><th>الشهر</th><th>الإجمالي</th><th>الخصومات</th><th>الصافي</th><th>الحالة</th></tr></thead><tbody id="salariesBody"></tbody></table></div>
         </article>
-
         <article class="dashboard-panel">
           <div class="panel-heading"><div><span class="page-kicker">السجل</span><h2>سجل التعديلات</h2></div></div>
           <div class="table-scroll"><table><thead><tr><th>العملية</th><th>التاريخ</th><th>بواسطة</th></tr></thead><tbody id="auditBody"></tbody></table></div>
@@ -92,8 +90,8 @@
     </main>
   </div>
 
-  <script src="./js/navigation-config.js?v=employee-profile-apple-1"></script>
-  <script src="./js/auth-guard.js?v=employee-profile-apple-1"></script>
-  <script src="./js/employee-profile.js?v=employee-profile-apple-1"></script>
+  <script src="./js/navigation-config.js?v=clean-5"></script>
+  <script src="./js/auth-guard.js?v=clean-5"></script>
+  <script src="./js/employee-profile.js?v=clean-5"></script>
 </body>
 </html>

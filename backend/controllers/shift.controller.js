@@ -23,21 +23,37 @@ const normalizeEmployeeIds = (body) => {
   return [...new Set(raw.map((id) => Number(id)).filter((id) => Number.isInteger(id) && id > 0))];
 };
 
-const getShiftPayload = (body) => ({
-  name: (body.name || "").trim(),
-  shift_type: body.shift_type || "custom",
-  start_time: body.start_time || null,
-  end_time: body.end_time || null,
-  work_days: normalizeDays(body.work_days),
-  effective_from: body.effective_from || todayIso(),
-  effective_to: body.effective_to || null,
-  repeats_weekly: normalizeBoolean(body.repeats_weekly, true),
-  late_grace_minutes: Number(body.late_grace_minutes || 0),
-  absent_after_minutes: Number(body.absent_after_minutes || 180),
-  official_work_hours: Number(body.official_work_hours || 8),
-  notes: body.notes || null,
-  is_active: normalizeBoolean(body.is_active, true),
-});
+const getShiftPayload = (body) => {
+  const shiftType = body.shift_type || "custom";
+  const isDefault = normalizeBoolean(body.is_default, shiftType === "default");
+  return {
+    name: (body.name || "").trim(),
+    shift_type: isDefault ? "default" : shiftType,
+    start_time: body.start_time || null,
+    end_time: body.end_time || null,
+    work_days: normalizeDays(body.work_days),
+    effective_from: body.effective_from || todayIso(),
+    effective_to: body.effective_to || null,
+    repeats_weekly: normalizeBoolean(body.repeats_weekly, true),
+    late_grace_minutes: Number(body.late_grace_minutes || 0),
+    absent_after_minutes: Number(body.absent_after_minutes || 180),
+    official_work_hours: Number(body.official_work_hours || 8),
+    notes: body.notes || null,
+    is_active: normalizeBoolean(body.is_active, true),
+    is_default: isDefault,
+  };
+};
+
+const ensureDefaultShift = async (client = pool) => {
+  const existing = await client.query(`SELECT * FROM work_shifts WHERE is_default = true AND is_active = true ORDER BY id ASC LIMIT 1`);
+  if (existing.rows.length) return existing.rows[0];
+  const created = await client.query(
+    `INSERT INTO work_shifts (name, shift_type, start_time, end_time, work_days, effective_from, repeats_weekly, late_grace_minutes, absent_after_minutes, official_work_hours, notes, is_active, is_default, updated_at)
+     VALUES ('الدوام الافتراضي', 'default', '07:00', '15:00', '["saturday","sunday","monday","tuesday","wednesday","thursday"]'::jsonb, CURRENT_DATE, true, 0, 180, 8, 'يطبق تلقائيًا على الموظفين غير المرتبطين بشفت مخصص', true, true, CURRENT_TIMESTAMP)
+     RETURNING *`
+  );
+  return created.rows[0];
+};
 
 const ensureShiftSchema = async (client = pool) => {
   await client.query(`
@@ -61,6 +77,7 @@ const ensureShiftSchema = async (client = pool) => {
   await client.query(`ALTER TABLE work_shifts ADD COLUMN IF NOT EXISTS official_work_hours NUMERIC(5,2) DEFAULT 8`);
   await client.query(`ALTER TABLE work_shifts ADD COLUMN IF NOT EXISTS notes TEXT`);
   await client.query(`ALTER TABLE work_shifts ADD COLUMN IF NOT EXISTS archived_at TIMESTAMP`);
+  await client.query(`ALTER TABLE work_shifts ADD COLUMN IF NOT EXISTS is_default BOOLEAN DEFAULT false`);
 
   await client.query(`
     CREATE TABLE IF NOT EXISTS employee_shift_assignments (
@@ -92,6 +109,14 @@ const ensureShiftSchema = async (client = pool) => {
 
   await client.query(`CREATE INDEX IF NOT EXISTS employee_shift_assignments_employee_idx ON employee_shift_assignments(employee_id)`);
   await client.query(`CREATE INDEX IF NOT EXISTS employee_shift_assignments_shift_idx ON employee_shift_assignments(shift_id)`);
+  await client.query(`
+    WITH ranked AS (
+      SELECT id, ROW_NUMBER() OVER (ORDER BY id ASC) AS rn FROM work_shifts WHERE is_default = true AND is_active = true
+    )
+    UPDATE work_shifts SET is_default = false WHERE id IN (SELECT id FROM ranked WHERE rn > 1)
+  `);
+  await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS work_shifts_one_active_default_idx ON work_shifts(is_default) WHERE is_default = true AND is_active = true`);
+  await ensureDefaultShift(client);
 };
 
 const writeAuditLog = async (client, req, action, targetId, oldValue = null, newValue = null) => {
@@ -166,7 +191,7 @@ const getFridayEmployees = async (client) => {
   return result.rows;
 };
 
-const getWeekDistribution = async (client) => {
+const getWeekDistribution = async (client, defaultShift) => {
   const result = await client.query(`
     SELECT e.id AS employee_id, e.full_name, e.employee_number, d.name AS department_name,
       ws.id AS shift_id, ws.name AS shift_name, ws.shift_type, ws.work_days
@@ -178,9 +203,10 @@ const getWeekDistribution = async (client) => {
     ORDER BY d.name NULLS LAST, e.full_name ASC
   `);
   return result.rows.map((row) => {
-    const workDays = Array.isArray(row.work_days) ? row.work_days : [];
-    const schedule = dayKeys.reduce((map, day) => ({ ...map, [day]: row.shift_id && workDays.includes(day) ? row.shift_name : "-" }), {});
-    return { ...row, schedule };
+    const effectiveShift = row.shift_id ? row : defaultShift;
+    const workDays = Array.isArray(effectiveShift?.work_days) ? effectiveShift.work_days : [];
+    const schedule = dayKeys.reduce((map, day) => ({ ...map, [day]: effectiveShift?.id && workDays.includes(day) ? effectiveShift.name || effectiveShift.shift_name : "-" }), {});
+    return { ...row, effective_shift_name: effectiveShift?.name || row.shift_name || "-", is_default_shift_applied: !row.shift_id, schedule };
   });
 };
 
@@ -205,12 +231,13 @@ const findConflicts = async (client, employeeIds, shiftId, effectiveFrom, effect
 const getShifts = async (req, res) => {
   try {
     await ensureShiftSchema();
-    const shifts = await pool.query(`${shiftSelectSql} ORDER BY ws.is_active DESC, ws.id ASC`);
+    const defaultShift = await ensureDefaultShift(pool);
+    const shifts = await pool.query(`${shiftSelectSql} ORDER BY ws.is_default DESC, ws.is_active DESC, ws.id ASC`);
     const assignments = await getAssignments(pool);
     const without_shift = await getEmployeesWithoutActiveShift(pool);
     const friday_employees = await getFridayEmployees(pool);
-    const week_distribution = await getWeekDistribution(pool);
-    res.status(200).json({ shifts: shifts.rows, assignments, without_shift, friday_employees, week_distribution });
+    const week_distribution = await getWeekDistribution(pool, defaultShift);
+    res.status(200).json({ shifts: shifts.rows, default_shift: defaultShift, assignments, without_shift, friday_employees, week_distribution });
   } catch (error) { res.status(500).json({ error: error.message }); }
 };
 
@@ -233,12 +260,13 @@ const createShift = async (req, res) => {
     await ensureShiftSchema(client);
     const data = getShiftPayload(req.body);
     if (!data.name || !data.start_time || !data.end_time) { await client.query("ROLLBACK"); return res.status(400).json({ error: "اسم الشفت ووقت البداية والنهاية مطلوبة" }); }
+    if (data.is_default && data.is_active) await client.query(`UPDATE work_shifts SET is_default=false WHERE is_default=true`);
     const result = await client.query(
-      `INSERT INTO work_shifts (name, shift_type, start_time, end_time, work_days, effective_from, effective_to, repeats_weekly, late_grace_minutes, absent_after_minutes, official_work_hours, notes, is_active, updated_at)
-       VALUES ($1,$2,$3,$4,$5::jsonb,$6,$7,$8,$9,$10,$11,$12,$13,CURRENT_TIMESTAMP) RETURNING *`,
-      [data.name, data.shift_type, data.start_time, data.end_time, JSON.stringify(data.work_days), data.effective_from, data.effective_to, data.repeats_weekly, data.late_grace_minutes, data.absent_after_minutes, data.official_work_hours, data.notes, data.is_active]
+      `INSERT INTO work_shifts (name, shift_type, start_time, end_time, work_days, effective_from, effective_to, repeats_weekly, late_grace_minutes, absent_after_minutes, official_work_hours, notes, is_active, is_default, updated_at)
+       VALUES ($1,$2,$3,$4,$5::jsonb,$6,$7,$8,$9,$10,$11,$12,$13,$14,CURRENT_TIMESTAMP) RETURNING *`,
+      [data.name, data.shift_type, data.start_time, data.end_time, JSON.stringify(data.work_days), data.effective_from, data.effective_to, data.repeats_weekly, data.late_grace_minutes, data.absent_after_minutes, data.official_work_hours, data.notes, data.is_active, data.is_default]
     );
-    await writeAuditLog(client, req, "تم إنشاء الشفت", result.rows[0].id, null, result.rows[0]);
+    await writeAuditLog(client, req, data.is_default ? "تم إنشاء الشفت الافتراضي" : "تم إنشاء الشفت", result.rows[0].id, null, result.rows[0]);
     await client.query("COMMIT");
     res.status(201).json({ message: "تم إنشاء الشفت بنجاح", shift: result.rows[0] });
   } catch (error) { await client.query("ROLLBACK"); res.status(500).json({ error: error.message }); } finally { client.release(); }
@@ -254,9 +282,10 @@ const updateShift = async (req, res) => {
     if (!data.name || !data.start_time || !data.end_time) { await client.query("ROLLBACK"); return res.status(400).json({ error: "اسم الشفت ووقت البداية والنهاية مطلوبة" }); }
     const oldResult = await client.query(`SELECT * FROM work_shifts WHERE id=$1`, [id]);
     if (!oldResult.rows.length) { await client.query("ROLLBACK"); return res.status(404).json({ error: "الشفت غير موجود" }); }
+    if (data.is_default && data.is_active) await client.query(`UPDATE work_shifts SET is_default=false WHERE id <> $1`, [id]);
     const result = await client.query(
-      `UPDATE work_shifts SET name=$1, shift_type=$2, start_time=$3, end_time=$4, work_days=$5::jsonb, effective_from=$6, effective_to=$7, repeats_weekly=$8, late_grace_minutes=$9, absent_after_minutes=$10, official_work_hours=$11, notes=$12, is_active=$13, updated_at=CURRENT_TIMESTAMP WHERE id=$14 RETURNING *`,
-      [data.name, data.shift_type, data.start_time, data.end_time, JSON.stringify(data.work_days), data.effective_from, data.effective_to, data.repeats_weekly, data.late_grace_minutes, data.absent_after_minutes, data.official_work_hours, data.notes, data.is_active, id]
+      `UPDATE work_shifts SET name=$1, shift_type=$2, start_time=$3, end_time=$4, work_days=$5::jsonb, effective_from=$6, effective_to=$7, repeats_weekly=$8, late_grace_minutes=$9, absent_after_minutes=$10, official_work_hours=$11, notes=$12, is_active=$13, is_default=$14, updated_at=CURRENT_TIMESTAMP WHERE id=$15 RETURNING *`,
+      [data.name, data.shift_type, data.start_time, data.end_time, JSON.stringify(data.work_days), data.effective_from, data.effective_to, data.repeats_weekly, data.late_grace_minutes, data.absent_after_minutes, data.official_work_hours, data.notes, data.is_active, data.is_default, id]
     );
     await writeAuditLog(client, req, "تم تعديل الشفت - قد يؤثر على الحضور والرواتب", Number(id), oldResult.rows[0], result.rows[0]);
     await client.query("COMMIT");
@@ -270,6 +299,7 @@ const archiveShift = async (req, res) => {
     const { id } = req.params;
     const oldResult = await pool.query(`SELECT * FROM work_shifts WHERE id=$1`, [id]);
     if (!oldResult.rows.length) return res.status(404).json({ error: "الشفت غير موجود" });
+    if (oldResult.rows[0].is_default) return res.status(409).json({ error: "لا يمكن أرشفة الشفت الافتراضي قبل تعيين شفت افتراضي آخر" });
     const result = await pool.query(`UPDATE work_shifts SET is_active=false, archived_at=CURRENT_TIMESTAMP, updated_at=CURRENT_TIMESTAMP WHERE id=$1 RETURNING *`, [id]);
     await writeAuditLog(pool, req, "تم أرشفة الشفت", Number(id), oldResult.rows[0], result.rows[0]);
     res.status(200).json({ message: "تم أرشفة الشفت بنجاح", shift: result.rows[0] });
@@ -280,11 +310,13 @@ const deleteShift = async (req, res) => {
   try {
     await ensureShiftSchema();
     const { id } = req.params;
+    const oldResult = await pool.query(`SELECT * FROM work_shifts WHERE id=$1`, [id]);
+    if (!oldResult.rows.length) return res.status(404).json({ error: "الشفت غير موجود" });
+    if (oldResult.rows[0].is_default) return res.status(409).json({ error: "لا يمكن حذف الشفت الافتراضي" });
     const linked = await pool.query(`SELECT COUNT(*)::int AS count FROM employee_shift_assignments WHERE shift_id=$1 AND is_active=true`, [id]);
     if (linked.rows[0].count > 0) return res.status(409).json({ error: "لا يمكن حذف شفت مرتبط بموظفين. أزل الموظفين أو أرشف الشفت بدل الحذف.", code: "SHIFT_HAS_EMPLOYEES" });
     const result = await pool.query(`DELETE FROM work_shifts WHERE id=$1 RETURNING id`, [id]);
-    if (!result.rows.length) return res.status(404).json({ error: "الشفت غير موجود" });
-    await writeAuditLog(pool, req, "تم حذف الشفت", Number(id), null, null);
+    await writeAuditLog(pool, req, "تم حذف الشفت", Number(id), oldResult.rows[0], null);
     res.status(200).json({ message: "تم حذف الشفت بنجاح" });
   } catch (error) { res.status(500).json({ error: error.message }); }
 };

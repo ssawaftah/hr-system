@@ -69,7 +69,12 @@ const getMainAndSubDepartments = (employee) => {
   };
 };
 
-const detailItem = (label, value) => `<div class="detail-item"><small>${label}</small><strong>${value || "-"}</strong></div>`;
+const detailItem = (label, value) => `
+  <div class="detail-item">
+    <span class="detail-label">${label}</span>
+    <span class="detail-value">${value || "-"}</span>
+  </div>
+`;
 const fillEmpty = (tbody, colspan, text) => { tbody.innerHTML = `<tr><td colspan="${colspan}">${text}</td></tr>`; };
 
 const loadEmployee = async () => {

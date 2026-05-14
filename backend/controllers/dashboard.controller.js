@@ -1,5 +1,8 @@
 const pool = require("../db");
 const { getUserAccess, hasPermissionValue } = require("../services/permission.service");
+const { materializeTodayAttendance } = require("./attendance.controller");
+
+const jordanTodaySql = `(CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Amman')::date`;
 
 const safeCount = async (sql, params = []) => {
   try {
@@ -11,10 +14,17 @@ const safeCount = async (sql, params = []) => {
 };
 
 let dashboardCache = null;
-const CACHE_MS = 15000;
+const CACHE_MS = 5000;
 
 const loadGlobalCounts = async () => {
   if (dashboardCache && Date.now() - dashboardCache.time < CACHE_MS) return dashboardCache.data;
+
+  try {
+    await materializeTodayAttendance();
+  } catch (error) {
+    console.warn("Dashboard attendance materialization skipped:", error.message);
+  }
+
   const [
     users,
     departments,
@@ -33,9 +43,9 @@ const loadGlobalCounts = async () => {
     safeCount(`SELECT COUNT(*) FROM departments`),
     safeCount(`SELECT COUNT(*) FROM employees`),
     safeCount(`SELECT COUNT(*) FROM attendance_records`),
-    safeCount(`SELECT COUNT(*) FROM attendance_records WHERE attendance_date = CURRENT_DATE AND status IN ('present','late','early_leave')`),
-    safeCount(`SELECT COUNT(*) FROM attendance_records WHERE attendance_date = CURRENT_DATE AND status = 'late'`),
-    safeCount(`SELECT COUNT(*) FROM attendance_records WHERE attendance_date = CURRENT_DATE AND status = 'absent'`),
+    safeCount(`SELECT COUNT(DISTINCT employee_id) FROM attendance_records WHERE attendance_date = ${jordanTodaySql} AND (status IN ('present','late','early_leave') OR check_in IS NOT NULL)`),
+    safeCount(`SELECT COUNT(DISTINCT employee_id) FROM attendance_records WHERE attendance_date = ${jordanTodaySql} AND status = 'late'`),
+    safeCount(`SELECT COUNT(DISTINCT employee_id) FROM attendance_records WHERE attendance_date = ${jordanTodaySql} AND status = 'absent'`),
     safeCount(`SELECT COUNT(*) FROM employee_requests WHERE status = 'pending'`),
     safeCount(`SELECT COUNT(*) FROM leave_requests WHERE status = 'pending'`),
     safeCount(`SELECT COUNT(*) FROM employee_requests WHERE status IN ('pending','needs_info')`),
@@ -84,7 +94,7 @@ const getStats = async (req, res) => {
         leaves: counts.pendingLeaves + counts.employeeRequestsPending,
       },
       today: {
-        date: new Date().toISOString().slice(0, 10),
+        date: new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Amman" }),
         present: counts.presentToday,
         absent: counts.absentToday,
         late: counts.lateToday,

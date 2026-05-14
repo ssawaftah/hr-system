@@ -1,158 +1,38 @@
-const tableBody = document.getElementById("departmentsTableBody");
-const form = document.getElementById("departmentForm");
-const formMessage = document.getElementById("formMessage");
-const cancelEditBtn = document.getElementById("cancelEditBtn");
-const parentSelect = document.getElementById("parentDepartmentId");
-const treeBox = document.getElementById("departmentTree");
-let departments = [];
-let departmentTree = [];
-
-const initDepartments = async () => {
-  const user = await loadLoggedUser();
-  if (!user || user.role === "employee") {
-    window.location.href = "./dashboard.html";
-    return;
-  }
-  await loadDepartments();
-};
-
-const loadDepartments = async () => {
-  const response = await fetch(`${API_BASE_URL}/departments`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  const data = await response.json();
-  if (!response.ok) {
-    tableBody.innerHTML = `<tr><td colspan="6">${data.error}</td></tr>`;
-    return;
-  }
-  departments = data.departments || [];
-  departmentTree = data.tree || [];
-  renderParentOptions();
-  renderDepartments();
-  renderTree();
-};
-
-const renderParentOptions = (currentId = "") => {
-  parentSelect.innerHTML = `<option value="">قسم رئيسي بدون أب</option>`;
-  departments
-    .filter((department) => String(department.id) !== String(currentId))
-    .forEach((department) => {
-      const prefix = department.parent_id ? "— " : "";
-      parentSelect.innerHTML += `<option value="${department.id}">${prefix}${department.name}</option>`;
-    });
-};
-
-const renderTreeNode = (node, level = 0) => {
-  const children = node.children || [];
-  return `
-    <div class="tree-node" style="margin-right:${level * 18}px">
-      <div class="tree-node-card">
-        <span class="soft-badge ${level === 0 ? "primary-badge" : ""}">${level === 0 ? "رئيسي" : "فرعي"}</span>
-        <strong>${node.name}</strong>
-        <small>${node.description || "لا يوجد وصف"}</small>
-      </div>
-      ${children.map((child) => renderTreeNode(child, level + 1)).join("")}
-    </div>
-  `;
-};
-
-const renderTree = () => {
-  if (!treeBox) return;
-  if (!departmentTree.length) {
-    treeBox.innerHTML = `<p>لا توجد أقسام بعد</p>`;
-    return;
-  }
-  treeBox.innerHTML = departmentTree.map((node) => renderTreeNode(node)).join("");
-};
-
-const renderDepartments = () => {
-  tableBody.innerHTML = "";
-  if (!departments.length) {
-    tableBody.innerHTML = `<tr><td colspan="6">لا توجد أقسام</td></tr>`;
-    return;
-  }
-  departments.forEach((department) => {
-    const row = document.createElement("tr");
-    row.innerHTML = `
-      <td>${department.id}</td>
-      <td>${department.name}</td>
-      <td>${department.parent_name || "قسم رئيسي"}</td>
-      <td>${department.description || "-"}</td>
-      <td><span class="status-badge ${department.is_active ? "active-badge" : "inactive-badge"}">${department.is_active ? "نشط" : "معطل"}</span></td>
-      <td>
-        <button class="edit-btn" onclick="editDepartment(${department.id})">تعديل</button>
-        <button class="danger-btn" onclick="deleteDepartment(${department.id})">حذف</button>
-      </td>
-    `;
-    tableBody.appendChild(row);
-  });
-};
-
-const editDepartment = (id) => {
-  const department = departments.find((item) => item.id === id);
-  if (!department) return;
-  document.getElementById("departmentId").value = department.id;
-  document.getElementById("departmentName").value = department.name;
-  document.getElementById("departmentDescription").value = department.description || "";
-  document.getElementById("departmentActive").value = String(department.is_active);
-  renderParentOptions(id);
-  parentSelect.value = department.parent_id || "";
-  document.getElementById("departmentFormTitle").textContent = "تعديل قسم";
-  window.scrollTo({ top: 0, behavior: "smooth" });
-};
-
-const resetForm = () => {
-  form.reset();
-  document.getElementById("departmentId").value = "";
-  document.getElementById("departmentFormTitle").textContent = "إضافة قسم";
-  renderParentOptions();
-};
-
-cancelEditBtn.addEventListener("click", resetForm);
-
-form.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const id = document.getElementById("departmentId").value;
-  const body = {
-    name: document.getElementById("departmentName").value.trim(),
-    description: document.getElementById("departmentDescription").value.trim(),
-    parent_id: parentSelect.value || null,
-    is_active: document.getElementById("departmentActive").value === "true",
-  };
-  const url = id ? `${API_BASE_URL}/departments/${id}` : `${API_BASE_URL}/departments`;
-  const method = id ? "PUT" : "POST";
-  const response = await fetch(url, {
-    method,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
-  const data = await response.json();
-  if (!response.ok) {
-    formMessage.className = "inline-message error-message";
-    formMessage.textContent = data.error || "تعذر حفظ القسم";
-    return;
-  }
-  formMessage.className = "inline-message success-message";
-  formMessage.textContent = data.message || "تم حفظ القسم بنجاح";
-  resetForm();
-  await loadDepartments();
-});
-
-const deleteDepartment = async (id) => {
-  if (!confirm("هل أنت متأكد من حذف القسم؟")) return;
-  const response = await fetch(`${API_BASE_URL}/departments/${id}`, {
-    method: "DELETE",
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  const data = await response.json();
-  if (!response.ok) {
-    alert(data.error || "تعذر حذف القسم");
-    return;
-  }
-  await loadDepartments();
-};
-
+const el=(id)=>document.getElementById(id);
+const tableBody=el('departmentsTableBody');
+const form=el('departmentForm');
+const formMessage=el('formMessage');
+const parentSelect=el('parentDepartmentId');
+const managerSelect=el('departmentManagerId');
+const treeBox=el('departmentTree');
+const detailsSection=el('departmentDetailsSection');
+let departments=[],departmentTree=[],employees=[],stats={};
+const colors={purple:'بنفسجي',blue:'أزرق',green:'أخضر',orange:'برتقالي',red:'أحمر',gray:'رمادي'};
+const msg=(text,bad=false)=>{formMessage.textContent=text;formMessage.className='inline-message '+(bad?'error-message':'success-message')};
+const value=(id)=>String(el(id)?.value||'').trim();
+const setValue=(id,val)=>{const node=el(id);if(node)node.value=val??''};
+const badge=(text,cls='')=>`<span class="mini-badge ${cls}">${text}</span>`;
+const detail=(label,val)=>`<div class="detail-item"><span class="detail-label">${label}</span><span class="detail-value">${val||'-'}</span></div>`;
+const fmt=(d)=>d?String(d).split('T')[0]:'-';
+async function fetchJson(url,options={}){const r=await fetch(url,{...options,headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json',...(options.headers||{})}});const d=await r.json().catch(()=>({}));if(!r.ok){throw new Error(d.error||'فشل تنفيذ الطلب')}return d}
+async function initDepartments(){const user=await loadLoggedUser();if(!user||(!hasAnyPermission(['departments.view'])&&!hasAnyPermission(['departments.manage']))){location.href='./dashboard.html';return}bindEvents();await loadEmployees();await loadDepartments()}
+async function loadEmployees(){try{const data=await fetchJson(`${API_BASE_URL}/employees`);employees=data.employees||[];renderManagerOptions()}catch(error){console.warn(error.message)}}
+async function loadDepartments(){try{el('departmentsCountText').textContent='جاري تحميل البيانات...';const data=await fetchJson(`${API_BASE_URL}/departments`);departments=data.departments||[];departmentTree=data.tree||[];stats=data.stats||{};renderAll()}catch(error){el('departmentsCountText').textContent='تعذر تحميل البيانات';tableBody.innerHTML=`<tr><td colspan="9">${error.message}</td></tr>`}}
+function renderAll(){renderStats();renderParentOptions();renderManagerOptions();renderTree();renderDepartmentsTable()}
+function renderStats(){el('summaryDepartmentsTotal').textContent=stats.total??departments.length;el('summaryDepartmentsActive').textContent=stats.active??departments.filter(d=>d.is_active).length;el('summaryDepartmentsMain').textContent=stats.main??departments.filter(d=>!d.parent_id).length;el('summaryDepartmentsEmployees').textContent=stats.total_employees??departments.reduce((s,d)=>s+Number(d.employee_count||0),0)}
+function renderParentOptions(currentId=''){parentSelect.innerHTML='<option value="">قسم رئيسي بدون أب</option>'+departments.filter(d=>String(d.id)!==String(currentId)).map(d=>`<option value="${d.id}">${d.parent_id?'— ':''}${d.name}</option>`).join('')}
+function renderManagerOptions(){if(!managerSelect)return;managerSelect.innerHTML='<option value="">بدون مدير محدد</option>'+employees.map(e=>`<option value="${e.id}">${e.full_name} - ${e.employee_number||e.id}</option>`).join('')}
+function renderTreeNode(node,level=0){const children=node.children||[];return `<div class="org-tree-node level-${level}" style="--level:${level}"><button type="button" class="org-node-card dept-color-${node.color||'purple'}" data-tree-details="${node.id}"><div class="org-node-top"><span>${node.parent_id?'فرعي':'رئيسي'}</span><strong>${node.name}</strong></div><p>${node.description||'لا يوجد وصف'}</p><div class="org-node-meta"><small>${node.employee_count||0} موظف</small><small>${node.children_count||children.length||0} فرع</small><small>${node.manager_name||'بلا مدير'}</small></div></button>${children.map(child=>renderTreeNode(child,level+1)).join('')}</div>`}
+function renderTree(){if(!departmentTree.length){treeBox.innerHTML='<div class="empty-state">لا توجد أقسام بعد</div>';return}treeBox.innerHTML=departmentTree.map(node=>renderTreeNode(node)).join('')}
+function filteredDepartments(){const q=value('departmentSearchInput').toLowerCase(),type=value('departmentTypeFilter'),status=value('departmentStatusFilter');return departments.filter(d=>{const text=[d.name,d.description,d.parent_name,d.manager_name].join(' ').toLowerCase();const typeOk=!type||(type==='main'?!d.parent_id:!!d.parent_id);const statusOk=!status||(status==='active'?d.is_active:!d.is_active);return(!q||text.includes(q))&&typeOk&&statusOk})}
+function renderDepartmentsTable(){const list=filteredDepartments();el('departmentsCountText').textContent=`عرض ${list.length} من أصل ${departments.length} قسم`;if(!list.length){tableBody.innerHTML='<tr><td colspan="9">لا توجد أقسام مطابقة</td></tr>';return}tableBody.innerHTML=list.map(d=>`<tr><td><strong>${d.name}</strong><small>${d.description||'-'}</small></td><td>${d.parent_id?'فرعي':'رئيسي'}</td><td>${d.parent_name||'قسم رئيسي'}</td><td>${d.manager_name||'-'}${d.manager_job_title?`<small>${d.manager_job_title}</small>`:''}</td><td>${d.employee_count||0} <small>نشط: ${d.active_employee_count||0}</small></td><td>${d.children_count||0}</td><td>${d.shift_count||0}</td><td>${badge(d.is_active?'نشط':'معطل',d.is_active?'status-active':'status-inactive')}</td><td><div class="row-actions"><button class="small-btn secondary-btn" data-action="details" data-id="${d.id}">تفاصيل</button><button class="small-btn edit-btn" data-action="edit" data-id="${d.id}">تعديل</button><button class="small-btn danger-btn" data-action="delete" data-id="${d.id}">حذف</button></div></td></tr>`).join('')}
+function collectPayload(){return{name:value('departmentName'),description:value('departmentDescription')||null,parent_id:value('parentDepartmentId')||null,manager_id:value('departmentManagerId')||null,is_active:value('departmentActive')==='true',color:value('departmentColor')||'purple'}}
+function resetForm(){form.reset();setValue('departmentId','');el('departmentFormTitle').textContent='إضافة قسم';renderParentOptions();setValue('departmentColor','purple');setValue('departmentActive','true')}
+function editDepartment(id){const d=departments.find(x=>String(x.id)===String(id));if(!d)return;setValue('departmentId',d.id);setValue('departmentName',d.name);setValue('departmentDescription',d.description||'');setValue('departmentActive',String(Boolean(d.is_active)));setValue('departmentColor',d.color||'purple');renderParentOptions(id);setValue('parentDepartmentId',d.parent_id||'');setValue('departmentManagerId',d.manager_id||'');el('departmentFormTitle').textContent='تعديل قسم';el('departmentFormCard').scrollIntoView({behavior:'smooth',block:'start'})}
+async function saveDepartment(event){event.preventDefault();const id=value('departmentId');const payload=collectPayload();if(!payload.name){msg('اسم القسم مطلوب',true);return}try{const data=await fetchJson(id?`${API_BASE_URL}/departments/${id}`:`${API_BASE_URL}/departments`,{method:id?'PUT':'POST',body:JSON.stringify(payload)});msg(data.message||'تم حفظ القسم');resetForm();await loadDepartments()}catch(error){msg(error.message,true)}}
+async function deleteDepartment(id){if(!confirm('هل تريد حذف القسم؟ لن يسمح النظام بالحذف إذا كان عليه موظفون أو أقسام فرعية.'))return;try{const data=await fetchJson(`${API_BASE_URL}/departments/${id}`,{method:'DELETE'});msg(data.message||'تم حذف القسم');await loadDepartments()}catch(error){alert(error.message)}}
+async function showDepartmentDetails(id){try{const data=await fetchJson(`${API_BASE_URL}/departments/${id}`);const d=data.department;detailsSection.hidden=false;el('detailsDepartmentTitle').textContent=d.name;el('detailsDepartmentMeta').textContent=`${d.parent_name||'قسم رئيسي'} • ${d.manager_name||'بدون مدير'} • ${d.employee_count||0} موظف`;el('departmentDetailsBox').innerHTML=[detail('النوع',d.parent_id?'قسم فرعي':'قسم رئيسي'),detail('القسم الأب',d.parent_name||'لا يوجد'),detail('مدير القسم',d.manager_name||'غير محدد'),detail('عدد الموظفين',d.employee_count||0),detail('الأقسام الفرعية',d.children_count||0),detail('الحالة',d.is_active?'نشط':'معطل')].join('');renderDepartmentEmployees(data.employees||[]);renderDepartmentChildren(data.children||[]);detailsSection.scrollIntoView({behavior:'smooth',block:'start'})}catch(error){msg(error.message,true)}}
+function renderDepartmentEmployees(rows){const body=el('departmentEmployeesBody');if(!rows.length){body.innerHTML='<tr><td colspan="5">لا يوجد موظفون في هذا القسم</td></tr>';return}body.innerHTML=rows.map(e=>`<tr><td>${e.full_name}</td><td>${e.employee_number||e.id}</td><td>${e.job_title||'-'}</td><td>${e.shift_name||'الدوام الافتراضي'}</td><td>${badge(e.is_active?'نشط':'غير نشط',e.is_active?'status-active':'status-inactive')}</td></tr>`).join('')}
+function renderDepartmentChildren(rows){const body=el('departmentChildrenBody');if(!rows.length){body.innerHTML='<tr><td colspan="3">لا توجد أقسام فرعية</td></tr>';return}body.innerHTML=rows.map(c=>`<tr><td>${c.name}</td><td>${c.description||'-'}</td><td>${badge(c.is_active?'نشط':'معطل',c.is_active?'status-active':'status-inactive')}</td></tr>`).join('')}
+function bindEvents(){form.addEventListener('submit',saveDepartment);el('cancelEditBtn').addEventListener('click',resetForm);el('refreshDepartmentsBtn').addEventListener('click',async()=>{await loadEmployees();await loadDepartments()});el('openDepartmentFormBtn').addEventListener('click',()=>el('departmentFormCard').scrollIntoView({behavior:'smooth',block:'start'}));['departmentSearchInput','departmentTypeFilter','departmentStatusFilter'].forEach(id=>el(id).addEventListener('input',renderDepartmentsTable));tableBody.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const id=b.dataset.id;if(b.dataset.action==='details')showDepartmentDetails(id);if(b.dataset.action==='edit')editDepartment(id);if(b.dataset.action==='delete')deleteDepartment(id)});treeBox.addEventListener('click',e=>{const b=e.target.closest('button[data-tree-details]');if(b)showDepartmentDetails(b.dataset.treeDetails)});el('closeDepartmentDetailsBtn').addEventListener('click',()=>detailsSection.hidden=true)}
 initDepartments();

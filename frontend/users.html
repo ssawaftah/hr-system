@@ -2,45 +2,44 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>إدارة الصلاحيات</title>
-  <link rel="stylesheet" href="./css/style.css" />
-  <link rel="stylesheet" href="./css/employees.css" />
-  <link rel="stylesheet" href="./css/permissions.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>مركز الصلاحيات</title>
+  <link rel="stylesheet" href="./css/app.css?v=clean-37" />
+  <style>
+    .permissions-center-page .main-content{display:grid;gap:20px}.permissions-center-page .permissions-hero{background:radial-gradient(circle at 10% 12%,rgba(124,58,237,.15),transparent 32%),radial-gradient(circle at 90% 10%,rgba(0,122,255,.12),transparent 34%),#fff}.permissions-center-page .permissions-hero h1{font-size:clamp(30px,4vw,48px);letter-spacing:-.04em}.permissions-center-page .permissions-tabs{display:flex;gap:8px;overflow:auto;padding:8px;border:1px solid var(--border);background:rgba(255,255,255,.8);border-radius:999px;box-shadow:var(--shadow-xs);position:sticky;top:84px;z-index:30}.permissions-center-page .permissions-tab{width:auto!important;min-width:max-content!important;height:42px!important;min-height:42px!important;border-radius:999px!important;padding:9px 16px!important;background:transparent!important;color:var(--muted)!important;border:0!important;box-shadow:none!important;font-size:13px!important}.permissions-center-page .permissions-tab.active{background:#fff!important;color:var(--text)!important;box-shadow:var(--shadow-xs)!important}.permissions-center-page .permissions-panel{display:none}.permissions-center-page .permissions-panel.active{display:block}.permissions-center-page .permissions-layout{display:grid;grid-template-columns:minmax(280px,.38fr) minmax(0,1fr);gap:20px;align-items:start}.permissions-center-page .side-list-card,.permissions-center-page .details-card,.permissions-center-page .permission-card{background:#fff;border:1px solid var(--border);border-radius:32px;box-shadow:var(--shadow-xs);padding:18px;overflow:hidden}.permissions-center-page .side-list-card h2,.permissions-center-page .details-card h2{margin:0 0 10px;font-size:24px;font-weight:900}.permissions-center-page .side-list-card input{margin:8px 0 12px}.permissions-center-page .side-list{display:grid;gap:8px;max-height:720px;overflow:auto;padding:4px}.permissions-center-page .side-list-item{width:100%!important;min-height:auto!important;justify-content:flex-start!important;text-align:right!important;background:#fbfbfd!important;color:var(--text)!important;border:1px solid var(--border)!important;border-radius:20px!important;padding:12px!important;display:grid!important;gap:4px!important;box-shadow:none!important}.permissions-center-page .side-list-item.active{background:#f4f0ff!important;border-color:rgba(124,58,237,.28)!important}.permissions-center-page .side-list-item strong{font-size:14px;font-weight:900}.permissions-center-page .side-list-item small{color:var(--muted);font-weight:800}.permissions-center-page .permission-source-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:14px}.permissions-center-page .permission-source-card{border:1px solid var(--border);background:#fbfbfd;border-radius:24px;padding:14px;display:grid;gap:10px}.permissions-center-page .permission-source-card h3{margin:0;font-size:16px;font-weight:900}.permissions-center-page .permission-chip-list{display:flex;gap:6px;flex-wrap:wrap}.permissions-center-page .permission-chip{border-radius:999px;background:#fff;border:1px solid var(--border);padding:6px 10px;font-size:11px;font-weight:900;color:var(--muted)}.permissions-center-page .permission-chip.effective{background:#eef6ff;color:#007aff}.permissions-center-page .permission-chip.extra{background:#f4f0ff;color:#7c3aed}.permissions-center-page .permission-chip.denied{background:#fff2f2;color:#ff3b30}.permissions-center-page .permission-chip.inherited{background:#f2fff6;color:#34c759}.permissions-center-page .permission-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.permissions-center-page .permission-form-grid .full-width{grid-column:1/-1}.permissions-center-page .permission-form-grid label{font-weight:900;color:var(--text);display:block;margin-bottom:7px}.permissions-center-page .permission-form-grid select[multiple]{min-height:180px;padding:10px}.permissions-center-page .permission-actions{display:flex;gap:10px;flex-wrap:wrap}.permissions-center-page .permission-actions button{flex:1;min-width:150px}.permissions-center-page .permission-group{border:1px solid var(--border);border-radius:24px;background:#fff;overflow:hidden;margin-bottom:10px}.permissions-center-page .permission-group summary{cursor:pointer;list-style:none;padding:16px;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px;background:#fbfbfd}.permissions-center-page .permission-group summary::-webkit-details-marker{display:none}.permissions-center-page .permission-group summary:before{content:'›';width:34px;height:34px;border-radius:14px;background:#f4f0ff;color:#7c3aed;display:flex;align-items:center;justify-content:center;font-weight:900;transition:.2s}.permissions-center-page .permission-group[open] summary:before{transform:rotate(-90deg)}.permissions-center-page .permission-group-title{display:grid;gap:4px}.permissions-center-page .permission-group-title strong{font-size:17px;font-weight:900}.permissions-center-page .permission-group-title small{font-size:12px;color:var(--muted);font-weight:800;line-height:1.5}.permissions-center-page .group-actions{display:flex;gap:6px}.permissions-center-page .group-actions button{width:auto!important;min-height:34px!important;height:34px!important;border-radius:13px!important;padding:6px 10px!important;font-size:11px!important}.permissions-center-page .permission-checks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:14px;background:#fff}.permissions-center-page .permission-check{border:1px solid var(--border);border-radius:18px;background:#fbfbfd;padding:12px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:start;cursor:pointer}.permissions-center-page .permission-check input{width:18px;height:18px;margin-top:3px}.permissions-center-page .permission-check span{display:grid;gap:4px;font-weight:900;line-height:1.5}.permissions-center-page .permission-check small{font-size:11px;color:var(--muted);font-weight:800;direction:ltr;text-align:right;overflow-wrap:anywhere}.permissions-center-page .permission-log-list{display:grid;gap:10px}.permissions-center-page .permission-log-item{border:1px solid var(--border);border-radius:20px;background:#fbfbfd;padding:12px;display:grid;gap:4px}.permissions-center-page .permission-log-item strong{font-weight:900}.permissions-center-page .permission-log-item small{color:var(--muted);font-weight:800}.permissions-center-page .center-summary-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}@media(max-width:1200px){.permissions-center-page .permissions-layout{grid-template-columns:1fr}.permissions-center-page .permission-source-grid{grid-template-columns:1fr}.permissions-center-page .center-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:760px){.permissions-center-page .permissions-tabs{border-radius:24px;position:relative;top:auto}.permissions-center-page .permission-form-grid,.permissions-center-page .permission-checks{grid-template-columns:1fr}.permissions-center-page .center-summary-grid{grid-template-columns:1fr}.permissions-center-page .permission-group summary{grid-template-columns:auto minmax(0,1fr)}.permissions-center-page .group-actions{grid-column:1/-1;justify-content:stretch}.permissions-center-page .group-actions button{flex:1!important}.permissions-center-page .permission-actions{display:grid}.permissions-center-page .permission-actions button{width:100%}}
+  </style>
 </head>
-<body>
+<body class="apple-system-ui permissions-center-page">
   <div class="app-layout">
     <aside class="sidebar">
-      <div class="sidebar-logo">HR System V2</div>
-      <nav class="sidebar-menu">
-        <a href="./dashboard.html" data-role-link="dashboard">لوحة التحكم</a>
-        <a href="./users.html" class="active" data-role-link="users">الصلاحيات</a>
-        <a href="./departments.html" data-role-link="departments">الأقسام</a>
-        <a href="./employees.html" data-role-link="employees">الموظفون</a>
-        <a href="./attendance.html" data-role-link="attendance">الحضور</a>
-        <a href="./shifts.html" data-role-link="shifts">الشفتات</a>
-        <a href="./leaves.html" data-role-link="leaves">الطلبات</a>
-        <a href="./salaries.html" data-role-link="salaries">الرواتب</a>
-        <a href="./reports.html" data-role-link="reports">التقارير</a>
-      </nav>
+      <div class="sidebar-logo"><span class="brand-mark">HR</span><span>نظام الموارد البشرية</span></div>
+      <nav class="sidebar-menu"></nav>
     </aside>
 
-    <main class="main-content">
+    <main class="main-content page-shell">
       <header class="topbar">
-        <div>
-          <h1>إدارة الصلاحيات</h1>
-          <p id="pageSubtitle">إدارة المسميات الوظيفية كقوالب صلاحيات، وتخصيص صلاحيات الموظفين بشكل واضح وآمن</p>
-        </div>
-        <button id="logoutBtn" class="logout-btn">تسجيل الخروج</button>
+        <div class="header-title-area"><h1>الصلاحيات</h1><p>مركز التحكم بالأدوار والصلاحيات والمسميات الوظيفية.</p></div>
+        <div class="header-actions"><a href="./dashboard.html" class="header-icon-btn button-link" title="الرئيسية"><svg class="app-icon" viewBox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1v-9.5Z"/></svg><span>الرئيسية</span></a><button id="logoutBtn" class="logout-btn">تسجيل الخروج</button></div>
       </header>
 
-      <section class="content-card">
-        <div class="permissions-tabs">
-          <button class="permissions-tab active" data-tab="employeesPanel">الموظفون</button>
-          <button class="permissions-tab" data-tab="jobTitlesPanel">المسميات الوظيفية</button>
-          <button class="permissions-tab" data-tab="logsPanel">سجل التعديلات</button>
-        </div>
+      <section class="page-header permissions-hero">
+        <div><span class="page-kicker">Access Control Center</span><h1>مركز الصلاحيات المتقدم</h1><p>امنح صلاحيات كاملة لقسم، أو اختر صلاحيات دقيقة مثل اعتماد طلبات القسم، عرض حضور القسم، إنشاء إعلان خاص لموظف، أو إدارة كشوف الرواتب.</p></div>
+      </section>
 
+      <section class="center-summary-grid">
+        <article class="summary-card"><span>الموظفون</span><strong id="permissionsEmployeesCount">0</strong></article>
+        <article class="summary-card"><span>المسميات</span><strong id="permissionsJobTitlesCount">0</strong></article>
+        <article class="summary-card"><span>الصلاحيات</span><strong id="permissionsDefinitionsCount">0</strong></article>
+        <article class="summary-card"><span>الأقسام</span><strong id="permissionsModulesCount">0</strong></article>
+      </section>
+
+      <section class="permissions-tabs">
+        <button class="permissions-tab active" data-tab="employeesPanel">صلاحيات الموظفين</button>
+        <button class="permissions-tab" data-tab="jobTitlesPanel">قوالب المسميات الوظيفية</button>
+        <button class="permissions-tab" data-tab="logsPanel">سجل التعديلات</button>
+      </section>
+
+      <section class="content-card">
         <div id="employeesPanel" class="permissions-panel active">
           <div class="permissions-layout">
             <div class="side-list-card">
@@ -53,22 +52,10 @@
               <p id="selectedEmployeeHelp">ستظهر مصادر الصلاحيات: المسمى الوظيفي، الأدوار، الصلاحيات الإضافية، والاستثناءات.</p>
               <div id="employeePermissionSummary" class="permission-source-grid"></div>
               <form id="employeePermissionForm" class="permission-form-grid" style="margin-top:16px;display:none">
-                <div>
-                  <label for="employeeRolesSelect">الأدوار</label>
-                  <select id="employeeRolesSelect" multiple></select>
-                </div>
-                <div>
-                  <label for="employeeDirectPermissionsSelect">صلاحيات إضافية</label>
-                  <select id="employeeDirectPermissionsSelect" multiple></select>
-                </div>
-                <div class="full-width">
-                  <label for="employeeDeniedPermissionsSelect">صلاحيات مستثناة</label>
-                  <select id="employeeDeniedPermissionsSelect" multiple></select>
-                </div>
-                <div class="permission-actions full-width">
-                  <button type="submit">حفظ صلاحيات الموظف</button>
-                  <button type="button" id="clearEmployeeSelectionBtn" class="secondary-btn">إلغاء</button>
-                </div>
+                <div><label for="employeeRolesSelect">الأدوار</label><select id="employeeRolesSelect" multiple></select></div>
+                <div><label for="employeeDeniedPermissionsSelect">صلاحيات مستثناة</label><select id="employeeDeniedPermissionsSelect" multiple></select></div>
+                <div class="full-width"><label>صلاحيات إضافية مباشرة</label><div id="employeeDirectPermissionsBox" class="permission-groups"></div></div>
+                <div class="permission-actions full-width"><button type="submit">حفظ صلاحيات الموظف</button><button type="button" id="clearEmployeeSelectionBtn" class="secondary-btn">إلغاء</button></div>
               </form>
               <p id="employeePermissionMessage" class="inline-message"></p>
             </div>
@@ -90,16 +77,8 @@
                 <div><label for="jobTitleCode">الكود</label><input id="jobTitleCode" type="text" placeholder="اختياري" /></div>
                 <div><label for="jobTitleStatus">الحالة</label><select id="jobTitleStatus"><option value="active">نشط</option><option value="inactive">غير نشط</option><option value="archived">مؤرشف</option></select></div>
                 <div class="full-width"><label for="jobTitleDescription">الوصف</label><textarea id="jobTitleDescription" placeholder="وصف مختصر للمسمى"></textarea></div>
-                <div class="full-width">
-                  <h3>الصلاحيات الافتراضية</h3>
-                  <div id="jobTitlePermissionsBox" class="permission-groups"></div>
-                </div>
-                <div class="permission-actions full-width">
-                  <button type="submit">حفظ المسمى</button>
-                  <button type="button" id="resetJobTitleBtn" class="secondary-btn">مسح النموذج</button>
-                  <button type="button" id="disableJobTitleBtn" class="danger-btn">تعطيل</button>
-                  <button type="button" id="deleteJobTitleBtn" class="danger-btn">حذف/أرشفة</button>
-                </div>
+                <div class="full-width"><h3>الصلاحيات الافتراضية للمسمى</h3><div id="jobTitlePermissionsBox" class="permission-groups"></div></div>
+                <div class="permission-actions full-width"><button type="submit">حفظ المسمى</button><button type="button" id="resetJobTitleBtn" class="secondary-btn">مسح النموذج</button><button type="button" id="disableJobTitleBtn" class="danger-btn">تعطيل</button><button type="button" id="deleteJobTitleBtn" class="danger-btn">حذف/أرشفة</button></div>
               </form>
               <p id="jobTitleMessage" class="inline-message"></p>
             </div>
@@ -115,7 +94,8 @@
       </section>
     </main>
   </div>
-  <script src="./js/auth-guard.js?v=shell-roles-fix-1"></script>
-  <script src="./js/permissions-page.js?v=permissions-stable-1"></script>
+  <script src="./js/navigation-config.js?v=clean-37"></script>
+  <script src="./js/auth-guard.js?v=clean-37"></script>
+  <script src="./js/permissions-page.js?v=clean-37"></script>
 </body>
 </html>

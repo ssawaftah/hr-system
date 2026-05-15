@@ -1,5 +1,6 @@
 const API_BASE_URL = "https://hr-system-backend-dxj2.onrender.com/api";
 const token = localStorage.getItem("token");
+const ACCESS_CACHE_KEY = "hr_access_cache_v4";
 if (!token) window.location.href = "./login.html";
 
 let loggedUser = null;
@@ -7,16 +8,11 @@ let loggedAccess = { roles: [], permissions: [] };
 let lastNavKey = "";
 
 const fallbackNavigationConfig = [
-  { id: "dashboard", label: "الرئيسية", path: "./dashboard.html", icon: "⌂", group: "الرئيسية", requiredPermissions: ["dashboard.view"], showInSidebar: true, order: 1 },
-  { id: "attendance", label: "الحضور والانصراف", path: "./attendance.html", icon: "◷", group: "التشغيل اليومي", requiredPermissions: ["attendance.view", "attendance.view.self", "attendance.view.department", "attendance.view.all"], showInSidebar: true, order: 10 },
-  { id: "leaves", label: "الطلبات", path: "./leaves.html", icon: "◫", group: "التشغيل اليومي", requiredPermissions: ["leaves.view", "requests.view.self", "requests.view.department", "requests.view.all"], showInSidebar: true, order: 11 },
-  { id: "shifts", label: "الشفتات", path: "./shifts.html", icon: "⇄", group: "التشغيل اليومي", requiredPermissions: ["shifts.view"], showInSidebar: true, order: 12 },
-  { id: "employees", label: "الموظفون", path: "./employees.html", icon: "☷", group: "الموارد البشرية", requiredPermissions: ["employees.view", "employees.view.self"], showInSidebar: true, order: 20 },
-  { id: "departments", label: "الأقسام", path: "./departments.html", icon: "▦", group: "الموارد البشرية", requiredPermissions: ["departments.view"], showInSidebar: true, order: 21 },
-  { id: "salaries", label: "الرواتب", path: "./salaries.html", icon: "◈", group: "المالية", requiredPermissions: ["salaries.view", "finance.payroll_slips.view"], showInSidebar: true, order: 30 },
-  { id: "reports", label: "التقارير", path: "./reports.html", icon: "▣", group: "التقارير", requiredPermissions: ["reports.view", "reports.view.self", "reports.view.department", "reports.view.all"], showInSidebar: true, order: 40 },
-  { id: "announcements", label: "الإعلانات", path: "./announcements.html", icon: "✦", group: "النظام", requiredPermissions: ["announcements.view.self", "announcements.view.department", "announcements.view.all", "announcements.manage"], showInSidebar: true, order: 45 },
-  { id: "users", label: "الصلاحيات", path: "./users.html", icon: "◌", group: "النظام", requiredPermissions: ["users.view", "permissions.view"], showInSidebar: true, order: 50 },
+  { id: "dashboard", label: "الرئيسية", path: "./dashboard.html", icon: "⌂", group: "بوابة الموظف", requiredPermissions: ["dashboard.view"], showInSidebar: true, order: 1 },
+  { id: "my-profile", label: "ملفي الشخصي", path: "./my-profile.html", icon: "☷", group: "بوابة الموظف", requiredPermissions: ["employees.view.self"], showInSidebar: true, order: 2 },
+  { id: "my-requests", label: "طلباتي", path: "./my-requests.html", icon: "◫", group: "بوابة الموظف", requiredPermissions: ["requests.view.self", "requests.create.self"], showInSidebar: true, order: 3 },
+  { id: "employee-portal", label: "بوابة الموظف", path: "./employee-portal.html", icon: "◷", group: "بوابة الموظف", requiredPermissions: ["attendance.view.self", "finance.payroll_slips.view", "reports.view.self"], showInSidebar: true, order: 4 },
+  { id: "settings", label: "الإعدادات", path: "./settings.html", icon: "⚙", group: "بوابة الموظف", requiredPermissions: ["dashboard.view"], showInSidebar: true, order: 5 },
 ];
 
 const getNavigationConfig = () => Array.isArray(window.navigationConfig) ? window.navigationConfig : fallbackNavigationConfig;
@@ -32,16 +28,18 @@ const canAccessPath = (path) => {
 
 const readAccessCache = () => {
   try {
-    const raw = sessionStorage.getItem("hr_access_cache_v2");
+    sessionStorage.removeItem("hr_access_cache_v2");
+    sessionStorage.removeItem("hr_access_cache_v3");
+    const raw = sessionStorage.getItem(ACCESS_CACHE_KEY);
     if (!raw) return null;
     const cache = JSON.parse(raw);
-    if (cache.token !== token || Date.now() - cache.time > 5 * 60 * 1000) return null;
+    if (cache.token !== token || Date.now() - cache.time > 2 * 60 * 1000) return null;
     return cache;
   } catch (_) { return null; }
 };
 
 const writeAccessCache = (user, access) => {
-  try { sessionStorage.setItem("hr_access_cache_v2", JSON.stringify({ token, user, access, time: Date.now() })); } catch (_) {}
+  try { sessionStorage.setItem(ACCESS_CACHE_KEY, JSON.stringify({ token, user, access, time: Date.now() })); } catch (_) {}
 };
 
 const ensureUxFixes = () => {
@@ -124,9 +122,7 @@ const setupResponsiveShell = () => {
   const topbar = document.querySelector(".topbar");
   const appLayout = document.querySelector(".app-layout");
   if (!sidebar || !topbar || !appLayout) return;
-
   sidebar.setAttribute("aria-label", "القائمة الجانبية");
-
   if (!sidebar.querySelector(".sidebar-close-btn")) {
     const closeButton = document.createElement("button");
     closeButton.type = "button";
@@ -136,14 +132,12 @@ const setupResponsiveShell = () => {
     closeButton.addEventListener("click", closeSidebar);
     sidebar.prepend(closeButton);
   }
-
   if (!document.querySelector(".sidebar-backdrop")) {
     const backdrop = document.createElement("div");
     backdrop.className = "sidebar-backdrop";
     backdrop.addEventListener("click", closeSidebar);
     document.body.appendChild(backdrop);
   }
-
   if (!topbar.querySelector(".header-menu-btn")) {
     const menuButton = document.createElement("button");
     menuButton.className = "header-icon-btn header-menu-btn";
@@ -153,7 +147,6 @@ const setupResponsiveShell = () => {
     menuButton.addEventListener("click", toggleSidebar);
     topbar.prepend(menuButton);
   }
-
   window.addEventListener("resize", () => { if (window.innerWidth > 1000) closeSidebar(); });
   window.addEventListener("keydown", (event) => { if (event.key === "Escape") closeSidebar(); });
 };

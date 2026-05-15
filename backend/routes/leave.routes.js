@@ -17,8 +17,24 @@ const { normalizeStoredRequestPayload } = require("../middlewares/stored-request
 router.get("/", authMiddleware, permissionMiddleware("requests.view.self", "requests.view.department", "requests.view.all", "requests.manage"), getRequests);
 router.get("/:id", authMiddleware, normalizeStoredRequestPayload, permissionMiddleware("requests.view.self", "requests.view.department", "requests.view.all", "requests.manage"), getRequestById);
 router.post("/", authMiddleware, normalizeRequestPayload, permissionMiddleware("requests.create.self", "requests.manage"), createRequest);
-router.patch("/:id/action", authMiddleware, normalizeRequestPayload, normalizeStoredRequestPayload, permissionMiddleware("requests.cancel.self_pending", "requests.approve.department", "requests.approve.all", "requests.reject.department", "requests.reject.all", "requests.cancel.department", "requests.cancel.all", "requests.request_info", "requests.comment", "requests.manage"), actOnRequest);
-router.put("/:id/action", authMiddleware, normalizeRequestPayload, normalizeStoredRequestPayload, permissionMiddleware("requests.cancel.self_pending", "requests.approve.department", "requests.approve.all", "requests.reject.department", "requests.reject.all", "requests.cancel.department", "requests.cancel.all", "requests.request_info", "requests.comment", "requests.manage"), actOnRequest);
+
+const actionPermissions = permissionMiddleware(
+  "requests.view.self",
+  "requests.create.self",
+  "requests.cancel.self_pending",
+  "requests.approve.department",
+  "requests.approve.all",
+  "requests.reject.department",
+  "requests.reject.all",
+  "requests.cancel.department",
+  "requests.cancel.all",
+  "requests.request_info",
+  "requests.comment",
+  "requests.manage"
+);
+
+router.patch("/:id/action", authMiddleware, normalizeRequestPayload, normalizeStoredRequestPayload, actionPermissions, actOnRequest);
+router.put("/:id/action", authMiddleware, normalizeRequestPayload, normalizeStoredRequestPayload, actionPermissions, actOnRequest);
 router.delete("/:id", authMiddleware, permissionMiddleware("requests.manage"), deleteRequest);
 
 module.exports = router;

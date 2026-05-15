@@ -18,7 +18,7 @@ const getCurrentEmployeeId = async (req) => {
     if (employee.rows[0]?.id) return Number(employee.rows[0].id);
   }
   if (user.rows[0]?.email) {
-    const employee = await pool.query('SELECT id FROM employees WHERE email=$1 LIMIT 1', [user.rows[0].email]);
+    const employee = await pool.query('SELECT id FROM employees WHERE LOWER(email)=LOWER($1) LIMIT 1', [user.rows[0].email]);
     if (employee.rows[0]?.id) return Number(employee.rows[0].id);
   }
   return null;
@@ -213,7 +213,13 @@ const getSelfRequests = async (req, res) => {
     await ensurePortalSchema();
     const employeeId = await requireEmployee(req, res);
     if (!employeeId) return;
-    const result = await pool.query(`SELECT * FROM employee_requests WHERE employee_id=$1 ORDER BY COALESCE(updated_at, created_at, submitted_at) DESC, id DESC`, [employeeId]);
+    const result = await pool.query(
+      `SELECT *
+       FROM employee_requests
+       WHERE employee_id=$1 OR created_by=$2
+       ORDER BY COALESCE(updated_at, created_at, submitted_at) DESC, id DESC`,
+      [employeeId, req.user.id]
+    );
     res.json({ requests: result.rows });
   } catch (error) { res.status(500).json({ error: error.message }); }
 };

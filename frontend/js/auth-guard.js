@@ -1,5 +1,7 @@
 const API_BASE_URL = "https://hr-system-backend-dxj2.onrender.com/api";
 const token = localStorage.getItem("token");
+window.API_BASE_URL = API_BASE_URL;
+window.token = token;
 const ACCESS_CACHE_KEY = "hr_access_cache_v4";
 if (!token) window.location.href = "./login.html";
 
@@ -157,6 +159,8 @@ if (logoutButton) logoutButton.addEventListener("click", () => { localStorage.cl
 const applyLoadedUser = (user, access) => {
   loggedUser = user;
   loggedAccess = { roles: normalizeList(access.roles), permissions: normalizeList(access.permissions), employee_id: access.employee_id, employee_number: access.employee_number };
+  window.loggedUser = loggedUser;
+  window.loggedAccess = loggedAccess;
   localStorage.setItem("user", JSON.stringify({ ...loggedUser, roles: loggedAccess.roles, permissions: loggedAccess.permissions, employee_id: loggedAccess.employee_id, employee_number: loggedAccess.employee_number }));
   setupResponsiveShell();
   rebuildSidebar();
@@ -194,3 +198,9 @@ const loadLoggedUser = async () => {
     return null;
   }
 };
+
+window.loadLoggedUser = loadLoggedUser;
+window.hasPermission = hasPermission;
+window.hasAnyPermission = hasAnyPermission;
+window.normalizeList = normalizeList;
+window.rebuildSidebar = rebuildSidebar;

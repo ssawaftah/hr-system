@@ -41,6 +41,10 @@ const ensureSalarySchema = async () => {
   for (const column of salaryColumns) await pool.query(`ALTER TABLE salary_records ADD COLUMN IF NOT EXISTS ${column}`);
   await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS salary_records_employee_month_unique_idx ON salary_records(employee_id, salary_month)`);
 
+  await pool.query(`ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS late_minutes INTEGER DEFAULT 0`);
+  await pool.query(`ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS overtime_minutes INTEGER DEFAULT 0`);
+  await pool.query(`ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS overtime_type VARCHAR(40)`);
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS finance_employee_settings (
       id SERIAL PRIMARY KEY,
@@ -225,6 +229,7 @@ const saveLeaveBalance = async (req, res) => {
 };
 
 const getAttendanceStats = async (employeeId, salaryMonth) => {
+  await ensureSalarySchema();
   const result = await pool.query(
     `SELECT
       COUNT(*)::int AS total_records,
@@ -234,10 +239,10 @@ const getAttendanceStats = async (employeeId, salaryMonth) => {
       COUNT(*) FILTER (WHERE status = 'absent')::int AS absent_days,
       COUNT(*) FILTER (WHERE status = 'absent' AND absence_reason = 'excused_leave')::int AS excused_absent_days,
       COUNT(*) FILTER (WHERE status = 'absent' AND COALESCE(absence_reason, '') <> 'excused_leave')::int AS unexcused_absent_days,
-      0::numeric AS normal_overtime_hours,
-      0::numeric AS friday_overtime_hours,
-      COUNT(*) FILTER (WHERE status = 'late')::numeric * 30 AS late_minutes,
-      COUNT(*) FILTER (WHERE status = 'early_leave')::numeric * 60 AS personal_exit_minutes
+      (COALESCE(SUM(COALESCE(overtime_minutes,0)) FILTER (WHERE COALESCE(overtime_type,'normal') = 'normal'),0)::numeric / 60) AS normal_overtime_hours,
+      (COALESCE(SUM(COALESCE(overtime_minutes,0)) FILTER (WHERE overtime_type = 'friday'),0)::numeric / 60) AS friday_overtime_hours,
+      COALESCE(SUM(COALESCE(late_minutes,0)),0)::numeric AS late_minutes,
+      COALESCE(SUM(CASE WHEN status = 'early_leave' THEN 60 ELSE 0 END),0)::numeric AS personal_exit_minutes
      FROM attendance_records
      WHERE employee_id=$1 AND attendance_date >= $2::date AND attendance_date < $3::date`,
     [employeeId, monthStart(salaryMonth), nextMonthStart(salaryMonth)]

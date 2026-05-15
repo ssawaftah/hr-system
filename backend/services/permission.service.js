@@ -85,7 +85,10 @@ const PERMISSION_DEFINITIONS = [
   { key: "shifts.update", label: "تعديل شفت", module: "الشفتات" },
   { key: "shifts.archive", label: "أرشفة شفت", module: "الشفتات" },
   { key: "shifts.delete", label: "حذف شفت", module: "الشفتات" },
-  { key: "shifts.assign_employees", label: "ربط الموظفين بالشفتات", module: "الشفتات" },
+  { key: "shifts.assign", label: "ربط موظفين بالشفت", module: "الشفتات" },
+  { key: "shifts.assign_employees", label: "ربط الموظفين بالشفتات - قديم", module: "الشفتات" },
+  { key: "shifts.remove_employee", label: "إزالة موظف من الشفت", module: "الشفتات" },
+  { key: "shifts.move_employee", label: "نقل موظف إلى شفت آخر", module: "الشفتات" },
   { key: "shifts.view_week_distribution", label: "عرض توزيع الأسبوع", module: "الشفتات" },
   { key: "shifts.export", label: "تصدير جداول الشفتات", module: "الشفتات" },
   { key: "shifts.manage", label: "إدارة الشفتات بالكامل", module: "الشفتات" },
@@ -154,7 +157,7 @@ const ROLE_PERMISSIONS = {
   admin: PERMISSIONS,
   employee: ["dashboard.view", "employees.view.self", "requests.view.self", "requests.create.self", "requests.cancel.self_pending", "attendance.view.self", "attendance.check.self", "notifications.view.self", "announcements.view.self", "reports.view.self", "finance.payroll_slips.view"],
   manager: ["dashboard.view", "employees.view.self", "employees.view.department", "employees.view", "requests.view.self", "requests.create.self", "requests.view.department", "requests.approve.department", "requests.reject.department", "requests.cancel.department", "requests.request_info", "requests.comment", "attendance.view.self", "attendance.view.department", "notifications.view.self", "announcements.view.self", "announcements.view.department", "announcements.create.general.department", "announcements.create.private.employee", "reports.view.department"],
-  hr: ["dashboard.view", "employees.view", "employees.view.all", "employees.create", "employees.update", "employees.assign_departments", "employees.manage_login", "employees.manage_roles", "employees.manage_permissions", "departments.view", "departments.manage", "departments.create", "departments.update", "departments.disable", "attendance.view", "attendance.view.all", "attendance.create", "attendance.manual_add", "attendance.manual_edit", "attendance.delete", "requests.view.all", "requests.approve.all", "requests.reject.all", "requests.cancel.all", "requests.request_info", "requests.comment", "requests.manage", "shifts.view", "shifts.manage", "reports.view", "reports.view.all", "reports.attendance", "notifications.view.self", "announcements.view.self", "announcements.view.all", "announcements.create.general.company", "announcements.create.general.department", "announcements.create.private.department", "announcements.create.private.employee", "announcements.update.own", "announcements.archive", "job_titles.view"],
+  hr: ["dashboard.view", "employees.view", "employees.view.all", "employees.create", "employees.update", "employees.assign_departments", "employees.manage_login", "employees.manage_roles", "employees.manage_permissions", "departments.view", "departments.manage", "departments.create", "departments.update", "departments.disable", "attendance.view", "attendance.view.all", "attendance.create", "attendance.manual_add", "attendance.manual_edit", "attendance.delete", "requests.view.all", "requests.approve.all", "requests.reject.all", "requests.cancel.all", "requests.request_info", "requests.comment", "requests.manage", "shifts.view", "shifts.create", "shifts.update", "shifts.archive", "shifts.assign", "shifts.remove_employee", "shifts.move_employee", "shifts.view_week_distribution", "shifts.manage", "reports.view", "reports.view.all", "reports.attendance", "notifications.view.self", "announcements.view.self", "announcements.view.all", "announcements.create.general.company", "announcements.create.general.department", "announcements.create.private.department", "announcements.create.private.employee", "announcements.update.own", "announcements.archive", "job_titles.view"],
   finance: ["dashboard.view", "finance.view", "finance.dashboard.view", "finance.settings.view", "finance.settings.manage", "finance.payroll_slips.view", "finance.payroll_slips.view_all", "finance.payroll_slips.create", "finance.payroll_slips.edit", "finance.payroll_slips.recalculate", "finance.payroll_slips.review", "finance.advances.view", "finance.advances.create", "finance.advances.manage", "finance.payments.view", "finance.reports.view", "salaries.view", "salaries.create", "salaries.review", "employees.view_financial_basic", "reports.view", "reports.salary", "notifications.view.self", "announcements.view.self"],
 };
 const ROLE_LABELS = { admin: "مدير النظام", employee: "موظف", manager: "مدير قسم", hr: "الموارد البشرية", finance: "المالية" };
@@ -218,62 +221,3 @@ const ensurePermissionSchema = async () => {
 const getRolePermissions = async (roles) => {
   const cleanRoles = unique(roles).sort();
   if (!cleanRoles.length) return [];
-  const key = cleanRoles.join("|");
-  if (rolePermissionsCache.has(key)) return rolePermissionsCache.get(key);
-  const result = await pool.query(`SELECT DISTINCT permission_key FROM role_permissions WHERE role_key = ANY($1::text[])`, [cleanRoles]);
-  const permissions = result.rows.map((row) => row.permission_key);
-  rolePermissionsCache.set(key, permissions);
-  return permissions;
-};
-
-const getEmployeeJobTitlePermissions = async (employeeId) => {
-  if (!employeeId) return { job_title: null, permissions: [] };
-  const result = await pool.query(`SELECT jt.id, jt.name, jt.default_permissions, jt.status FROM employees e LEFT JOIN job_titles jt ON jt.id=e.job_title_id WHERE e.id=$1 LIMIT 1`, [employeeId]);
-  const jobTitle = result.rows[0]?.id ? result.rows[0] : null;
-  return { job_title: jobTitle, permissions: jobTitle && jobTitle.status === "active" ? unique(jobTitle.default_permissions) : [] };
-};
-
-const calculateEffectivePermissions = ({ jobTitlePermissions = [], rolePermissions = [], directPermissions = [], deniedPermissions = [], roles = [] }) => {
-  if (unique(roles).includes("admin")) return PERMISSIONS;
-  const allowed = unique([...jobTitlePermissions, ...rolePermissions, ...directPermissions]);
-  const denied = unique(deniedPermissions);
-  return allowed.filter((permission) => !denied.includes(permission));
-};
-
-const getUserAccess = async (userId, tokenUser = null, options = {}) => {
-  await ensurePermissionSchema();
-  const cached = accessCache.get(userId);
-  if (cached && !options.force && Date.now() - cached.time < ACCESS_CACHE_MS) return cached.value;
-  const result = await pool.query(`SELECT id, role, roles, permissions, direct_denied_permissions, employee_id, employee_number FROM users WHERE id = $1`, [userId]);
-  const dbUser = result.rows[0] || {};
-  const roles = unique([tokenUser?.roles, tokenUser?.role, dbUser.roles, dbUser.role]).filter(Boolean);
-  const directPermissions = unique(dbUser.permissions);
-  const deniedPermissions = unique(dbUser.direct_denied_permissions);
-  const [rolePermissions, job] = await Promise.all([getRolePermissions(roles), getEmployeeJobTitlePermissions(dbUser.employee_id)]);
-  const permissions = calculateEffectivePermissions({ jobTitlePermissions: job.permissions, rolePermissions, directPermissions, deniedPermissions, roles });
-  const value = { roles, permissions, direct_permissions: directPermissions, direct_denied_permissions: deniedPermissions, role_permissions: rolePermissions, job_title: job.job_title, job_title_permissions: job.permissions, employee_id: dbUser.employee_id, employee_number: dbUser.employee_number };
-  accessCache.set(userId, { time: Date.now(), value });
-  return value;
-};
-
-const getEmployeePermissionSummary = async (employeeId) => {
-  await ensurePermissionSchema();
-  const user = await pool.query(`SELECT id, role, roles, permissions, direct_denied_permissions, employee_id, employee_number FROM users WHERE employee_id=$1 LIMIT 1`, [employeeId]);
-  if (!user.rows.length) return null;
-  const dbUser = user.rows[0];
-  const roles = unique([dbUser.roles, dbUser.role]).filter(Boolean);
-  const directPermissions = unique(dbUser.permissions);
-  const deniedPermissions = unique(dbUser.direct_denied_permissions);
-  const [rolePermissions, job] = await Promise.all([getRolePermissions(roles), getEmployeeJobTitlePermissions(dbUser.employee_id)]);
-  const effectivePermissions = calculateEffectivePermissions({ jobTitlePermissions: job.permissions, rolePermissions, directPermissions, deniedPermissions, roles });
-  return { user_id: dbUser.id, employee_id: dbUser.employee_id, roles, job_title: job.job_title, job_title_permissions: job.permissions, role_permissions: rolePermissions, direct_permissions: directPermissions, denied_permissions: deniedPermissions, effective_permissions: effectivePermissions };
-};
-
-const hasPermissionValue = (access, permission) => {
-  const roles = normalizeArray(access?.roles);
-  const permissions = normalizeArray(access?.permissions);
-  return roles.includes("admin") || permissions.includes(permission) || permissions.includes("system.admin");
-};
-const hasAnyPermissionValue = (access, permissions = []) => permissions.some((permission) => hasPermissionValue(access, permission));
-
-module.exports = { PERMISSIONS, PERMISSION_DEFINITIONS, ROLE_PERMISSIONS, ROLE_LABELS, ensurePermissionSchema, getUserAccess, getEmployeePermissionSummary, calculateEffectivePermissions, normalizeArray, hasPermissionValue, hasAnyPermissionValue, invalidatePermissionCache };

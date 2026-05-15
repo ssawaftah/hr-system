@@ -4,15 +4,24 @@ const todayJordanSql = `(CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Amman')::date`;
 const nowJordanSql = `(CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Amman')::time`;
 
 const getCurrentEmployeeId = async (req) => {
-  if (req.user?.employee_id) return req.user.employee_id;
-  const result = await pool.query('SELECT employee_id FROM users WHERE id=$1 LIMIT 1', [req.user.id]);
-  return result.rows[0]?.employee_id || null;
+  if (req.user?.employee_id) return Number(req.user.employee_id);
+  const user = await pool.query('SELECT employee_id, employee_number, email FROM users WHERE id=$1 LIMIT 1', [req.user.id]);
+  if (user.rows[0]?.employee_id) return Number(user.rows[0].employee_id);
+  if (user.rows[0]?.employee_number) {
+    const employee = await pool.query('SELECT id FROM employees WHERE employee_number=$1 LIMIT 1', [String(user.rows[0].employee_number)]);
+    if (employee.rows[0]?.id) return Number(employee.rows[0].id);
+  }
+  if (user.rows[0]?.email) {
+    const employee = await pool.query('SELECT id FROM employees WHERE email=$1 LIMIT 1', [user.rows[0].email]);
+    if (employee.rows[0]?.id) return Number(employee.rows[0].id);
+  }
+  return null;
 };
 
 const requireEmployee = async (req, res) => {
   const employeeId = await getCurrentEmployeeId(req);
   if (!employeeId) {
-    res.status(403).json({ error: 'هذا الحساب غير مرتبط بموظف' });
+    res.status(403).json({ error: 'هذا الحساب غير مرتبط بموظف. اربط المستخدم بملف موظف من الإدارة.' });
     return null;
   }
   return employeeId;
@@ -21,35 +30,39 @@ const requireEmployee = async (req, res) => {
 const ensurePortalSchema = async () => {
   await pool.query(`ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS source VARCHAR(40) DEFAULT 'system'`);
   await pool.query(`ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS finance_employee_settings (
+      id SERIAL PRIMARY KEY,
+      employee_id INTEGER NOT NULL UNIQUE REFERENCES employees(id) ON DELETE CASCADE,
+      basic_salary NUMERIC(12,2) DEFAULT 0,
+      social_security_rate NUMERIC(6,3) DEFAULT 7.5,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
   await pool.query(`ALTER TABLE finance_employee_settings ADD COLUMN IF NOT EXISTS leave_balance_current NUMERIC(8,2) DEFAULT 14`);
   await pool.query(`ALTER TABLE finance_employee_settings ADD COLUMN IF NOT EXISTS leave_days_consumed NUMERIC(8,2) DEFAULT 0`);
   await pool.query(`ALTER TABLE finance_employee_settings ADD COLUMN IF NOT EXISTS exit_hours_per_leave_day NUMERIC(8,2) DEFAULT 8`);
 };
 
 const getCurrentShift = async (employeeId) => {
-  const result = await pool.query(
-    `SELECT ws.id, ws.name, ws.shift_type, ws.start_time, ws.end_time, ws.work_days, ws.late_grace_minutes, ws.official_work_hours
-     FROM employee_shift_assignments esa
-     JOIN work_shifts ws ON ws.id=esa.shift_id
-     WHERE esa.employee_id=$1
-       AND esa.is_active=true
-       AND COALESCE(ws.is_active,true)=true
-       AND esa.effective_from <= ${todayJordanSql}
-       AND (esa.effective_to IS NULL OR esa.effective_to >= ${todayJordanSql})
-     ORDER BY esa.effective_from DESC, esa.id DESC
-     LIMIT 1`,
-    [employeeId]
-  );
-  return result.rows[0] || {
-    id: null,
-    name: 'الدوام الافتراضي',
-    shift_type: 'default',
-    start_time: '07:00:00',
-    end_time: '15:00:00',
-    work_days: ['sat','sun','mon','tue','wed','thu'],
-    late_grace_minutes: 0,
-    official_work_hours: 8,
-  };
+  try {
+    const result = await pool.query(
+      `SELECT ws.id, ws.name, ws.shift_type, ws.start_time, ws.end_time, ws.work_days, ws.late_grace_minutes, ws.official_work_hours
+       FROM employee_shift_assignments esa
+       JOIN work_shifts ws ON ws.id=esa.shift_id
+       WHERE esa.employee_id=$1
+         AND esa.is_active=true
+         AND COALESCE(ws.is_active,true)=true
+         AND esa.effective_from <= ${todayJordanSql}
+         AND (esa.effective_to IS NULL OR esa.effective_to >= ${todayJordanSql})
+       ORDER BY esa.effective_from DESC, esa.id DESC
+       LIMIT 1`,
+      [employeeId]
+    );
+    if (result.rows[0]) return result.rows[0];
+  } catch (_) {}
+  return { id: null, name: 'الدوام الافتراضي', shift_type: 'default', start_time: '07:00:00', end_time: '15:00:00', work_days: ['sat','sun','mon','tue','wed','thu'], late_grace_minutes: 0, official_work_hours: 8 };
 };
 
 const getSelfProfile = async (req, res) => {
@@ -73,14 +86,9 @@ const getSelfProfile = async (req, res) => {
       [employeeId]
     ).catch(() => ({ rows: [] }));
     const shift = await getCurrentShift(employeeId);
-    const lastMovement = await pool.query(
-      `SELECT * FROM attendance_records WHERE employee_id=$1 ORDER BY attendance_date DESC, id DESC LIMIT 1`,
-      [employeeId]
-    );
+    const lastMovement = await pool.query(`SELECT * FROM attendance_records WHERE employee_id=$1 ORDER BY attendance_date DESC, id DESC LIMIT 1`, [employeeId]);
     res.json({ profile: profile.rows[0] || null, sub_departments: subDepartments.rows, current_shift: shift, last_movement: lastMovement.rows[0] || null });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+  } catch (error) { res.status(500).json({ error: error.message }); }
 };
 
 const getToday = async (req, res) => {
@@ -91,9 +99,7 @@ const getToday = async (req, res) => {
     const shift = await getCurrentShift(employeeId);
     const attendance = await pool.query(`SELECT * FROM attendance_records WHERE employee_id=$1 AND attendance_date=${todayJordanSql} ORDER BY id DESC LIMIT 1`, [employeeId]);
     res.json({ date: new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Amman' }), current_shift: shift, today_attendance: attendance.rows[0] || null });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+  } catch (error) { res.status(500).json({ error: error.message }); }
 };
 
 const checkInOut = async (req, res) => {
@@ -114,9 +120,7 @@ const checkInOut = async (req, res) => {
     if (existing.rows[0].check_out) return res.status(409).json({ error: 'تم تسجيل الانصراف مسبقًا لهذا اليوم' });
     const result = await pool.query(`UPDATE attendance_records SET check_out=${nowJordanSql}, updated_at=CURRENT_TIMESTAMP WHERE id=$1 RETURNING *`, [existing.rows[0].id]);
     res.json({ message: 'تم تسجيل الانصراف بنجاح', attendance: result.rows[0] });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+  } catch (error) { res.status(500).json({ error: error.message }); }
 };
 
 const getSelfAttendance = async (req, res) => {
@@ -132,23 +136,16 @@ const getSelfAttendance = async (req, res) => {
       [employeeId, month]
     );
     res.json({ attendance: result.rows });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+  } catch (error) { res.status(500).json({ error: error.message }); }
 };
 
 const getSelfRequests = async (req, res) => {
   try {
     const employeeId = await requireEmployee(req, res);
     if (!employeeId) return;
-    const result = await pool.query(
-      `SELECT * FROM employee_requests WHERE employee_id=$1 ORDER BY updated_at DESC, id DESC`,
-      [employeeId]
-    );
+    const result = await pool.query(`SELECT * FROM employee_requests WHERE employee_id=$1 ORDER BY updated_at DESC, id DESC`, [employeeId]);
     res.json({ requests: result.rows });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+  } catch (error) { res.status(500).json({ error: error.message }); }
 };
 
 const getSelfSalarySlip = async (req, res) => {
@@ -157,16 +154,11 @@ const getSelfSalarySlip = async (req, res) => {
     if (!employeeId) return;
     const month = String(req.query.month || '');
     if (!/^\d{4}-\d{2}$/.test(month)) return res.status(400).json({ error: 'الشهر مطلوب بصيغة YYYY-MM' });
-    const salary = await pool.query(
-      `SELECT * FROM salary_records WHERE employee_id=$1 AND salary_month=$2 AND status IN ('paid','published','closed') ORDER BY id DESC LIMIT 1`,
-      [employeeId, month]
-    );
+    const salary = await pool.query(`SELECT * FROM salary_records WHERE employee_id=$1 AND salary_month=$2 AND status IN ('paid','published','closed') ORDER BY id DESC LIMIT 1`, [employeeId, month]);
     if (!salary.rows.length) return res.status(404).json({ error: 'قسيمة الراتب غير منشورة لهذا الشهر' });
     const items = await pool.query(`SELECT * FROM salary_record_items WHERE salary_record_id=$1 ORDER BY item_type DESC, id ASC`, [salary.rows[0].id]);
     res.json({ salary: salary.rows[0], items: items.rows });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+  } catch (error) { res.status(500).json({ error: error.message }); }
 };
 
 module.exports = { getSelfProfile, getToday, checkInOut, getSelfAttendance, getSelfRequests, getSelfSalarySlip };

@@ -27,3 +27,12 @@ window.navigationConfig=[
 {id:'announcements',label:'الإعلانات',path:'./announcements.html',icon:navIcon('announcements'),group:'النظام',requiredPermissions:['announcements.view.department','announcements.view.all','announcements.create','announcements.manage','announcements.create.general.department','announcements.create.private.employee'],showInSidebar:true,showInShortcutMenu:false,order:45},
 {id:'users',label:'الصلاحيات',path:'./users.html',icon:navIcon('permissions'),group:'النظام',requiredPermissions:['users.view','permissions.view'],showInSidebar:true,showInShortcutMenu:false,order:50}
 ];
+
+window.addEventListener('load',()=>{
+  if(!/my-requests\.html(?:$|[?#])/.test(window.location.pathname+window.location.search))return;
+  if(document.querySelector('script[data-request-info-helper="true"]'))return;
+  const script=document.createElement('script');
+  script.src='./js/request-info-response.js?v=req-info-1';
+  script.dataset.requestInfoHelper='true';
+  document.body.appendChild(script);
+});

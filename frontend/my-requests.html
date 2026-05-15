@@ -1,1 +1,831 @@
-<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>طلباتي</title><link rel="stylesheet" href="./css/app.css?v=clean-103"></head><body class="apple-system-ui"><div class="app-layout"><aside class="sidebar"><div class="sidebar-logo"><span class="brand-mark">HR</span><span>نظام الموارد البشرية</span></div><nav class="sidebar-menu"></nav></aside><main class="main-content page-shell"><header class="topbar"><div class="header-title-area"><h1>طلباتي</h1><p>إنشاء ومتابعة طلباتك فقط.</p></div><button id="logoutBtn" class="logout-btn">تسجيل الخروج</button></header><section class="page-header"><div><span class="page-kicker">بوابة الموظف</span><h1>طلباتي</h1><p>لا يظهر هنا أي طلب لموظف آخر.</p></div></section><section class="content-card"><div class="section-header"><div><h2>طلباتي السابقة</h2><p>جدول مختصر لطلباتك.</p></div></div><div class="table-scroll"><table><thead><tr><th>التاريخ</th><th>نوع الطلب</th><th>الحالة</th><th>عرض</th></tr></thead><tbody id="myRequestsBody"><tr><td colspan="4">جاري التحميل...</td></tr></tbody></table></div><div id="requestDetailsBox" class="details-grid" style="margin-top:14px"></div></section><section class="content-card"><div class="section-header"><div><h2>تقديم طلب جديد</h2></div></div><form id="requestForm" class="form-grid two"><div class="field-shell full-width"><label class="field-label">نوع الطلب</label><select id="requestType"><option value="leave">طلب إجازة</option><option value="exit">طلب مغادرة</option><option value="advance">طلب سلفة</option><option value="complaint">شكوى</option><option value="custom">طلب مخصص</option></select></div><div id="dynamicFields" class="form-grid two full-width"></div><div class="field-shell full-width"><label class="field-label">السبب</label><input id="reqReason"></div><div class="field-shell full-width"><label class="field-label">تفاصيل إضافية</label><textarea id="reqDetails"></textarea></div><div class="form-actions full-width"><button type="submit">إرسال الطلب</button></div></form><p id="requestMsg" class="inline-message"></p></section></main></div><script src="./js/navigation-config.js?v=clean-103"></script><script src="./js/auth-guard.js?v=clean-103"></script><script>function el(id){return document.getElementById(id)}function d(v){return v?String(v).slice(0,10):'-'}function st(v){return {pending:'قيد الانتظار',approved:'موافق عليه',rejected:'مرفوض',cancelled:'ملغي',needs_info:'يحتاج معلومات',draft:'مسودة'}[v]||v||'-'}function ty(v){return {leave:'طلب إجازة',exit:'طلب مغادرة',advance:'طلب سلفة',complaint:'شكوى',custom:'طلب مخصص',resignation:'طلب استقالة'}[v]||v||'-'}function det(l,v){return '<div class="detail-item"><span class="detail-label">'+l+'</span><span class="detail-value">'+(v||'-')+'</span></div>'}async function callApi(path,opt={}){const r=await fetch(API_BASE_URL+path,{...opt,headers:{Authorization:'Bearer '+token,'Content-Type':'application/json',...(opt.headers||{})}});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'فشل الاتصال');return j}function fields(t){if(t==='leave')return '<div class="field-shell"><label class="field-label">نوع الإجازة</label><select id="reqLeaveType"><option value="annual">سنوية</option><option value="sick">مرضية</option><option value="emergency">طارئة</option><option value="unpaid">بدون راتب</option></select></div><div class="field-shell"><label class="field-label">من تاريخ</label><input type="date" id="reqStart"></div><div class="field-shell"><label class="field-label">إلى تاريخ</label><input type="date" id="reqEnd"></div>';if(t==='exit')return '<div class="field-shell"><label class="field-label">نوع المغادرة</label><select id="reqExitType"><option value="personal">شخصية</option><option value="work">عمل</option><option value="medical">طبية</option></select></div><div class="field-shell"><label class="field-label">التاريخ</label><input type="date" id="reqExitDate"></div><div class="field-shell"><label class="field-label">وقت المغادرة</label><input type="time" id="reqExitTime"></div><div class="field-shell"><label class="field-label">وقت العودة</label><input type="time" id="reqReturnTime"></div>';if(t==='advance')return '<div class="field-shell"><label class="field-label">المبلغ</label><input type="number" id="reqAmount" min="0" step="0.01"></div><div class="field-shell"><label class="field-label">طريقة الخصم</label><select id="reqDeduction"><option value="one_time">مرة واحدة</option><option value="installments">أقساط</option></select></div><div class="field-shell"><label class="field-label">عدد الأقساط</label><input type="number" id="reqInstallments" min="1" value="1"></div><div class="field-shell"><label class="field-label">بداية الخصم</label><input type="month" id="reqStartMonth"></div>';return '<div class="field-shell full-width"><label class="field-label">عنوان الطلب</label><input id="reqTitle"></div>'}function payload(t){const reason=el('reqReason')?.value||'';const notes=el('reqDetails')?.value||'';if(t==='leave')return {leave_type:el('reqLeaveType')?.value||'annual',start_date:el('reqStart')?.value,end_date:el('reqEnd')?.value,reason,notes};if(t==='exit')return {exit_type:el('reqExitType')?.value||'personal',exit_date:el('reqExitDate')?.value,exit_time:el('reqExitTime')?.value,return_time:el('reqReturnTime')?.value,reason,notes};if(t==='advance')return {amount:Number(el('reqAmount')?.value||0),deduction_method:el('reqDeduction')?.value||'one_time',installments_count:Number(el('reqInstallments')?.value||1),deduction_start_month:el('reqStartMonth')?.value,reason,notes};return {title:el('reqTitle')?.value||ty(t),reason,details:notes,notes}}async function loadRows(){let rows=[];let errors=[];try{rows=(await callApi('/employee-portal/requests')).requests||[]}catch(e){errors.push(e.message)}if(!rows.length){try{const j=await callApi('/leaves');rows=j.requests||j.leaves||[]}catch(e){errors.push(e.message)}}return {rows,errors}}async function renderRequests(extraRow){const body=el('myRequestsBody');try{let {rows,errors}=await loadRows();if(extraRow&&!rows.some(r=>String(r.id)===String(extraRow.id)))rows=[extraRow,...rows];window.__myRequests=rows;if(!rows.length){body.innerHTML='<tr><td colspan="4">لا توجد طلبات لهذا الحساب'+(errors.length?' — '+errors.join(' / '):'')+'</td></tr>';return}body.innerHTML=rows.map(r=>'<tr><td>'+d(r.created_at||r.submitted_at)+'</td><td>'+ty(r.request_type)+'</td><td>'+st(r.status)+'</td><td><button class="secondary-btn small-btn" type="button" onclick="showReq('+r.id+')">عرض</button></td></tr>').join('')}catch(e){body.innerHTML='<tr><td colspan="4">'+e.message+'</td></tr>'}}function showReq(id){const r=(window.__myRequests||[]).find(x=>Number(x.id)===Number(id));const data=r?.request_data||{};el('requestDetailsBox').innerHTML=det('نوع الطلب',ty(r?.request_type))+det('الحالة',st(r?.status))+det('التاريخ',d(r?.created_at||r?.submitted_at))+det('التفاصيل',Object.entries(data).map(([k,v])=>k+': '+v).join(' | ')||'-')}window.showReq=showReq;async function start(){if(typeof loadLoggedUser==='function')await loadLoggedUser();const type=el('requestType');const box=el('dynamicFields');box.innerHTML=fields(type.value);type.onchange=()=>box.innerHTML=fields(type.value);await renderRequests();el('requestForm').onsubmit=async ev=>{ev.preventDefault();const msg=el('requestMsg');msg.textContent='جاري إرسال الطلب...';msg.className='inline-message';try{const body={request_type:type.value,status:'pending',request_data:payload(type.value)};const j=await callApi('/leaves',{method:'POST',body:JSON.stringify(body)});msg.textContent=j.message||'تم إرسال الطلب';msg.className='inline-message success-message';ev.target.reset();box.innerHTML=fields(type.value);await renderRequests(j.request)}catch(e){msg.textContent=e.message;msg.className='inline-message error-message'}}}start();</script></body></html>
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>الطلبات</title>
+  <link rel="stylesheet" href="./css/app.css?v=manual-1" />
+
+  <style>
+    .requests-mobile-page {
+      max-width: 980px;
+      margin: 0 auto;
+    }
+
+    .requests-employee-hero {
+      background: linear-gradient(135deg, #4f9af4, #3f86df);
+      color: #fff;
+      border-radius: 0 0 34px 34px;
+      margin: -16px -16px 32px;
+      padding: 28px 24px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      box-shadow: 0 18px 45px rgba(63, 134, 223, 0.22);
+    }
+
+    .requests-avatar {
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      background: #dbeafe;
+      display: grid;
+      place-items: center;
+      font-size: 58px;
+      border: 5px solid rgba(255, 255, 255, 0.55);
+      flex: 0 0 auto;
+    }
+
+    .requests-hero-info {
+      flex: 1;
+    }
+
+    .requests-hero-info h2 {
+      margin: 0 0 12px;
+      color: #fff;
+      font-size: 26px;
+      font-weight: 900;
+      line-height: 1.5;
+    }
+
+    .requests-hero-info p {
+      margin: 8px 0;
+      color: #fff;
+      font-size: 20px;
+      font-weight: 900;
+    }
+
+    .requests-hero-info b {
+      color: #ff3b30;
+      font-weight: 900;
+    }
+
+    .my-requests-main-btn {
+      display: block;
+      width: min(680px, 100%);
+      margin: 26px auto 44px;
+      border: none;
+      border-radius: 18px;
+      background: #4f9af4;
+      color: #fff;
+      padding: 22px;
+      font-size: 26px;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 14px 34px rgba(79, 154, 244, 0.25);
+    }
+
+    .request-types-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 22px;
+      margin-top: 24px;
+    }
+
+    .request-type-card {
+      min-height: 170px;
+      border: 4px solid #4f9af4;
+      border-radius: 22px;
+      background: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      cursor: pointer;
+      transition: 0.2s ease;
+      color: #111;
+      font-size: 23px;
+      font-weight: 900;
+      text-align: center;
+    }
+
+    .request-type-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 18px 44px rgba(79, 154, 244, 0.18);
+    }
+
+    .request-type-card .request-icon {
+      font-size: 48px;
+      line-height: 1;
+      color: #4f9af4;
+    }
+
+    .requests-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(18, 20, 28, 0.45);
+      z-index: 9999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+    }
+
+    .requests-modal.is-open {
+      display: flex;
+    }
+
+    .requests-modal-card {
+      width: min(760px, 100%);
+      max-height: 88vh;
+      overflow: auto;
+      background: #fff;
+      border-radius: 30px;
+      padding: 24px;
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.25);
+    }
+
+    .requests-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .requests-modal-header h2 {
+      margin: 0;
+      font-size: 28px;
+      font-weight: 900;
+    }
+
+    .requests-close-btn {
+      border: 0;
+      border-radius: 16px;
+      padding: 12px 18px;
+      background: #f2f4f8;
+      color: #111;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .request-list-item {
+      border: 1px solid #e6e8ef;
+      border-radius: 20px;
+      padding: 16px;
+      margin: 12px 0;
+      background: #fff;
+    }
+
+    .request-list-item strong {
+      display: block;
+      font-size: 19px;
+      font-weight: 900;
+      margin-bottom: 8px;
+    }
+
+    .request-list-item small {
+      color: #777;
+      font-weight: 700;
+    }
+
+    .request-status-pill {
+      display: inline-flex;
+      margin-top: 10px;
+      border-radius: 999px;
+      background: #eef4ff;
+      color: #2e7be8;
+      padding: 7px 13px;
+      font-weight: 900;
+    }
+
+    .request-details-box {
+      margin-top: 12px;
+      border-top: 1px solid #ececf2;
+      padding-top: 12px;
+      color: #555;
+      line-height: 1.8;
+      font-weight: 700;
+    }
+
+    .request-submit-message {
+      margin-top: 12px;
+      font-weight: 900;
+    }
+
+    .request-submit-message.ok {
+      color: #24a148;
+    }
+
+    .request-submit-message.err {
+      color: #d93025;
+    }
+
+    .requests-debug-note {
+      margin-top: 12px;
+      font-size: 13px;
+      color: #777;
+      word-break: break-word;
+    }
+
+    @media (max-width: 760px) {
+      .requests-employee-hero {
+        margin: -14px -14px 24px;
+        padding: 22px 16px;
+      }
+
+      .requests-avatar {
+        width: 86px;
+        height: 86px;
+        font-size: 44px;
+      }
+
+      .requests-hero-info h2 {
+        font-size: 20px;
+      }
+
+      .requests-hero-info p {
+        font-size: 16px;
+      }
+
+      .my-requests-main-btn {
+        font-size: 22px;
+        padding: 18px;
+      }
+
+      .request-types-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+      }
+
+      .request-type-card {
+        min-height: 145px;
+        font-size: 19px;
+        border-width: 3px;
+      }
+
+      .request-type-card .request-icon {
+        font-size: 40px;
+      }
+    }
+  </style>
+</head>
+
+<body class="apple-system-ui">
+  <div class="app-layout">
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <span class="brand-mark">HR</span>
+        <span>نظام الموارد البشرية</span>
+      </div>
+      <nav class="sidebar-menu"></nav>
+    </aside>
+
+    <main class="main-content page-shell requests-mobile-page">
+      <header class="topbar">
+        <div class="header-title-area">
+          <h1>الطلبات</h1>
+          <p>بوابة الموظف لتقديم ومتابعة الطلبات.</p>
+        </div>
+        <button id="logoutBtn" class="logout-btn">تسجيل الخروج</button>
+      </header>
+
+      <section class="requests-employee-hero">
+        <div class="requests-avatar">👤</div>
+        <div class="requests-hero-info">
+          <h2 id="employeeNameHero">الموظف</h2>
+          <p><b id="employeeNumberHero">-</b> : <span id="employeeJobHero">موظف</span></p>
+        </div>
+      </section>
+
+      <button id="openMyRequestsBtn" class="my-requests-main-btn">طلباتي</button>
+
+      <section class="content-card">
+        <div class="section-header">
+          <div>
+            <h2>تقديم طلب جديد</h2>
+            <p>اختر نوع الطلب من الكروت التالية.</p>
+          </div>
+        </div>
+
+        <div class="request-types-grid">
+          <button class="request-type-card" data-type="leave">
+            <span class="request-icon">🏖️</span>
+            <span>طلب إجازة</span>
+          </button>
+
+          <button class="request-type-card" data-type="exit">
+            <span class="request-icon">🚪</span>
+            <span>طلب مغادرة</span>
+          </button>
+
+          <button class="request-type-card" data-type="overtime">
+            <span class="request-icon">⏱️</span>
+            <span>طلب عمل إضافي</span>
+          </button>
+
+          <button class="request-type-card" data-type="advance">
+            <span class="request-icon">💵</span>
+            <span>طلب سلفة</span>
+          </button>
+
+          <button class="request-type-card" data-type="complaint">
+            <span class="request-icon">📣</span>
+            <span>طلب شكوى</span>
+          </button>
+
+          <button class="request-type-card" data-type="resignation">
+            <span class="request-icon">👤✖</span>
+            <span>طلب استقالة</span>
+          </button>
+
+          <button class="request-type-card" data-type="custom_allowance">
+            <span class="request-icon">✨</span>
+            <span>مخصصات أخرى</span>
+          </button>
+
+          <button class="request-type-card" data-type="custom">
+            <span class="request-icon">🏠</span>
+            <span>طلبات أخرى</span>
+          </button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="myRequestsModal" class="requests-modal">
+    <div class="requests-modal-card">
+      <div class="requests-modal-header">
+        <h2>طلباتي السابقة</h2>
+        <button class="requests-close-btn" data-close-modal="myRequestsModal">إغلاق</button>
+      </div>
+
+      <div id="myRequestsList">
+        <div class="empty-soft">جاري تحميل الطلبات...</div>
+      </div>
+
+      <p id="requestsDebugNote" class="requests-debug-note"></p>
+    </div>
+  </div>
+
+  <div id="requestFormModal" class="requests-modal">
+    <div class="requests-modal-card">
+      <div class="requests-modal-header">
+        <h2 id="requestFormTitle">طلب جديد</h2>
+        <button class="requests-close-btn" data-close-modal="requestFormModal">إغلاق</button>
+      </div>
+
+      <form id="requestForm" class="form-grid two">
+        <div id="dynamicFields" class="form-grid two full-width"></div>
+
+        <div class="field-shell full-width">
+          <label class="field-label">السبب</label>
+          <input id="reqReason" required />
+        </div>
+
+        <div class="field-shell full-width">
+          <label class="field-label">تفاصيل إضافية</label>
+          <textarea id="reqDetails"></textarea>
+        </div>
+
+        <div class="form-actions full-width">
+          <button type="submit">إرسال الطلب</button>
+        </div>
+      </form>
+
+      <p id="requestMsg" class="request-submit-message"></p>
+    </div>
+  </div>
+
+  <script src="./js/navigation-config.js?v=manual-1"></script>
+  <script src="./js/auth-guard.js?v=manual-1"></script>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    let currentType = "leave";
+    const LOCAL_KEY = "hr_employee_requests_local_echo_v1";
+
+    const typeLabels = {
+      leave: "طلب إجازة",
+      exit: "طلب مغادرة",
+      overtime: "طلب عمل إضافي",
+      advance: "طلب سلفة",
+      complaint: "طلب شكوى",
+      resignation: "طلب استقالة",
+      custom_allowance: "مخصصات أخرى",
+      custom: "طلبات أخرى"
+    };
+
+    const statusLabels = {
+      pending: "قيد الانتظار",
+      approved: "موافق عليه",
+      rejected: "مرفوض",
+      cancelled: "ملغي",
+      needs_info: "يحتاج معلومات",
+      draft: "مسودة"
+    };
+
+    function apiBase() {
+      return window.API_BASE_URL || "https://hr-system-backend-dxj2.onrender.com/api";
+    }
+
+    function authToken() {
+      return window.token || localStorage.getItem("token");
+    }
+
+    async function api(path, options = {}) {
+      const response = await fetch(apiBase() + path, {
+        ...options,
+        headers: {
+          Authorization: "Bearer " + authToken(),
+          "Content-Type": "application/json",
+          ...(options.headers || {})
+        }
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(data.error || "فشل الاتصال بالسيرفر");
+      }
+
+      return data;
+    }
+
+    function formatDate(value) {
+      return value ? String(value).slice(0, 10) : new Date().toISOString().slice(0, 10);
+    }
+
+    function safeText(value, fallback = "-") {
+      return value === undefined || value === null || value === "" ? fallback : String(value);
+    }
+
+    function readLocalRequests() {
+      try {
+        return JSON.parse(localStorage.getItem(LOCAL_KEY) || "[]");
+      } catch (_) {
+        return [];
+      }
+    }
+
+    function saveLocalRequest(row) {
+      const rows = readLocalRequests();
+      const key = String(row.id || row.local_id);
+
+      if (!rows.some((item) => String(item.id || item.local_id) === key)) {
+        rows.unshift(row);
+      }
+
+      localStorage.setItem(LOCAL_KEY, JSON.stringify(rows.slice(0, 50)));
+    }
+
+    function detailsToText(data = {}) {
+      return Object.entries(data)
+        .filter(([_, value]) => value !== undefined && value !== null && value !== "")
+        .map(([key, value]) => `${key}: ${value}`)
+        .join(" | ");
+    }
+
+    function requestFields(type) {
+      if (type === "leave") {
+        return `
+          <div class="field-shell">
+            <label class="field-label">نوع الإجازة</label>
+            <select id="reqLeaveType">
+              <option value="annual">سنوية</option>
+              <option value="sick">مرضية</option>
+              <option value="emergency">طارئة</option>
+              <option value="unpaid">بدون راتب</option>
+            </select>
+          </div>
+          <div class="field-shell">
+            <label class="field-label">من تاريخ</label>
+            <input type="date" id="reqStart" required />
+          </div>
+          <div class="field-shell">
+            <label class="field-label">إلى تاريخ</label>
+            <input type="date" id="reqEnd" required />
+          </div>
+        `;
+      }
+
+      if (type === "exit") {
+        return `
+          <div class="field-shell">
+            <label class="field-label">نوع المغادرة</label>
+            <select id="reqExitType">
+              <option value="personal">شخصية</option>
+              <option value="work">عمل</option>
+              <option value="medical">طبية</option>
+            </select>
+          </div>
+          <div class="field-shell">
+            <label class="field-label">التاريخ</label>
+            <input type="date" id="reqExitDate" required />
+          </div>
+          <div class="field-shell">
+            <label class="field-label">وقت المغادرة</label>
+            <input type="time" id="reqExitTime" required />
+          </div>
+          <div class="field-shell">
+            <label class="field-label">وقت العودة</label>
+            <input type="time" id="reqReturnTime" />
+          </div>
+        `;
+      }
+
+      if (type === "advance") {
+        return `
+          <div class="field-shell">
+            <label class="field-label">المبلغ</label>
+            <input type="number" id="reqAmount" min="1" step="0.01" required />
+          </div>
+          <div class="field-shell">
+            <label class="field-label">طريقة الخصم</label>
+            <select id="reqDeduction">
+              <option value="one_time">مرة واحدة</option>
+              <option value="installments">أقساط</option>
+            </select>
+          </div>
+          <div class="field-shell">
+            <label class="field-label">عدد الأقساط</label>
+            <input type="number" id="reqInstallments" min="1" value="1" />
+          </div>
+          <div class="field-shell">
+            <label class="field-label">شهر بداية الخصم</label>
+            <input type="month" id="reqStartMonth" required />
+          </div>
+        `;
+      }
+
+      if (type === "overtime") {
+        return `
+          <div class="field-shell">
+            <label class="field-label">التاريخ</label>
+            <input type="date" id="reqOvertimeDate" required />
+          </div>
+          <div class="field-shell">
+            <label class="field-label">من الساعة</label>
+            <input type="time" id="reqFromTime" required />
+          </div>
+          <div class="field-shell">
+            <label class="field-label">إلى الساعة</label>
+            <input type="time" id="reqToTime" required />
+          </div>
+        `;
+      }
+
+      if (type === "resignation") {
+        return `
+          <div class="field-shell">
+            <label class="field-label">آخر يوم عمل</label>
+            <input type="date" id="reqLastWorkingDay" required />
+          </div>
+        `;
+      }
+
+      return `
+        <div class="field-shell full-width">
+          <label class="field-label">عنوان الطلب</label>
+          <input id="reqTitle" required />
+        </div>
+      `;
+    }
+
+    function buildPayload(type) {
+      const reason = $("reqReason")?.value || "";
+      const notes = $("reqDetails")?.value || "";
+
+      if (type === "leave") {
+        return {
+          leave_type: $("reqLeaveType")?.value || "annual",
+          start_date: $("reqStart")?.value,
+          end_date: $("reqEnd")?.value,
+          reason,
+          notes
+        };
+      }
+
+      if (type === "exit") {
+        return {
+          exit_type: $("reqExitType")?.value || "personal",
+          exit_date: $("reqExitDate")?.value,
+          exit_time: $("reqExitTime")?.value,
+          return_time: $("reqReturnTime")?.value,
+          reason,
+          notes
+        };
+      }
+
+      if (type === "advance") {
+        return {
+          amount: Number($("reqAmount")?.value || 0),
+          deduction_method: $("reqDeduction")?.value || "one_time",
+          installments_count: Number($("reqInstallments")?.value || 1),
+          deduction_start_month: $("reqStartMonth")?.value,
+          reason,
+          notes
+        };
+      }
+
+      if (type === "overtime") {
+        return {
+          title: "طلب عمل إضافي",
+          details: `${reason} ${notes}`.trim() || "طلب عمل إضافي",
+          overtime_date: $("reqOvertimeDate")?.value,
+          from_time: $("reqFromTime")?.value,
+          to_time: $("reqToTime")?.value,
+          reason,
+          notes
+        };
+      }
+
+      if (type === "resignation") {
+        return {
+          last_working_day: $("reqLastWorkingDay")?.value,
+          reason,
+          notes
+        };
+      }
+
+      return {
+        title: $("reqTitle")?.value || typeLabels[type] || "طلب",
+        details: notes || reason || typeLabels[type] || "طلب",
+        reason,
+        notes
+      };
+    }
+
+    function apiRequestType(type) {
+      if (type === "overtime") return "custom";
+      if (type === "custom_allowance") return "custom";
+      return type;
+    }
+
+    async function fetchRequests() {
+      const errors = [];
+      let serverRows = [];
+
+      try {
+        const data = await api("/employee-portal/requests");
+        serverRows = data.requests || [];
+      } catch (error) {
+        errors.push("/employee-portal/requests: " + error.message);
+      }
+
+      if (!serverRows.length) {
+        try {
+          const data = await api("/leaves");
+          serverRows = data.requests || data.leaves || [];
+        } catch (error) {
+          errors.push("/leaves: " + error.message);
+        }
+      }
+
+      const merged = [...readLocalRequests(), ...serverRows];
+      const seen = new Set();
+
+      const rows = merged.filter((row) => {
+        const key = String(row.id || row.local_id || `${row.request_type}-${row.created_at}`);
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+
+      return { rows, errors };
+    }
+
+    async function renderRequests() {
+      const list = $("myRequestsList");
+      const debug = $("requestsDebugNote");
+
+      list.innerHTML = `<div class="empty-soft">جاري تحميل الطلبات...</div>`;
+      debug.textContent = "";
+
+      const { rows, errors } = await fetchRequests();
+
+      if (errors.length) {
+        debug.textContent = "ملاحظات الاتصال: " + errors.join(" / ");
+      }
+
+      if (!rows.length) {
+        list.innerHTML = `<div class="empty-soft">لا توجد طلبات سابقة لهذا الحساب</div>`;
+        return;
+      }
+
+      list.innerHTML = rows.map((row) => {
+        const data = row.request_data || {};
+        const type = row.request_type || "custom";
+
+        return `
+          <article class="request-list-item">
+            <strong>${typeLabels[type] || row.request_title || "طلب"}</strong>
+            <small>${formatDate(row.created_at || row.submitted_at)} • ${safeText(row.request_title, "")}</small>
+            <br />
+            <span class="request-status-pill">${statusLabels[row.status] || row.status || "قيد الانتظار"}</span>
+            <div class="request-details-box">${detailsToText(data) || "لا توجد تفاصيل إضافية"}</div>
+          </article>
+        `;
+      }).join("");
+    }
+
+    function openModal(id) {
+      $(id)?.classList.add("is-open");
+    }
+
+    function closeModal(id) {
+      $(id)?.classList.remove("is-open");
+    }
+
+    function openRequestForm(type) {
+      currentType = type;
+      $("requestFormTitle").textContent = typeLabels[type] || "طلب جديد";
+      $("dynamicFields").innerHTML = requestFields(type);
+      $("requestMsg").textContent = "";
+      $("requestMsg").className = "request-submit-message";
+      openModal("requestFormModal");
+    }
+
+    async function loadEmployeeHero() {
+      try {
+        const data = await api("/employee-portal/profile");
+        const profile = data.profile || {};
+
+        $("employeeNameHero").textContent = profile.full_name || "الموظف";
+        $("employeeNumberHero").textContent = profile.employee_number || "-";
+        $("employeeJobHero").textContent =
+          profile.job_title_label ||
+          profile.job_title_name ||
+          profile.job_title ||
+          "موظف";
+      } catch (_) {}
+    }
+
+    async function initPage() {
+      if (typeof window.loadLoggedUser === "function") {
+        await window.loadLoggedUser();
+      }
+
+      await loadEmployeeHero();
+
+      document.querySelectorAll("[data-close-modal]").forEach((button) => {
+        button.addEventListener("click", () => closeModal(button.dataset.closeModal));
+      });
+
+      $("openMyRequestsBtn").addEventListener("click", async () => {
+        openModal("myRequestsModal");
+        await renderRequests();
+      });
+
+      document.querySelectorAll("[data-type]").forEach((button) => {
+        button.addEventListener("click", () => openRequestForm(button.dataset.type));
+      });
+
+      $("requestForm").addEventListener("submit", async (event) => {
+        event.preventDefault();
+
+        const msg = $("requestMsg");
+        const dataPayload = buildPayload(currentType);
+        const typeForApi = apiRequestType(currentType);
+
+        const localRow = {
+          local_id: "local-" + Date.now(),
+          id: "local-" + Date.now(),
+          request_type: currentType,
+          request_title: typeLabels[currentType] || "طلب",
+          request_data: dataPayload,
+          status: "pending",
+          created_at: new Date().toISOString(),
+          submitted_at: new Date().toISOString()
+        };
+
+        msg.textContent = "جاري إرسال الطلب...";
+        msg.className = "request-submit-message";
+
+        try {
+          const response = await api("/leaves", {
+            method: "POST",
+            body: JSON.stringify({
+              request_type: typeForApi,
+              status: "pending",
+              request_data: dataPayload
+            })
+          });
+
+          saveLocalRequest(response.request || localRow);
+
+          msg.textContent = "تم إرسال الطلب بنجاح وتمت إضافته إلى طلباتي";
+          msg.className = "request-submit-message ok";
+        } catch (error) {
+          saveLocalRequest(localRow);
+
+          msg.textContent = "تمت إضافة الطلب إلى طلباتي محليًا، لكن ظهر خطأ اتصال: " + error.message;
+          msg.className = "request-submit-message err";
+        }
+
+        event.target.reset();
+
+        setTimeout(async () => {
+          closeModal("requestFormModal");
+          openModal("myRequestsModal");
+          await renderRequests();
+        }, 600);
+      });
+    }
+
+    initPage();
+  </script>
+</body>
+</html>

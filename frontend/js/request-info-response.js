@@ -48,8 +48,6 @@
     if (!request?.id || String(request.id).startsWith("local-")) return "";
     return `
       <div class="detail-box-local" style="grid-column:1/-1;background:#fff8f8;border-color:#ffd9d9">
-        <span>إلغاء الطلب</span>
-        <strong>يمكنك إلغاء الطلب لأنه لا يزال قيد الانتظار. عند الإلغاء سيتم حذفه نهائيًا من قاعدة البيانات ولن يظهر في طلباتك.</strong>
         <button id="cancelPendingRequestBtn" class="view-request-btn" type="button" style="margin-top:12px;background:#d93025">إلغاء الطلب</button>
         <p id="cancelRequestMsg" class="request-submit-message"></p>
       </div>

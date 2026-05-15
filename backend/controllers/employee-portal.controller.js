@@ -33,13 +33,35 @@ const requireEmployee = async (req, res) => {
   return employeeId;
 };
 
+const ensureAttendanceUniqueIndex = async () => {
+  await pool.query(`CREATE INDEX IF NOT EXISTS attendance_employee_date_idx ON attendance_records(employee_id, attendance_date DESC)`);
+  await pool.query(`
+    WITH ranked AS (
+      SELECT id,
+             ROW_NUMBER() OVER (
+               PARTITION BY employee_id, attendance_date
+               ORDER BY
+                 CASE WHEN check_in IS NOT NULL OR check_out IS NOT NULL THEN 0 ELSE 1 END,
+                 updated_at DESC NULLS LAST,
+                 id DESC
+             ) AS rn
+      FROM attendance_records
+      WHERE employee_id IS NOT NULL AND attendance_date IS NOT NULL
+    )
+    DELETE FROM attendance_records a
+    USING ranked r
+    WHERE a.id = r.id AND r.rn > 1
+  `);
+  await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS attendance_records_employee_date_unique_idx ON attendance_records(employee_id, attendance_date)`);
+};
+
 const ensurePortalSchema = async () => {
   await pool.query(`ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS source VARCHAR(40) DEFAULT 'system'`);
   await pool.query(`ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
   await pool.query(`ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS late_minutes INTEGER DEFAULT 0`);
   await pool.query(`ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS overtime_minutes INTEGER DEFAULT 0`);
   await pool.query(`ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS overtime_type VARCHAR(40)`);
-  await pool.query(`CREATE INDEX IF NOT EXISTS attendance_employee_date_idx ON attendance_records(employee_id, attendance_date DESC)`);
+  await ensureAttendanceUniqueIndex();
   await pool.query(`
     CREATE TABLE IF NOT EXISTS finance_employee_settings (
       id SERIAL PRIMARY KEY,

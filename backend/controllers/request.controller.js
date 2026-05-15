@@ -44,6 +44,7 @@ const ensureRequestSchema = async () => {
     )
   `);
   await pool.query(`CREATE INDEX IF NOT EXISTS employee_requests_employee_idx ON employee_requests(employee_id)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS employee_requests_created_by_idx ON employee_requests(created_by)`);
   await pool.query(`CREATE INDEX IF NOT EXISTS employee_requests_status_idx ON employee_requests(status)`);
   await pool.query(`CREATE INDEX IF NOT EXISTS employee_requests_type_idx ON employee_requests(request_type)`);
   await pool.query(`CREATE INDEX IF NOT EXISTS employee_requests_updated_idx ON employee_requests(updated_at DESC)`);
@@ -59,10 +60,14 @@ const currentMonth = () => new Date().toISOString().slice(0, 7);
 
 const getCurrentEmployeeId = async (req) => {
   if (req.user?.employee_id) return Number(req.user.employee_id);
-  const user = await pool.query(`SELECT employee_id, employee_number FROM users WHERE id=$1::int`, [asInt(req.user?.id) || 0]);
+  const user = await pool.query(`SELECT employee_id, employee_number, email FROM users WHERE id=$1::int`, [asInt(req.user?.id) || 0]);
   if (user.rows[0]?.employee_id) return Number(user.rows[0].employee_id);
   if (user.rows[0]?.employee_number) {
     const employee = await pool.query(`SELECT id FROM employees WHERE employee_number=$1::text`, [String(user.rows[0].employee_number)]);
+    return employee.rows[0]?.id ? Number(employee.rows[0].id) : null;
+  }
+  if (user.rows[0]?.email) {
+    const employee = await pool.query(`SELECT id FROM employees WHERE LOWER(email)=LOWER($1) LIMIT 1`, [user.rows[0].email]);
     return employee.rows[0]?.id ? Number(employee.rows[0].id) : null;
   }
   return null;
@@ -228,13 +233,14 @@ const getRequests = async (req, res) => {
     await ensureRequestSchema();
     const access = await getAccess(req);
     const employeeId = await getCurrentEmployeeId(req);
+    const userId = asInt(req.user?.id) || 0;
     let where = ""; const params = [];
     if (canAny(access, ["requests.view.all", "requests.manage"])) where = "";
     else if (can(access, "requests.view.department")) {
       const departmentId = await getPrimaryDepartmentId(employeeId);
-      if (!departmentId) { where = "WHERE r.employee_id=$1::int"; params.push(asInt(employeeId) || 0); }
-      else { where = "WHERE r.department_id=$1::int OR r.employee_id=$2::int"; params.push(asInt(departmentId), asInt(employeeId) || 0); }
-    } else { where = "WHERE r.employee_id=$1::int"; params.push(asInt(employeeId) || 0); }
+      if (!departmentId) { where = "WHERE r.employee_id=$1::int OR r.created_by=$2::int"; params.push(asInt(employeeId) || 0, userId); }
+      else { where = "WHERE r.department_id=$1::int OR r.employee_id=$2::int OR r.created_by=$3::int"; params.push(asInt(departmentId), asInt(employeeId) || 0, userId); }
+    } else { where = "WHERE r.employee_id=$1::int OR r.created_by=$2::int"; params.push(asInt(employeeId) || 0, userId); }
     const result = await pool.query(`${baseSelect} ${where} ORDER BY CASE WHEN r.status='pending' THEN 0 WHEN r.status='needs_info' THEN 1 ELSE 2 END, r.id DESC LIMIT 150`, params);
     res.status(200).json({ requests: result.rows });
   } catch (error) { res.status(500).json({ error: error.message }); }
@@ -249,8 +255,9 @@ const getRequestById = async (req, res) => {
     if (!result.rows.length) return res.status(404).json({ error: "الطلب غير موجود" });
     const request = result.rows[0];
     const sameEmployee = Number(request.employee_id) === Number(employeeId);
+    const sameCreator = Number(request.created_by) === Number(req.user?.id);
     const sameDepartment = request.department_id && Number(request.department_id) === await getPrimaryDepartmentId(employeeId);
-    if (!sameEmployee && !canAny(access, ["requests.view.all", "requests.manage"]) && !(sameDepartment && can(access, "requests.view.department"))) return res.status(403).json({ error: "لا تملك صلاحية الوصول" });
+    if (!sameEmployee && !sameCreator && !canAny(access, ["requests.view.all", "requests.manage"]) && !(sameDepartment && can(access, "requests.view.department"))) return res.status(403).json({ error: "لا تملك صلاحية الوصول" });
     const logs = await pool.query(`SELECT * FROM employee_request_action_logs WHERE request_id=$1::int ORDER BY id ASC`, [asInt(req.params.id)]);
     res.status(200).json({ request, logs: logs.rows });
   } catch (error) { res.status(500).json({ error: error.message }); }

@@ -43,18 +43,8 @@ const getUsers = async (req, res) => {
       ORDER BY l.id DESC
       LIMIT 50
     `);
-    res.status(200).json({
-      users: result.rows,
-      available_permissions: PERMISSIONS,
-      permission_definitions: PERMISSION_DEFINITIONS,
-      role_labels: ROLE_LABELS,
-      permission_logs: logs.rows,
-      limit,
-      offset,
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+    res.status(200).json({ users: result.rows, available_permissions: PERMISSIONS, permission_definitions: PERMISSION_DEFINITIONS, role_labels: ROLE_LABELS, permission_logs: logs.rows, limit, offset });
+  } catch (error) { res.status(500).json({ error: error.message }); }
 };
 
 const createUser = async (req, res) => {
@@ -63,11 +53,9 @@ const createUser = async (req, res) => {
     const { full_name, email, password, role, employee_number, employee_id } = req.body;
     const roles = normalizeArray(req.body.roles || role);
     const permissions = normalizeArray(req.body.permissions);
-
     if (!full_name || !password || !roles.length) return res.status(400).json({ error: "جميع الحقول مطلوبة" });
     if (roles.some((item) => !allowedRoles.includes(item))) return res.status(400).json({ error: "يوجد دور غير صحيح" });
     if (permissions.some((item) => !PERMISSIONS.includes(item))) return res.status(400).json({ error: "يوجد صلاحية غير صحيحة" });
-
     if (email) {
       const existingEmail = await pool.query(`SELECT id FROM users WHERE email = $1`, [email]);
       if (existingEmail.rows.length > 0) return res.status(400).json({ error: "البريد الإلكتروني مستخدم مسبقًا" });
@@ -76,25 +64,19 @@ const createUser = async (req, res) => {
       const existingNumber = await pool.query(`SELECT id FROM users WHERE employee_number = $1`, [employee_number]);
       if (existingNumber.rows.length > 0) return res.status(400).json({ error: "رقم الموظف مستخدم مسبقًا" });
     }
-
     const hashedPassword = await bcrypt.hash(password, 10);
     const primaryRole = roles[0];
     const safeEmail = email || `${employee_number || Date.now()}@internal.local`;
     const result = await pool.query(
-      `
-      INSERT INTO users (full_name, email, employee_number, employee_id, password_hash, role, roles, permissions, direct_denied_permissions)
-      VALUES ($1, $2, $3, $4, $5, $6, $7::text[], $8::text[], ARRAY[]::text[])
-      RETURNING id, full_name, email, employee_number, employee_id, role, roles, permissions, direct_denied_permissions, is_active, created_at
-      `,
+      `INSERT INTO users (full_name, email, employee_number, employee_id, password_hash, role, roles, permissions, direct_denied_permissions)
+       VALUES ($1, $2, $3, $4, $5, $6, $7::text[], $8::text[], ARRAY[]::text[])
+       RETURNING id, full_name, email, employee_number, employee_id, role, roles, permissions, direct_denied_permissions, is_active, created_at`,
       [full_name, safeEmail, employee_number || null, employee_id || null, hashedPassword, primaryRole, roles, permissions]
     );
-
     invalidatePermissionCache();
     await writePermissionLog(req.user?.id, result.rows[0].id, "تم إنشاء مستخدم", null, result.rows[0]);
     res.status(201).json({ message: "تم إنشاء المستخدم بنجاح", user: result.rows[0] });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+  } catch (error) { res.status(500).json({ error: error.message }); }
 };
 
 const updateUserAccess = async (req, res) => {
@@ -105,64 +87,53 @@ const updateUserAccess = async (req, res) => {
     const permissions = normalizeArray(req.body.permissions);
     const deniedPermissions = normalizeArray(req.body.direct_denied_permissions || req.body.denied_permissions);
     const isActive = req.body.is_active;
-
     if (!roles.length) return res.status(400).json({ error: "يجب اختيار دور واحد على الأقل" });
     if (roles.some((item) => !allowedRoles.includes(item))) return res.status(400).json({ error: "يوجد دور غير صحيح" });
     if (permissions.some((item) => !PERMISSIONS.includes(item))) return res.status(400).json({ error: "يوجد صلاحية غير صحيحة" });
     if (deniedPermissions.some((item) => !PERMISSIONS.includes(item))) return res.status(400).json({ error: "يوجد استثناء صلاحية غير صحيح" });
-
     const oldResult = await pool.query(`SELECT id, roles, permissions, direct_denied_permissions, is_active FROM users WHERE id = $1`, [id]);
     if (!oldResult.rows.length) return res.status(404).json({ error: "المستخدم غير موجود" });
     const oldValue = oldResult.rows[0];
-
-    if (Number(id) === Number(req.user?.id) && !roles.includes("admin") && !permissions.includes("permissions.manage") && !permissions.includes("users.manage_permissions")) {
-      return res.status(400).json({ error: "لا يمكنك إزالة صلاحياتك الحرجة من حسابك الحالي" });
-    }
-
+    if (Number(id) === Number(req.user?.id) && !roles.includes("admin") && !permissions.includes("permissions.manage") && !permissions.includes("users.manage_permissions")) return res.status(400).json({ error: "لا يمكنك إزالة صلاحياتك الحرجة من حسابك الحالي" });
     if (oldValue.roles?.includes("admin") && !roles.includes("admin")) {
       const adminCount = await pool.query(`SELECT COUNT(*)::int AS count FROM users WHERE roles @> ARRAY['admin']::text[] AND id <> $1 AND COALESCE(is_active,true)=true`, [id]);
       if (adminCount.rows[0].count < 1) return res.status(400).json({ error: "لا يمكن إزالة آخر مدير للنظام" });
     }
-
     const result = await pool.query(
-      `
-      UPDATE users
-      SET role = $1,
-          roles = $2::text[],
-          permissions = $3::text[],
-          direct_denied_permissions = $4::text[],
-          is_active = COALESCE($5, is_active)
-      WHERE id = $6
-      RETURNING id, full_name, email, employee_number, employee_id, role, roles, permissions, direct_denied_permissions, is_active, created_at
-      `,
+      `UPDATE users SET role = $1, roles = $2::text[], permissions = $3::text[], direct_denied_permissions = $4::text[], is_active = COALESCE($5, is_active)
+       WHERE id = $6
+       RETURNING id, full_name, email, employee_number, employee_id, role, roles, permissions, direct_denied_permissions, is_active, created_at`,
       [roles[0], roles, permissions, deniedPermissions, typeof isActive === "boolean" ? isActive : null, id]
     );
-
     invalidatePermissionCache();
     await writePermissionLog(req.user?.id, id, "تم تعديل الصلاحيات", oldValue, result.rows[0]);
     res.status(200).json({ message: "تم تحديث صلاحيات المستخدم بنجاح", user: result.rows[0] });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+  } catch (error) { res.status(500).json({ error: error.message }); }
 };
 
 const getMyAccess = async (req, res) => {
   try {
     const access = await getUserAccess(req.user.id, req.user, { force: true });
-    res.status(200).json({
-      roles: access.roles,
-      permissions: access.permissions,
-      direct_permissions: access.direct_permissions,
-      direct_denied_permissions: access.direct_denied_permissions,
-      role_permissions: access.role_permissions,
-      job_title: access.job_title,
-      job_title_permissions: access.job_title_permissions,
-      employee_id: access.employee_id,
-      employee_number: access.employee_number,
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+    res.status(200).json({ roles: access.roles, permissions: access.permissions, direct_permissions: access.direct_permissions, direct_denied_permissions: access.direct_denied_permissions, role_permissions: access.role_permissions, job_title: access.job_title, job_title_permissions: access.job_title_permissions, employee_id: access.employee_id, employee_number: access.employee_number });
+  } catch (error) { res.status(500).json({ error: error.message }); }
 };
 
-module.exports = { getUsers, createUser, updateUserAccess, getMyAccess };
+const updateMyCredential = async (req, res) => {
+  try {
+    const currentSecret = String(req.body.current_password || req.body.current || "");
+    const nextSecret = String(req.body.new_password || req.body.next || "");
+    const confirmSecret = String(req.body.confirm_password || req.body.confirm || "");
+    if (!currentSecret || !nextSecret || !confirmSecret) return res.status(400).json({ error: "كل حقول تغيير كلمة المرور مطلوبة" });
+    if (nextSecret.length < 6) return res.status(400).json({ error: "كلمة المرور الجديدة يجب أن تكون 6 أحرف على الأقل" });
+    if (nextSecret !== confirmSecret) return res.status(400).json({ error: "تأكيد كلمة المرور غير مطابق" });
+    const result = await pool.query(`SELECT id, password_hash FROM users WHERE id=$1`, [req.user.id]);
+    if (!result.rows.length) return res.status(404).json({ error: "المستخدم غير موجود" });
+    const valid = await bcrypt.compare(currentSecret, result.rows[0].password_hash);
+    if (!valid) return res.status(401).json({ error: "كلمة المرور الحالية غير صحيحة" });
+    const hashed = await bcrypt.hash(nextSecret, 10);
+    await pool.query(`UPDATE users SET password_hash=$1 WHERE id=$2`, [hashed, req.user.id]);
+    res.status(200).json({ message: "تم تغيير كلمة المرور بنجاح" });
+  } catch (error) { res.status(500).json({ error: error.message }); }
+};
+
+module.exports = { getUsers, createUser, updateUserAccess, getMyAccess, updateMyCredential };

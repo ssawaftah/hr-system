@@ -29,10 +29,17 @@ window.navigationConfig=[
 ];
 
 window.addEventListener('load',()=>{
-  if(!/my-requests\.html(?:$|[?#])/.test(window.location.pathname+window.location.search))return;
-  if(document.querySelector('script[data-request-info-helper="true"]'))return;
-  const script=document.createElement('script');
-  script.src='./js/request-info-response.js?v=req-info-1';
-  script.dataset.requestInfoHelper='true';
-  document.body.appendChild(script);
+  const page=window.location.pathname+window.location.search;
+  if(/my-requests\.html(?:$|[?#])/.test(page)&&!document.querySelector('script[data-request-info-helper="true"]')){
+    const script=document.createElement('script');
+    script.src='./js/request-info-response.js?v=req-info-2';
+    script.dataset.requestInfoHelper='true';
+    document.body.appendChild(script);
+  }
+  if(/leaves\.html(?:$|[?#])/.test(page)&&!document.querySelector('script[data-admin-request-status-helper="true"]')){
+    const script=document.createElement('script');
+    script.src='./js/admin-request-status-helper.js?v=submitted-info-1';
+    script.dataset.adminRequestStatusHelper='true';
+    document.body.appendChild(script);
+  }
 });

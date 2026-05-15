@@ -430,7 +430,62 @@
         <button id="logoutBtn" class="logout-btn">تسجيل الخروج</button>
       </header>
 
-      
+      <section id="requestsHomeScreen" class="requests-home-screen">
+        
+
+        <button id="openRequestsListBtn" class="main-requests-btn">طلباتي</button>
+
+        <section class="">
+          <div class="section-header">
+            <div>
+              <h2>تقديم طلب جديد</h2>
+              <p>اختر نوع الطلب من الكروت التالية.</p>
+            </div>
+          </div>
+
+          <div class="request-types-grid">
+            <button class="request-type-card" data-type="leave">
+              <span class="request-icon">🏖️</span>
+              <span>طلب إجازة</span>
+            </button>
+
+            <button class="request-type-card" data-type="exit">
+              <span class="request-icon">🚪</span>
+              <span>طلب مغادرة</span>
+            </button>
+
+            <button class="request-type-card" data-type="overtime">
+              <span class="request-icon">⏱️</span>
+              <span>طلب عمل إضافي</span>
+            </button>
+
+            <button class="request-type-card" data-type="advance">
+              <span class="request-icon">💵</span>
+              <span>طلب سلفة</span>
+            </button>
+
+            <button class="request-type-card" data-type="complaint">
+              <span class="request-icon">📣</span>
+              <span>طلب شكوى</span>
+            </button>
+
+            <button class="request-type-card" data-type="resignation">
+              <span class="request-icon">👤✖</span>
+              <span>طلب استقالة</span>
+            </button>
+
+            <button class="request-type-card" data-type="custom_allowance">
+              <span class="request-icon">✨</span>
+              <span>مخصصات أخرى</span>
+            </button>
+
+            <button class="request-type-card" data-type="custom">
+              <span class="request-icon">🏠</span>
+              <span>طلبات أخرى</span>
+            </button>
+          </div>
+        </section>
+      </section>
 
       <section id="requestsListScreen" class="requests-list-screen">
         <button id="backToRequestsHome" class="back-btn">رجوع</button>

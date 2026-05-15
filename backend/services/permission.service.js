@@ -1,158 +1,55 @@
 const pool = require("../db");
 
-const PERMISSION_DEFINITIONS = [
-  { key: "dashboard.view", label: "عرض الرئيسية", module: "الرئيسية" },
-  { key: "system.admin", label: "إدارة النظام بالكامل", module: "النظام" },
-  { key: "system.health.view", label: "عرض حالة النظام", module: "النظام" },
-  { key: "users.view", label: "عرض الحسابات الداخلية", module: "النظام" },
-  { key: "users.create", label: "إنشاء حساب داخلي", module: "النظام" },
-  { key: "users.manage_permissions", label: "إدارة صلاحيات الحسابات", module: "النظام" },
-  { key: "permissions.view", label: "عرض مركز الصلاحيات", module: "الصلاحيات" },
-  { key: "permissions.manage", label: "إدارة مركز الصلاحيات", module: "الصلاحيات" },
-  { key: "permissions.assign_roles", label: "إسناد الأدوار", module: "الصلاحيات" },
-  { key: "permissions.remove_roles", label: "إزالة الأدوار", module: "الصلاحيات" },
-  { key: "permissions.assign_permissions", label: "إسناد صلاحيات مباشرة", module: "الصلاحيات" },
-  { key: "permissions.remove_permissions", label: "إزالة صلاحيات مباشرة", module: "الصلاحيات" },
-  { key: "permissions.view_logs", label: "عرض سجل الصلاحيات", module: "الصلاحيات" },
-  { key: "job_titles.view", label: "عرض المسميات الوظيفية", module: "المسميات الوظيفية" },
-  { key: "job_titles.create", label: "إنشاء مسمى وظيفي", module: "المسميات الوظيفية" },
-  { key: "job_titles.update", label: "تعديل مسمى وظيفي", module: "المسميات الوظيفية" },
-  { key: "job_titles.delete", label: "حذف مسمى وظيفي", module: "المسميات الوظيفية" },
-  { key: "job_titles.disable", label: "تعطيل مسمى وظيفي", module: "المسميات الوظيفية" },
-  { key: "job_titles.manage_permissions", label: "تحديد صلاحيات المسمى الوظيفي", module: "المسميات الوظيفية" },
+const MODULES = {
+  dashboard: "الرئيسية",
+  system: "النظام",
+  users: "النظام",
+  permissions: "الصلاحيات",
+  job_titles: "المسميات الوظيفية",
+  employee_permissions: "صلاحيات الموظفين",
+  employees: "الموظفون",
+  departments: "الأقسام",
+  attendance: "الحضور والانصراف",
+  requests: "الطلبات",
+  shifts: "الشفتات",
+  finance: "المالية",
+  salaries: "الرواتب",
+  reports: "التقارير",
+  notifications: "الإشعارات",
+  announcements: "الإعلانات",
+  settings: "الإعدادات",
+};
 
-  { key: "employee_permissions.view", label: "عرض صلاحيات الموظفين", module: "صلاحيات الموظفين" },
-  { key: "employee_permissions.manage", label: "إدارة صلاحيات الموظفين", module: "صلاحيات الموظفين" },
-  { key: "employee_permissions.add_direct", label: "إضافة صلاحية مباشرة لموظف", module: "صلاحيات الموظفين" },
-  { key: "employee_permissions.deny", label: "استثناء صلاحية من موظف", module: "صلاحيات الموظفين" },
-  { key: "employee_permissions.remove_direct", label: "إزالة صلاحية مباشرة", module: "صلاحيات الموظفين" },
-  { key: "employee_permissions.remove_denied", label: "إزالة استثناء صلاحية", module: "صلاحيات الموظفين" },
-
-  { key: "employees.view", label: "عرض دليل الموظفين", module: "الموظفون" },
-  { key: "employees.view.self", label: "عرض بياناتي الوظيفية", module: "الموظفون" },
-  { key: "employees.view.department", label: "عرض موظفي القسم", module: "الموظفون" },
-  { key: "employees.view.all", label: "عرض كل الموظفين", module: "الموظفون" },
-  { key: "employees.create", label: "إنشاء موظف", module: "الموظفون" },
-  { key: "employees.update", label: "تعديل موظف", module: "الموظفون" },
-  { key: "employees.delete", label: "حذف موظف", module: "الموظفون" },
-  { key: "employees.disable", label: "تعطيل موظف", module: "الموظفون" },
-  { key: "employees.assign_departments", label: "ربط الموظف بالأقسام", module: "الموظفون" },
-  { key: "employees.manage_login", label: "إدارة دخول الموظف", module: "الموظفون" },
-  { key: "employees.reset_password", label: "إعادة تعيين كلمة مرور موظف", module: "الموظفون" },
-  { key: "employees.manage_roles", label: "إدارة أدوار الموظف", module: "الموظفون" },
-  { key: "employees.manage_permissions", label: "إدارة صلاحيات الموظف", module: "الموظفون" },
-  { key: "employees.view_financial_basic", label: "عرض البيانات المالية الأساسية", module: "الموظفون" },
-
-  { key: "departments.view", label: "عرض الأقسام", module: "الأقسام" },
-  { key: "departments.manage", label: "إدارة الأقسام", module: "الأقسام" },
-  { key: "departments.create", label: "إنشاء قسم", module: "الأقسام" },
-  { key: "departments.update", label: "تعديل قسم", module: "الأقسام" },
-  { key: "departments.delete", label: "حذف قسم", module: "الأقسام" },
-  { key: "departments.disable", label: "تعطيل قسم", module: "الأقسام" },
-
-  { key: "attendance.view", label: "فتح صفحة الحضور", module: "الحضور والانصراف" },
-  { key: "attendance.view.self", label: "عرض حضوري فقط", module: "الحضور والانصراف" },
-  { key: "attendance.view.department", label: "عرض حضور موظفي القسم", module: "الحضور والانصراف" },
-  { key: "attendance.view.all", label: "عرض حضور جميع الموظفين", module: "الحضور والانصراف" },
-  { key: "attendance.create", label: "إضافة سجل حضور", module: "الحضور والانصراف" },
-  { key: "attendance.check.self", label: "تسجيل حضوري وانصرافي", module: "الحضور والانصراف" },
-  { key: "attendance.manual_add", label: "إضافة حضور يدوي", module: "الحضور والانصراف" },
-  { key: "attendance.manual_edit", label: "تعديل حضور يدوي", module: "الحضور والانصراف" },
-  { key: "attendance.delete", label: "حذف سجل حضور", module: "الحضور والانصراف" },
-  { key: "attendance.export", label: "تصدير سجلات الحضور", module: "الحضور والانصراف" },
-  { key: "attendance.manage", label: "إدارة الحضور بالكامل", module: "الحضور والانصراف" },
-
-  { key: "requests.view.self", label: "عرض طلباتي", module: "الطلبات" },
-  { key: "requests.view.department", label: "عرض طلبات القسم", module: "الطلبات" },
-  { key: "requests.view.all", label: "عرض كل الطلبات", module: "الطلبات" },
-  { key: "requests.create.self", label: "إنشاء طلب شخصي", module: "الطلبات" },
-  { key: "requests.update.self_draft", label: "تعديل مسودة طلب شخصي", module: "الطلبات" },
-  { key: "requests.cancel.self_pending", label: "إلغاء طلبي قيد الانتظار", module: "الطلبات" },
-  { key: "requests.approve.department", label: "اعتماد طلبات القسم", module: "الطلبات" },
-  { key: "requests.approve.all", label: "اعتماد كل الطلبات", module: "الطلبات" },
-  { key: "requests.reject.department", label: "رفض طلبات القسم", module: "الطلبات" },
-  { key: "requests.reject.all", label: "رفض كل الطلبات", module: "الطلبات" },
-  { key: "requests.cancel.department", label: "إلغاء طلبات القسم", module: "الطلبات" },
-  { key: "requests.cancel.all", label: "إلغاء كل الطلبات", module: "الطلبات" },
-  { key: "requests.request_info", label: "طلب معلومات إضافية", module: "الطلبات" },
-  { key: "requests.comment", label: "إضافة تعليق على الطلب", module: "الطلبات" },
-  { key: "requests.view_logs", label: "عرض سجل إجراءات الطلب", module: "الطلبات" },
-  { key: "requests.export", label: "تصدير الطلبات", module: "الطلبات" },
-  { key: "requests.manage", label: "إدارة الطلبات بالكامل", module: "الطلبات" },
-
-  { key: "shifts.view", label: "عرض الشفتات", module: "الشفتات" },
-  { key: "shifts.create", label: "إنشاء شفت", module: "الشفتات" },
-  { key: "shifts.update", label: "تعديل شفت", module: "الشفتات" },
-  { key: "shifts.archive", label: "أرشفة شفت", module: "الشفتات" },
-  { key: "shifts.delete", label: "حذف شفت", module: "الشفتات" },
-  { key: "shifts.assign", label: "ربط موظفين بالشفت", module: "الشفتات" },
-  { key: "shifts.assign_employees", label: "ربط الموظفين بالشفتات - قديم", module: "الشفتات" },
-  { key: "shifts.remove_employee", label: "إزالة موظف من الشفت", module: "الشفتات" },
-  { key: "shifts.move_employee", label: "نقل موظف إلى شفت آخر", module: "الشفتات" },
-  { key: "shifts.view_week_distribution", label: "عرض توزيع الأسبوع", module: "الشفتات" },
-  { key: "shifts.export", label: "تصدير جداول الشفتات", module: "الشفتات" },
-  { key: "shifts.manage", label: "إدارة الشفتات بالكامل", module: "الشفتات" },
-
-  { key: "finance.view", label: "فتح صفحة المالية", module: "المالية" },
-  { key: "finance.dashboard.view", label: "عرض لوحة المالية", module: "المالية" },
-  { key: "finance.settings.view", label: "عرض إعدادات الرواتب", module: "المالية" },
-  { key: "finance.settings.manage", label: "تعديل إعدادات راتب الموظف", module: "المالية" },
-  { key: "finance.payroll_slips.view", label: "عرض كشوف الرواتب", module: "المالية" },
-  { key: "finance.payroll_slips.view_all", label: "عرض كل كشوف الرواتب", module: "المالية" },
-  { key: "finance.payroll_slips.create", label: "إنشاء كشف راتب", module: "المالية" },
-  { key: "finance.payroll_slips.edit", label: "تعديل بنود كشف الراتب", module: "المالية" },
-  { key: "finance.payroll_slips.recalculate", label: "إعادة حساب كشف راتب", module: "المالية" },
-  { key: "finance.payroll_slips.review", label: "إرسال/مراجعة كشف راتب", module: "المالية" },
-  { key: "finance.payroll_slips.approve", label: "اعتماد كشف راتب", module: "المالية" },
-  { key: "finance.payroll_slips.mark_paid", label: "تسجيل كشف كمدفوع", module: "المالية" },
-  { key: "finance.payroll_slips.publish", label: "نشر كشف راتب", module: "المالية" },
-  { key: "finance.advances.view", label: "عرض السلف", module: "المالية" },
-  { key: "finance.advances.create", label: "إنشاء سلفة", module: "المالية" },
-  { key: "finance.advances.manage", label: "إدارة السلف والأقساط", module: "المالية" },
-  { key: "finance.payments.view", label: "عرض سجل المدفوعات", module: "المالية" },
-  { key: "finance.reports.view", label: "عرض التقارير المالية", module: "المالية" },
-  { key: "finance.export", label: "تصدير بيانات المالية", module: "المالية" },
-
-  { key: "salaries.view", label: "عرض الرواتب القديمة", module: "الرواتب" },
-  { key: "salaries.create", label: "إنشاء راتب قديم", module: "الرواتب" },
-  { key: "salaries.review", label: "مراجعة راتب قديم", module: "الرواتب" },
-  { key: "salaries.approve", label: "اعتماد راتب قديم", module: "الرواتب" },
-  { key: "salaries.publish", label: "نشر راتب قديم", module: "الرواتب" },
-  { key: "salaries.delete", label: "حذف راتب قديم", module: "الرواتب" },
-
-  { key: "reports.view", label: "فتح صفحة التقارير", module: "التقارير" },
-  { key: "reports.view.self", label: "عرض تقاريري فقط", module: "التقارير" },
-  { key: "reports.view.department", label: "عرض تقارير القسم", module: "التقارير" },
-  { key: "reports.view.all", label: "عرض كل التقارير", module: "التقارير" },
-  { key: "reports.salary", label: "عرض تقارير الرواتب", module: "التقارير" },
-  { key: "reports.attendance", label: "عرض تقارير الحضور", module: "التقارير" },
-  { key: "reports.export", label: "تصدير التقارير", module: "التقارير" },
-
-  { key: "notifications.view.self", label: "عرض إشعاراتي", module: "الإشعارات" },
-  { key: "notifications.manage", label: "إدارة الإشعارات", module: "الإشعارات" },
-
-  { key: "announcements.view.self", label: "عرض الإعلانات الموجهة لي", module: "الإعلانات" },
-  { key: "announcements.view.department", label: "عرض إعلانات القسم", module: "الإعلانات" },
-  { key: "announcements.view.all", label: "عرض كل الإعلانات", module: "الإعلانات" },
-  { key: "announcements.create", label: "إنشاء إعلان", module: "الإعلانات" },
-  { key: "announcements.create.general.company", label: "إنشاء إعلان عام لكل الشركة", module: "الإعلانات" },
-  { key: "announcements.create.general.department", label: "إنشاء إعلان عام لقسمي/قسم محدد", module: "الإعلانات" },
-  { key: "announcements.create.private.department", label: "إنشاء إعلان خاص لقسم", module: "الإعلانات" },
-  { key: "announcements.create.private.employee", label: "إنشاء إعلان خاص لموظف داخل القسم", module: "الإعلانات" },
-  { key: "announcements.create.private.all_departments", label: "إنشاء إعلان خاص لأي قسم أو موظف", module: "الإعلانات" },
-  { key: "announcements.publish", label: "نشر إعلان", module: "الإعلانات" },
-  { key: "announcements.update.own", label: "تعديل إعلاناتي", module: "الإعلانات" },
-  { key: "announcements.update.all", label: "تعديل كل الإعلانات", module: "الإعلانات" },
-  { key: "announcements.archive", label: "أرشفة إعلان", module: "الإعلانات" },
-  { key: "announcements.delete.own", label: "حذف/أرشفة إعلاناتي", module: "الإعلانات" },
-  { key: "announcements.delete.all", label: "حذف/أرشفة كل الإعلانات", module: "الإعلانات" },
-  { key: "announcements.manage", label: "إدارة الإعلانات بالكامل", module: "الإعلانات" },
-
-  { key: "settings.view", label: "عرض الإعدادات", module: "الإعدادات" },
-  { key: "settings.manage", label: "إدارة الإعدادات", module: "الإعدادات" },
+const permissionKeys = [
+  "dashboard.view", "system.admin", "system.health.view",
+  "users.view", "users.create", "users.manage_permissions",
+  "permissions.view", "permissions.manage", "permissions.assign_roles", "permissions.remove_roles", "permissions.assign_permissions", "permissions.remove_permissions", "permissions.view_logs",
+  "job_titles.view", "job_titles.create", "job_titles.update", "job_titles.delete", "job_titles.disable", "job_titles.manage_permissions",
+  "employee_permissions.view", "employee_permissions.manage", "employee_permissions.add_direct", "employee_permissions.deny", "employee_permissions.remove_direct", "employee_permissions.remove_denied",
+  "employees.view", "employees.view.self", "employees.view.department", "employees.view.all", "employees.create", "employees.update", "employees.delete", "employees.disable", "employees.assign_departments", "employees.manage_login", "employees.reset_password", "employees.manage_roles", "employees.manage_permissions", "employees.view_financial_basic",
+  "departments.view", "departments.manage", "departments.create", "departments.update", "departments.delete", "departments.disable",
+  "attendance.view", "attendance.view.self", "attendance.view.department", "attendance.view.all", "attendance.create", "attendance.check.self", "attendance.manual_add", "attendance.manual_edit", "attendance.delete", "attendance.export", "attendance.manage",
+  "requests.view.self", "requests.view.department", "requests.view.all", "requests.create.self", "requests.update.self_draft", "requests.cancel.self_pending", "requests.approve.department", "requests.approve.all", "requests.reject.department", "requests.reject.all", "requests.cancel.department", "requests.cancel.all", "requests.request_info", "requests.comment", "requests.view_logs", "requests.export", "requests.manage",
+  "shifts.view", "shifts.create", "shifts.update", "shifts.archive", "shifts.delete", "shifts.assign", "shifts.assign_employees", "shifts.remove_employee", "shifts.move_employee", "shifts.view_week_distribution", "shifts.export", "shifts.manage",
+  "finance.view", "finance.dashboard.view", "finance.settings.view", "finance.settings.manage", "finance.payroll_slips.view", "finance.payroll_slips.view_all", "finance.payroll_slips.create", "finance.payroll_slips.edit", "finance.payroll_slips.recalculate", "finance.payroll_slips.review", "finance.payroll_slips.approve", "finance.payroll_slips.mark_paid", "finance.payroll_slips.publish", "finance.advances.view", "finance.advances.create", "finance.advances.manage", "finance.payments.view", "finance.reports.view", "finance.export",
+  "salaries.view", "salaries.create", "salaries.review", "salaries.approve", "salaries.publish", "salaries.delete",
+  "reports.view", "reports.view.self", "reports.view.department", "reports.view.all", "reports.salary", "reports.attendance", "reports.export",
+  "notifications.view.self", "notifications.manage",
+  "announcements.view.self", "announcements.view.department", "announcements.view.all", "announcements.create", "announcements.create.general.company", "announcements.create.general.department", "announcements.create.private.department", "announcements.create.private.employee", "announcements.create.private.all_departments", "announcements.publish", "announcements.update.own", "announcements.update.all", "announcements.archive", "announcements.delete.own", "announcements.delete.all", "announcements.manage",
+  "settings.view", "settings.manage",
 ];
 
+const labelFromKey = (key) => {
+  const map = {
+    view: "عرض", create: "إنشاء", update: "تعديل", delete: "حذف", manage: "إدارة", all: "الكل", self: "ذاتي", department: "القسم", archive: "أرشفة", assign: "ربط", remove: "إزالة", move: "نقل", approve: "اعتماد", reject: "رفض", cancel: "إلغاء", export: "تصدير", publish: "نشر", edit: "تعديل", recalculate: "إعادة حساب", review: "مراجعة",
+  };
+  return key.split(".").map((part) => map[part] || part.replace(/_/g, " ")).join(" - ");
+};
+
+const moduleFromKey = (key) => MODULES[key.split(".")[0]] || "النظام";
+const PERMISSION_DEFINITIONS = permissionKeys.map((key) => ({ key, label: labelFromKey(key), module: moduleFromKey(key) }));
 const PERMISSIONS = PERMISSION_DEFINITIONS.map((permission) => permission.key);
+
 const ROLE_PERMISSIONS = {
   admin: PERMISSIONS,
   employee: ["dashboard.view", "employees.view.self", "requests.view.self", "requests.create.self", "requests.cancel.self_pending", "attendance.view.self", "attendance.check.self", "notifications.view.self", "announcements.view.self", "reports.view.self", "finance.payroll_slips.view"],
@@ -160,6 +57,7 @@ const ROLE_PERMISSIONS = {
   hr: ["dashboard.view", "employees.view", "employees.view.all", "employees.create", "employees.update", "employees.assign_departments", "employees.manage_login", "employees.manage_roles", "employees.manage_permissions", "departments.view", "departments.manage", "departments.create", "departments.update", "departments.disable", "attendance.view", "attendance.view.all", "attendance.create", "attendance.manual_add", "attendance.manual_edit", "attendance.delete", "requests.view.all", "requests.approve.all", "requests.reject.all", "requests.cancel.all", "requests.request_info", "requests.comment", "requests.manage", "shifts.view", "shifts.create", "shifts.update", "shifts.archive", "shifts.assign", "shifts.remove_employee", "shifts.move_employee", "shifts.view_week_distribution", "shifts.manage", "reports.view", "reports.view.all", "reports.attendance", "notifications.view.self", "announcements.view.self", "announcements.view.all", "announcements.create.general.company", "announcements.create.general.department", "announcements.create.private.department", "announcements.create.private.employee", "announcements.update.own", "announcements.archive", "job_titles.view"],
   finance: ["dashboard.view", "finance.view", "finance.dashboard.view", "finance.settings.view", "finance.settings.manage", "finance.payroll_slips.view", "finance.payroll_slips.view_all", "finance.payroll_slips.create", "finance.payroll_slips.edit", "finance.payroll_slips.recalculate", "finance.payroll_slips.review", "finance.advances.view", "finance.advances.create", "finance.advances.manage", "finance.payments.view", "finance.reports.view", "salaries.view", "salaries.create", "salaries.review", "employees.view_financial_basic", "reports.view", "reports.salary", "notifications.view.self", "announcements.view.self"],
 };
+
 const ROLE_LABELS = { admin: "مدير النظام", employee: "موظف", manager: "مدير قسم", hr: "الموارد البشرية", finance: "المالية" };
 const DEFAULT_JOB_TITLES = [
   { name: "عامل", code: "worker", description: "صلاحيات موظف أساسية", default_permissions: ROLE_PERMISSIONS.employee },
@@ -221,3 +119,79 @@ const ensurePermissionSchema = async () => {
 const getRolePermissions = async (roles) => {
   const cleanRoles = unique(roles).sort();
   if (!cleanRoles.length) return [];
+  const cacheKey = cleanRoles.join("|");
+  if (rolePermissionsCache.has(cacheKey)) return rolePermissionsCache.get(cacheKey);
+  await ensurePermissionSchema();
+  const result = await pool.query(`SELECT permission_key FROM role_permissions WHERE role_key = ANY($1::text[])`, [cleanRoles]);
+  const permissions = unique([...cleanRoles.flatMap((role) => ROLE_PERMISSIONS[role] || []), ...result.rows.map((row) => row.permission_key)]);
+  rolePermissionsCache.set(cacheKey, permissions);
+  return permissions;
+};
+
+const getJobTitleAccess = async (employeeId) => {
+  if (!employeeId) return { job_title: null, permissions: [] };
+  await ensurePermissionSchema();
+  const result = await pool.query(`
+    SELECT jt.id, jt.name, jt.code, jt.default_permissions
+    FROM employees e
+    LEFT JOIN job_titles jt ON jt.id = e.job_title_id
+    WHERE e.id = $1
+    LIMIT 1
+  `, [employeeId]);
+  const jobTitle = result.rows[0] || null;
+  return { job_title: jobTitle, permissions: unique(jobTitle?.default_permissions || []) };
+};
+
+const getUserAccess = async (userId, fallbackUser = null, options = {}) => {
+  const cacheKey = String(userId || fallbackUser?.id || "");
+  if (!options.force && accessCache.has(cacheKey)) {
+    const cached = accessCache.get(cacheKey);
+    if (Date.now() - cached.time < ACCESS_CACHE_MS) return cached.access;
+  }
+  await ensurePermissionSchema();
+  const result = await pool.query(`SELECT id, role, roles, permissions, direct_denied_permissions, employee_id, employee_number, is_active FROM users WHERE id=$1 LIMIT 1`, [userId || fallbackUser?.id]);
+  const user = result.rows[0] || fallbackUser || {};
+  const roles = unique(user.roles || user.role || []);
+  const direct = unique(user.permissions || []);
+  const denied = unique(user.direct_denied_permissions || []);
+  const rolePermissions = await getRolePermissions(roles);
+  const job = await getJobTitleAccess(user.employee_id);
+  let permissions = roles.includes("admin") ? [...PERMISSIONS] : unique([...rolePermissions, ...job.permissions, ...direct]);
+  if (!roles.includes("admin")) permissions = permissions.filter((permission) => !denied.includes(permission));
+  const access = {
+    user_id: user.id || userId,
+    roles,
+    permissions,
+    direct_permissions: direct,
+    direct_denied_permissions: denied,
+    role_permissions: rolePermissions,
+    job_title: job.job_title,
+    job_title_permissions: job.permissions,
+    employee_id: user.employee_id || null,
+    employee_number: user.employee_number || null,
+    is_active: user.is_active !== false,
+  };
+  accessCache.set(cacheKey, { time: Date.now(), access });
+  return access;
+};
+
+const hasPermissionValue = (accessOrPermissions, permission) => {
+  if (!permission) return true;
+  const permissions = Array.isArray(accessOrPermissions) ? accessOrPermissions : (accessOrPermissions?.permissions || []);
+  const roles = Array.isArray(accessOrPermissions) ? [] : (accessOrPermissions?.roles || []);
+  return roles.includes("admin") || permissions.includes("system.admin") || permissions.includes(permission);
+};
+
+module.exports = {
+  PERMISSIONS,
+  PERMISSION_DEFINITIONS,
+  ROLE_PERMISSIONS,
+  ROLE_LABELS,
+  ensurePermissionSchema,
+  normalizeArray,
+  unique,
+  getRolePermissions,
+  getUserAccess,
+  hasPermissionValue,
+  invalidatePermissionCache,
+};

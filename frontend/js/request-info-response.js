@@ -22,12 +22,46 @@
     try { return new Date(value).toLocaleString("ar-JO", { hour12: false }); } catch (_) { return String(value); }
   };
 
+  const isPending = (request) => {
+    const value = typeof requestStatus === "function" ? requestStatus(request) : request?.status;
+    return value === "pending";
+  };
+
+  const isNeedsInfo = (request) => {
+    const value = typeof requestStatus === "function" ? requestStatus(request) : request?.status;
+    return value === "needs_info";
+  };
+
+  const removeLocalRequest = (id) => {
+    try {
+      const keys = ["hr_employee_requests_local_echo_v1", "hr_employee_requests_local_echo_v2", "hr_employee_requests_local_echo_v3"];
+      for (const key of keys) {
+        const rows = JSON.parse(localStorage.getItem(key) || "[]");
+        const filtered = rows.filter((row) => String(row.id || row.local_id) !== String(id));
+        localStorage.setItem(key, JSON.stringify(filtered));
+      }
+    } catch (_) {}
+  };
+
+  const renderCancelPanel = (request) => {
+    if (!isPending(request)) return "";
+    if (!request?.id || String(request.id).startsWith("local-")) return "";
+    return `
+      <div class="detail-box-local" style="grid-column:1/-1;background:#fff8f8;border-color:#ffd9d9">
+        <span>إلغاء الطلب</span>
+        <strong>يمكنك إلغاء الطلب لأنه لا يزال قيد الانتظار. عند الإلغاء سيتم حذفه نهائيًا من قاعدة البيانات ولن يظهر في طلباتك.</strong>
+        <button id="cancelPendingRequestBtn" class="view-request-btn" type="button" style="margin-top:12px;background:#d93025">إلغاء الطلب</button>
+        <p id="cancelRequestMsg" class="request-submit-message"></p>
+      </div>
+    `;
+  };
+
   const renderInfoRequestPanel = (request, logs = []) => {
     const infoLog = latestInfoRequest(logs);
     const infoText = valueOf(infoLog?.comment, infoLog?.reason, request?.final_decision_reason, "لم يتم تحديد معلومات مطلوبة.");
     const infoDate = formatLogDate(infoLog?.created_at);
 
-    if ((request?.status || requestStatus?.(request)) !== "needs_info") {
+    if (!isNeedsInfo(request)) {
       return [
         box("آخر طلب معلومات", infoText === "لم يتم تحديد معلومات مطلوبة." ? "لا يوجد" : infoText),
         box("تاريخ طلب المعلومات", infoText === "لم يتم تحديد معلومات مطلوبة." ? "-" : infoDate)
@@ -45,8 +79,6 @@
       </div>
     `;
   };
-
-  const originalShowDetails = window.showDetails;
 
   window.showDetails = async (row) => {
     const content = document.getElementById("requestDetailsContent");
@@ -78,9 +110,36 @@
       box("نوع الطلب", typeName),
       box("تاريخ التقديم", requestDate),
       box("الحالة", statusName),
+      renderCancelPanel(request),
       renderInfoRequestPanel(request, logs),
       body
     ].join("");
+
+    const cancelBtn = document.getElementById("cancelPendingRequestBtn");
+    if (cancelBtn) {
+      cancelBtn.onclick = async () => {
+        const msg = document.getElementById("cancelRequestMsg");
+        const ok = confirm("هل أنت متأكد من إلغاء الطلب؟ سيتم حذفه نهائيًا ولن يظهر مرة أخرى.");
+        if (!ok) return;
+        cancelBtn.disabled = true;
+        msg.textContent = "جاري إلغاء الطلب...";
+        msg.className = "request-submit-message";
+        try {
+          await api(`/leaves/${request.id}/self-cancel`, { method: "POST", body: JSON.stringify({}) });
+          removeLocalRequest(request.id);
+          msg.textContent = "تم إلغاء الطلب وحذفه بنجاح.";
+          msg.className = "request-submit-message ok";
+          if (typeof reloadRequestsAndRender === "function") await reloadRequestsAndRender();
+          setTimeout(() => {
+            document.getElementById("requestDetailsModal")?.classList.remove("is-open");
+          }, 650);
+        } catch (error) {
+          msg.textContent = error.message || "تعذر إلغاء الطلب";
+          msg.className = "request-submit-message err";
+          cancelBtn.disabled = false;
+        }
+      };
+    }
 
     const sendBtn = document.getElementById("sendInfoReplyBtn");
     if (sendBtn) {

@@ -111,6 +111,23 @@ const ensureShiftSchema = async (client = pool) => {
   await client.query(`CREATE INDEX IF NOT EXISTS employee_shift_assignments_shift_idx ON employee_shift_assignments(shift_id)`);
   await client.query(`
     WITH ranked AS (
+      SELECT id,
+             ROW_NUMBER() OVER (PARTITION BY employee_id ORDER BY updated_at DESC NULLS LAST, id DESC) AS rn
+      FROM employee_shift_assignments
+      WHERE is_active = true AND effective_to IS NULL
+    )
+    UPDATE employee_shift_assignments esa
+    SET is_active=false,
+        effective_to=CURRENT_DATE,
+        removed_at=CURRENT_TIMESTAMP,
+        removal_reason='تنظيف تلقائي لتكرار ارتباط مفتوح',
+        updated_at=CURRENT_TIMESTAMP
+    FROM ranked r
+    WHERE esa.id=r.id AND r.rn > 1
+  `);
+  await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS employee_shift_one_open_assignment_idx ON employee_shift_assignments(employee_id) WHERE is_active = true AND effective_to IS NULL`);
+  await client.query(`
+    WITH ranked AS (
       SELECT id, ROW_NUMBER() OVER (ORDER BY id ASC) AS rn FROM work_shifts WHERE is_default = true AND is_active = true
     )
     UPDATE work_shifts SET is_default = false WHERE id IN (SELECT id FROM ranked WHERE rn > 1)
@@ -213,15 +230,22 @@ const getWeekDistribution = async (client, defaultShift) => {
 const findConflicts = async (client, employeeIds, shiftId, effectiveFrom, effectiveTo, excludeAssignmentId = null) => {
   if (!employeeIds.length) return [];
   const result = await client.query(
-    `SELECT esa.id, esa.employee_id, e.full_name AS employee_name, e.employee_number, ws.name AS shift_name, esa.effective_from, esa.effective_to
+    `SELECT esa.id, esa.employee_id, e.full_name AS employee_name, e.employee_number, ws.name AS shift_name, esa.effective_from, esa.effective_to,
+            ws.work_days AS existing_work_days, target.work_days AS target_work_days
      FROM employee_shift_assignments esa
      JOIN employees e ON e.id = esa.employee_id
      JOIN work_shifts ws ON ws.id = esa.shift_id
+     JOIN work_shifts target ON target.id = $2::int
      WHERE esa.is_active = true
        AND esa.employee_id = ANY($1::int[])
        AND ($2::int IS NULL OR esa.shift_id <> $2)
        AND ($5::int IS NULL OR esa.id <> $5)
        AND NOT (COALESCE(esa.effective_to, DATE '9999-12-31') < $3::date OR COALESCE($4::date, DATE '9999-12-31') < esa.effective_from)
+       AND EXISTS (
+         SELECT 1
+         FROM jsonb_array_elements_text(ws.work_days) existing_day(day)
+         JOIN jsonb_array_elements_text(target.work_days) target_day(day) ON target_day.day = existing_day.day
+       )
      ORDER BY e.full_name ASC`,
     [employeeIds, shiftId || null, effectiveFrom || todayIso(), effectiveTo || null, excludeAssignmentId || null]
   );
@@ -333,7 +357,7 @@ const assignShift = async (req, res) => {
     const shift = await client.query(`SELECT * FROM work_shifts WHERE id=$1 AND is_active=true`, [shift_id]);
     if (!shift.rows.length) { await client.query("ROLLBACK"); return res.status(404).json({ error: "الشفت غير موجود أو مؤرشف" }); }
     const conflicts = await findConflicts(client, employeeIds, Number(shift_id), effective_from || todayIso(), effective_to || null);
-    if (conflicts.length && !transferExisting) { await client.query("ROLLBACK"); return res.status(409).json({ error: "يوجد موظفون مرتبطون بشفت آخر في نفس الفترة", code: "SHIFT_ASSIGNMENT_CONFLICT", conflicts }); }
+    if (conflicts.length && !transferExisting) { await client.query("ROLLBACK"); return res.status(409).json({ error: "يوجد موظفون مرتبطون بشفت آخر في نفس الفترة وبأيام عمل متداخلة", code: "SHIFT_ASSIGNMENT_CONFLICT", conflicts }); }
     if (conflicts.length && transferExisting) {
       await client.query(`UPDATE employee_shift_assignments SET is_active=false, effective_to=COALESCE($2::date - INTERVAL '1 day', CURRENT_DATE), updated_at=CURRENT_TIMESTAMP WHERE employee_id = ANY($1::int[]) AND is_active=true`, [employeeIds, effective_from || todayIso()]);
     }
@@ -375,7 +399,7 @@ const moveAssignment = async (req, res) => {
     if (!old.rows.length) { await client.query("ROLLBACK"); return res.status(404).json({ error: "ارتباط الشفت غير موجود أو غير نشط" }); }
     if (!new_shift_id) { await client.query("ROLLBACK"); return res.status(400).json({ error: "الشفت الجديد مطلوب" }); }
     const conflicts = await findConflicts(client, [old.rows[0].employee_id], Number(new_shift_id), effective_from || todayIso(), effective_to || null, Number(id));
-    if (conflicts.length) { await client.query("ROLLBACK"); return res.status(409).json({ error: "الموظف مرتبط بشفت آخر في نفس الفترة", code: "SHIFT_ASSIGNMENT_CONFLICT", conflicts }); }
+    if (conflicts.length) { await client.query("ROLLBACK"); return res.status(409).json({ error: "الموظف مرتبط بشفت آخر في نفس الفترة وبأيام عمل متداخلة", code: "SHIFT_ASSIGNMENT_CONFLICT", conflicts }); }
     await client.query(`UPDATE employee_shift_assignments SET is_active=false, effective_to=COALESCE($2::date - INTERVAL '1 day', CURRENT_DATE), updated_at=CURRENT_TIMESTAMP WHERE id=$1`, [id, effective_from || todayIso()]);
     const created = await client.query(`INSERT INTO employee_shift_assignments (employee_id, shift_id, effective_from, effective_to, is_active, updated_at) VALUES ($1,$2,$3,$4,true,CURRENT_TIMESTAMP) RETURNING *`, [old.rows[0].employee_id, new_shift_id, effective_from || todayIso(), effective_to || null]);
     await writeAuditLog(client, req, "تم نقل موظف إلى شفت آخر", Number(new_shift_id), old.rows[0], created.rows[0]);

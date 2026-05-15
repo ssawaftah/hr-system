@@ -679,18 +679,103 @@
       return row.status || "pending";
     }
 
-    function requestDetailsText(row) {
-      const data = row.request_data || {};
-      const parts = [];
+function calculateDays(from, to) {
+  if (!from || !to) return "-";
+  const start = new Date(from);
+  const end = new Date(to);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return "-";
+  const diff = Math.floor((end - start) / 86400000) + 1;
+  return diff > 0 ? `${diff} يوم` : "-";
+}
 
-      Object.entries(data).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && value !== "") {
-          parts.push(`${key}: ${value}`);
-        }
-      });
+function leaveTypeLabel(value) {
+  return {
+    annual: "سنوية",
+    sick: "مرضية",
+    emergency: "طارئة",
+    unpaid: "بدون راتب"
+  }[value] || value || "-";
+}
 
-      return parts.join(" | ") || row.request_title || "لا توجد تفاصيل إضافية";
-    }
+function exitTypeLabel(value) {
+  return {
+    personal: "شخصية",
+    work: "عمل",
+    medical: "طبية"
+  }[value] || value || "-";
+}
+
+function deductionMethodLabel(value) {
+  return {
+    one_time: "مرة واحدة",
+    installments: "أقساط"
+  }[value] || value || "-";
+}
+
+function requestDetailBoxes(row) {
+  const data = row.request_data || {};
+  const type = requestType(row);
+
+  if (type === "leave") {
+    return [
+      detailBox("من تاريخ", data.start_date || "-"),
+      detailBox("إلى تاريخ", data.end_date || "-"),
+      detailBox("المدة", calculateDays(data.start_date, data.end_date)),
+      detailBox("نوع الإجازة", leaveTypeLabel(data.leave_type)),
+      detailBox("السبب", data.reason || "-"),
+      detailBox("الحالة", statusLabels[requestStatus(row)] || requestStatus(row))
+    ].join("");
+  }
+
+  if (type === "exit") {
+    return [
+      detailBox("تاريخ المغادرة", data.exit_date || "-"),
+      detailBox("وقت المغادرة", data.exit_time || "-"),
+      detailBox("وقت العودة", data.return_time || "-"),
+      detailBox("نوع المغادرة", exitTypeLabel(data.exit_type)),
+      detailBox("السبب", data.reason || "-"),
+      detailBox("الحالة", statusLabels[requestStatus(row)] || requestStatus(row))
+    ].join("");
+  }
+
+  if (type === "advance") {
+    return [
+      detailBox("المبلغ", data.amount ? `${Number(data.amount).toFixed(2)}` : "-"),
+      detailBox("طريقة الخصم", deductionMethodLabel(data.deduction_method)),
+      detailBox("عدد الأقساط", data.installments_count || "-"),
+      detailBox("شهر بداية الخصم", data.deduction_start_month || "-"),
+      detailBox("السبب", data.reason || "-"),
+      detailBox("الحالة", statusLabels[requestStatus(row)] || requestStatus(row))
+    ].join("");
+  }
+
+  if (type === "overtime") {
+    return [
+      detailBox("التاريخ", data.overtime_date || "-"),
+      detailBox("من الساعة", data.from_time || "-"),
+      detailBox("إلى الساعة", data.to_time || "-"),
+      detailBox("السبب", data.reason || "-"),
+      detailBox("ملاحظات", data.notes || "-"),
+      detailBox("الحالة", statusLabels[requestStatus(row)] || requestStatus(row))
+    ].join("");
+  }
+
+  if (type === "resignation") {
+    return [
+      detailBox("آخر يوم عمل", data.last_working_day || "-"),
+      detailBox("السبب", data.reason || "-"),
+      detailBox("ملاحظات", data.notes || "-"),
+      detailBox("الحالة", statusLabels[requestStatus(row)] || requestStatus(row))
+    ].join("");
+  }
+
+  return [
+    detailBox("العنوان", data.title || row.request_title || "-"),
+    detailBox("السبب", data.reason || "-"),
+    detailBox("التفاصيل", data.details || data.notes || "-"),
+    detailBox("الحالة", statusLabels[requestStatus(row)] || requestStatus(row))
+  ].join("");
+}
 
     function requestFields(type) {
       if (type === "leave") {
@@ -987,16 +1072,14 @@
     }
 
     function showDetails(row) {
-      $("requestDetailsContent").innerHTML = [
-        detailBox("نوع الطلب", typeLabels[requestType(row)] || row.request_title || "طلب"),
-        detailBox("الحالة", statusLabels[requestStatus(row)] || requestStatus(row)),
-        detailBox("التاريخ", formatDate(row.created_at || row.submitted_at)),
-        detailBox("العنوان", row.request_title || "-"),
-        detailBox("التفاصيل", requestDetailsText(row))
-      ].join("");
+  $("requestDetailsContent").innerHTML = [
+    detailBox("نوع الطلب", typeLabels[requestType(row)] || row.request_title || "طلب"),
+    detailBox("تاريخ التقديم", formatDate(row.created_at || row.submitted_at)),
+    requestDetailBoxes(row)
+  ].join("");
 
-      $("requestDetailsModal").classList.add("is-open");
-    }
+  $("requestDetailsModal").classList.add("is-open");
+}
 
     function openRequestForm(type) {
       currentType = type;

@@ -8,6 +8,7 @@ const {
   actOnRequest,
   deleteRequest,
 } = require("../controllers/request.controller");
+const { deleteSelfPendingRequest: selfCancelPendingRequest } = require("../controllers/self-request-delete.controller");
 
 const authMiddleware = require("../middlewares/auth.middleware");
 const permissionMiddleware = require("../middlewares/permission.middleware");
@@ -35,6 +36,7 @@ const actionPermissions = permissionMiddleware(
 
 router.patch("/:id/action", authMiddleware, normalizeRequestPayload, normalizeStoredRequestPayload, actionPermissions, actOnRequest);
 router.put("/:id/action", authMiddleware, normalizeRequestPayload, normalizeStoredRequestPayload, actionPermissions, actOnRequest);
+router.post("/:id/self-cancel", authMiddleware, permissionMiddleware("requests.view.self", "requests.create.self", "requests.cancel.self_pending", "requests.manage"), selfCancelPendingRequest);
 router.delete("/:id", authMiddleware, permissionMiddleware("requests.manage"), deleteRequest);
 
 module.exports = router;

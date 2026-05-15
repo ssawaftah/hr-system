@@ -1,13 +1,40 @@
 const pool = require("../db");
+const { getUserAccess, hasPermissionValue } = require("../services/permission.service");
 
 const DEFAULT_SHIFT_START = "07:00";
 const DEFAULT_ABSENT_AFTER_MINUTES = 180;
+
+const asInt = (value) => (value === undefined || value === null || value === "" ? null : Number(value));
+const can = (access, permission) => hasPermissionValue(access, permission);
+const canAny = (access, permissions) => permissions.some((permission) => can(access, permission));
 
 const ensureAttendanceSchema = async () => {
   await pool.query(`ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS source VARCHAR(40) DEFAULT 'system'`);
   await pool.query(`ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
   await pool.query(`ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS leave_request_id INTEGER`);
   await pool.query(`ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS absence_reason TEXT`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS attendance_employee_date_idx ON attendance_records(employee_id, attendance_date DESC)`);
+  await pool.query(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_indexes
+        WHERE schemaname = 'public' AND indexname = 'attendance_records_employee_date_unique_idx'
+      ) THEN
+        DELETE FROM attendance_records a
+        USING attendance_records b
+        WHERE a.employee_id=b.employee_id
+          AND a.attendance_date=b.attendance_date
+          AND a.id < b.id
+          AND a.check_in IS NULL
+          AND a.check_out IS NULL;
+        CREATE UNIQUE INDEX attendance_records_employee_date_unique_idx
+        ON attendance_records(employee_id, attendance_date);
+      END IF;
+    EXCEPTION WHEN unique_violation THEN
+      NULL;
+    END $$;
+  `);
 };
 
 const ensureShiftSchema = async () => {
@@ -36,6 +63,33 @@ const ensureShiftSchema = async () => {
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `);
+};
+
+const getCurrentEmployeeId = async (req) => {
+  if (req.user?.employee_id) return Number(req.user.employee_id);
+  const user = await pool.query(`SELECT employee_id, employee_number, email FROM users WHERE id=$1 LIMIT 1`, [asInt(req.user?.id) || 0]);
+  if (user.rows[0]?.employee_id) return Number(user.rows[0].employee_id);
+  if (user.rows[0]?.employee_number) {
+    const employee = await pool.query(`SELECT id FROM employees WHERE employee_number=$1 LIMIT 1`, [String(user.rows[0].employee_number)]);
+    if (employee.rows[0]?.id) return Number(employee.rows[0].id);
+  }
+  if (user.rows[0]?.email) {
+    const employee = await pool.query(`SELECT id FROM employees WHERE email=$1 LIMIT 1`, [user.rows[0].email]);
+    if (employee.rows[0]?.id) return Number(employee.rows[0].id);
+  }
+  return null;
+};
+
+const getPrimaryDepartmentId = async (employeeId) => {
+  if (!employeeId) return null;
+  const result = await pool.query(
+    `SELECT COALESCE(ed.department_id, e.department_id) AS department_id
+     FROM employees e
+     LEFT JOIN employee_departments ed ON ed.employee_id=e.id AND ed.is_primary=true
+     WHERE e.id=$1 LIMIT 1`,
+    [employeeId]
+  );
+  return result.rows[0]?.department_id ? Number(result.rows[0].department_id) : null;
 };
 
 const ammanNowParts = () => {
@@ -101,38 +155,22 @@ const findApprovedLeaveForDate = async (employeeId, date) => {
 };
 
 const upsertAutoAttendance = async ({ employeeId, date, status, source, notes, leaveRequestId = null, absenceReason = null }) => {
-  const existing = await pool.query(
-    `SELECT id, check_in, check_out FROM attendance_records WHERE employee_id = $1 AND attendance_date = $2 ORDER BY id DESC LIMIT 1`,
-    [employeeId, date]
-  );
-
-  if (existing.rows.length === 0) {
-    await pool.query(
-      `
-      INSERT INTO attendance_records
-      (employee_id, attendance_date, check_in, check_out, status, notes, source, leave_request_id, absence_reason, updated_at)
-      VALUES ($1, $2, NULL, NULL, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP)
-      `,
-      [employeeId, date, status, notes, source, leaveRequestId, absenceReason]
-    );
-    return;
-  }
-
-  const row = existing.rows[0];
-  if (row.check_in || row.check_out) return;
-
+  await ensureAttendanceSchema();
   await pool.query(
     `
-    UPDATE attendance_records
-    SET status = $1,
-        notes = $2,
-        source = $3,
-        leave_request_id = $4,
-        absence_reason = $5,
-        updated_at = CURRENT_TIMESTAMP
-    WHERE id = $6
+    INSERT INTO attendance_records
+    (employee_id, attendance_date, check_in, check_out, status, notes, source, leave_request_id, absence_reason, updated_at)
+    VALUES ($1, $2, NULL, NULL, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP)
+    ON CONFLICT (employee_id, attendance_date)
+    DO UPDATE SET
+      status = CASE WHEN attendance_records.check_in IS NULL AND attendance_records.check_out IS NULL THEN EXCLUDED.status ELSE attendance_records.status END,
+      notes = CASE WHEN attendance_records.check_in IS NULL AND attendance_records.check_out IS NULL THEN EXCLUDED.notes ELSE attendance_records.notes END,
+      source = CASE WHEN attendance_records.check_in IS NULL AND attendance_records.check_out IS NULL THEN EXCLUDED.source ELSE attendance_records.source END,
+      leave_request_id = CASE WHEN attendance_records.check_in IS NULL AND attendance_records.check_out IS NULL THEN EXCLUDED.leave_request_id ELSE attendance_records.leave_request_id END,
+      absence_reason = CASE WHEN attendance_records.check_in IS NULL AND attendance_records.check_out IS NULL THEN EXCLUDED.absence_reason ELSE attendance_records.absence_reason END,
+      updated_at = CURRENT_TIMESTAMP
     `,
-    [status, notes, source, leaveRequestId, absenceReason, row.id]
+    [employeeId, date, status, notes, source, leaveRequestId, absenceReason]
   );
 };
 
@@ -179,6 +217,23 @@ const getAttendance = async (req, res) => {
   try {
     await ensureAttendanceSchema();
     if (req.query.auto !== "0") await materializeTodayAttendance();
+
+    const access = await getUserAccess(req.user.id, req.user);
+    const currentEmployeeId = await getCurrentEmployeeId(req);
+    const departmentId = await getPrimaryDepartmentId(currentEmployeeId);
+    const params = [];
+    let where = "";
+
+    if (canAny(access, ["attendance.view.all", "attendance.manage"])) {
+      where = "";
+    } else if (can(access, "attendance.view.department") && departmentId) {
+      params.push(departmentId, currentEmployeeId || 0);
+      where = "WHERE pd.id = $1 OR a.employee_id = $2";
+    } else {
+      params.push(currentEmployeeId || 0);
+      where = "WHERE a.employee_id = $1";
+    }
+
     const result = await pool.query(`
       SELECT
         a.id,
@@ -211,8 +266,9 @@ const getAttendance = async (req, res) => {
       LEFT JOIN departments sd ON sd.id = esd.department_id
       LEFT JOIN employee_shift_assignments esa ON esa.employee_id = e.id AND esa.is_active = true AND esa.effective_from <= a.attendance_date AND (esa.effective_to IS NULL OR esa.effective_to >= a.attendance_date)
       LEFT JOIN work_shifts ws ON ws.id = esa.shift_id
+      ${where}
       ORDER BY a.attendance_date DESC, a.id DESC
-    `);
+    `, params);
 
     res.status(200).json({ attendance: result.rows });
   } catch (error) {
@@ -234,12 +290,21 @@ const createAttendance = async (req, res) => {
       INSERT INTO attendance_records
       (employee_id, attendance_date, check_in, check_out, status, notes, source, absence_reason, updated_at)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP)
+      ON CONFLICT (employee_id, attendance_date)
+      DO UPDATE SET
+        check_in = COALESCE(EXCLUDED.check_in, attendance_records.check_in),
+        check_out = COALESCE(EXCLUDED.check_out, attendance_records.check_out),
+        status = EXCLUDED.status,
+        notes = EXCLUDED.notes,
+        source = EXCLUDED.source,
+        absence_reason = EXCLUDED.absence_reason,
+        updated_at = CURRENT_TIMESTAMP
       RETURNING *
       `,
       [employee_id, attendance_date, check_in || null, check_out || null, status || "present", notes || null, source || "system", absence_reason || null]
     );
 
-    res.status(201).json({ message: "تم تسجيل الحضور بنجاح", record: result.rows[0] });
+    res.status(201).json({ message: "تم حفظ سجل الحضور بنجاح", record: result.rows[0] });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

@@ -90,6 +90,12 @@ const getPrimaryDepartmentId = async (employeeId) => {
   return result.rows[0]?.department_id ? Number(result.rows[0].department_id) : null;
 };
 
+const isSameDepartmentRequest = async (request, actorEmployeeId) => {
+  if (!request?.department_id || !actorEmployeeId) return false;
+  const departmentId = await getPrimaryDepartmentId(actorEmployeeId);
+  return Number(request.department_id) === Number(departmentId);
+};
+
 const dateRange = (startDate, endDate) => {
   const dates = [];
   const start = new Date(startDate);
@@ -282,14 +288,37 @@ const actOnRequest = async (req, res) => {
     const request = existing.rows[0];
     const action = String(req.body.action || "");
     const note = String(req.body.note || req.body.comment || req.body.reason || "").trim();
+    const sameDepartment = await isSameDepartmentRequest(request, employeeId);
     let newStatus = request.status;
-    if (action === "approve") { if (!canAny(access, ["requests.approve.all", "requests.manage"])) return res.status(403).json({ error: "لا تملك صلاحية تنفيذ هذا الإجراء" }); await ensureEnoughLeaveBalance(request.employee_id, request.request_type, request.request_data || {}); newStatus = "approved"; }
-    else if (action === "reject") { if (!canAny(access, ["requests.reject.all", "requests.manage"])) return res.status(403).json({ error: "لا تملك صلاحية تنفيذ هذا الإجراء" }); newStatus = "rejected"; }
-    else if (action === "cancel") { const selfCancel = Number(request.employee_id) === Number(employeeId) && request.status === "pending" && can(access, "requests.cancel.self_pending"); if (!selfCancel && !canAny(access, ["requests.cancel.all", "requests.manage"])) return res.status(403).json({ error: "لا تملك صلاحية تنفيذ هذا الإجراء" }); newStatus = "cancelled"; }
-    else if (action === "request_info") { if (!canAny(access, ["requests.request_info", "requests.manage"])) return res.status(403).json({ error: "لا تملك صلاحية تنفيذ هذا الإجراء" }); if (!note) return res.status(400).json({ error: "يرجى كتابة المعلومات المطلوبة" }); newStatus = "needs_info"; }
-    else if (action === "respond_info") { if (Number(request.employee_id) !== Number(employeeId)) return res.status(403).json({ error: "لا تملك صلاحية تنفيذ هذا الإجراء" }); if (!note) return res.status(400).json({ error: "يرجى كتابة الرد" }); newStatus = "pending"; }
-    else if (action === "comment") { if (!canAny(access, ["requests.comment", "requests.manage"]) && Number(request.employee_id) !== Number(employeeId)) return res.status(403).json({ error: "لا تملك صلاحية تنفيذ هذا الإجراء" }); if (!note) return res.status(400).json({ error: "يجب إدخال تعليق" }); }
-    else return res.status(400).json({ error: "الإجراء غير صحيح" });
+
+    if (action === "approve") {
+      const allowed = canAny(access, ["requests.approve.all", "requests.manage"]) || (sameDepartment && can(access, "requests.approve.department"));
+      if (!allowed) return res.status(403).json({ error: "لا تملك صلاحية اعتماد هذا الطلب" });
+      await ensureEnoughLeaveBalance(request.employee_id, request.request_type, request.request_data || {});
+      newStatus = "approved";
+    } else if (action === "reject") {
+      const allowed = canAny(access, ["requests.reject.all", "requests.manage"]) || (sameDepartment && can(access, "requests.reject.department"));
+      if (!allowed) return res.status(403).json({ error: "لا تملك صلاحية رفض هذا الطلب" });
+      newStatus = "rejected";
+    } else if (action === "cancel") {
+      const selfCancel = Number(request.employee_id) === Number(employeeId) && request.status === "pending" && can(access, "requests.cancel.self_pending");
+      const departmentCancel = sameDepartment && can(access, "requests.cancel.department");
+      if (!selfCancel && !departmentCancel && !canAny(access, ["requests.cancel.all", "requests.manage"])) return res.status(403).json({ error: "لا تملك صلاحية إلغاء هذا الطلب" });
+      newStatus = "cancelled";
+    } else if (action === "request_info") {
+      const allowed = canAny(access, ["requests.request_info", "requests.manage"]) && (sameDepartment || canAny(access, ["requests.view.all", "requests.manage"]));
+      if (!allowed) return res.status(403).json({ error: "لا تملك صلاحية طلب معلومات لهذا الطلب" });
+      if (!note) return res.status(400).json({ error: "يرجى كتابة المعلومات المطلوبة" });
+      newStatus = "needs_info";
+    } else if (action === "respond_info") {
+      if (Number(request.employee_id) !== Number(employeeId)) return res.status(403).json({ error: "لا تملك صلاحية تنفيذ هذا الإجراء" });
+      if (!note) return res.status(400).json({ error: "يرجى كتابة الرد" });
+      newStatus = "pending";
+    } else if (action === "comment") {
+      const allowed = Number(request.employee_id) === Number(employeeId) || canAny(access, ["requests.manage", "requests.view.all"]) || (sameDepartment && canAny(access, ["requests.comment", "requests.view.department"]));
+      if (!allowed) return res.status(403).json({ error: "لا تملك صلاحية التعليق على هذا الطلب" });
+      if (!note) return res.status(400).json({ error: "يجب إدخال تعليق" });
+    } else return res.status(400).json({ error: "الإجراء غير صحيح" });
 
     const now = new Date(); const isFinal = ["approved", "rejected", "cancelled"].includes(newStatus);
     const completedAt = ["approved", "rejected"].includes(newStatus) ? now : request.completed_at || null;

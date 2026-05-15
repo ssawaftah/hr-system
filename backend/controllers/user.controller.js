@@ -6,35 +6,11 @@ const {
   ROLE_LABELS,
   ensurePermissionSchema,
   normalizeArray,
-  ROLE_PERMISSIONS,
+  getUserAccess,
+  invalidatePermissionCache,
 } = require("../services/permission.service");
 
 const allowedRoles = Object.keys(ROLE_LABELS);
-const accessCache = new Map();
-const ACCESS_CACHE_MS = 60 * 1000;
-
-const clearAccessCache = () => accessCache.clear();
-
-const unique = (items) => Array.from(new Set((items || []).flatMap(normalizeArray)));
-
-const calculateAccessFast = async (userId, tokenUser = null) => {
-  const cacheKey = String(userId);
-  const cached = accessCache.get(cacheKey);
-  if (cached && Date.now() - cached.time < ACCESS_CACHE_MS) return cached.value;
-
-  const result = await pool.query(
-    `SELECT id, role, roles, permissions, employee_id, employee_number FROM users WHERE id = $1 LIMIT 1`,
-    [userId]
-  );
-  const dbUser = result.rows[0] || {};
-  const roles = unique([tokenUser?.roles, tokenUser?.role, dbUser.roles, dbUser.role]).filter(Boolean);
-  const directPermissions = unique(dbUser.permissions);
-  const rolePermissions = roles.flatMap((role) => ROLE_PERMISSIONS[role] || []);
-  const permissions = unique([directPermissions, rolePermissions]);
-  const value = { roles, permissions, employee_id: dbUser.employee_id, employee_number: dbUser.employee_number };
-  accessCache.set(cacheKey, { time: Date.now(), value });
-  return value;
-};
 
 const writePermissionLog = async (actorId, targetId, changeType, oldValue, newValue) => {
   await pool.query(
@@ -50,7 +26,7 @@ const getUsers = async (req, res) => {
     const limit = Math.min(Number(req.query.limit || 150), 500);
     const offset = Math.max(Number(req.query.offset || 0), 0);
     const result = await pool.query(`
-      SELECT u.id, u.full_name, u.email, u.employee_number, u.employee_id, u.role, u.roles, u.permissions, u.is_active, u.created_at,
+      SELECT u.id, u.full_name, u.email, u.employee_number, u.employee_id, u.role, u.roles, u.permissions, u.direct_denied_permissions, u.is_active, u.created_at,
              e.full_name AS employee_name
       FROM users u
       LEFT JOIN employees e ON e.id = u.employee_id
@@ -106,14 +82,14 @@ const createUser = async (req, res) => {
     const safeEmail = email || `${employee_number || Date.now()}@internal.local`;
     const result = await pool.query(
       `
-      INSERT INTO users (full_name, email, employee_number, employee_id, password_hash, role, roles, permissions)
-      VALUES ($1, $2, $3, $4, $5, $6, $7::text[], $8::text[])
-      RETURNING id, full_name, email, employee_number, employee_id, role, roles, permissions, is_active, created_at
+      INSERT INTO users (full_name, email, employee_number, employee_id, password_hash, role, roles, permissions, direct_denied_permissions)
+      VALUES ($1, $2, $3, $4, $5, $6, $7::text[], $8::text[], ARRAY[]::text[])
+      RETURNING id, full_name, email, employee_number, employee_id, role, roles, permissions, direct_denied_permissions, is_active, created_at
       `,
       [full_name, safeEmail, employee_number || null, employee_id || null, hashedPassword, primaryRole, roles, permissions]
     );
 
-    clearAccessCache();
+    invalidatePermissionCache();
     await writePermissionLog(req.user?.id, result.rows[0].id, "تم إنشاء مستخدم", null, result.rows[0]);
     res.status(201).json({ message: "تم إنشاء المستخدم بنجاح", user: result.rows[0] });
   } catch (error) {
@@ -127,13 +103,15 @@ const updateUserAccess = async (req, res) => {
     const { id } = req.params;
     const roles = normalizeArray(req.body.roles);
     const permissions = normalizeArray(req.body.permissions);
+    const deniedPermissions = normalizeArray(req.body.direct_denied_permissions || req.body.denied_permissions);
     const isActive = req.body.is_active;
 
     if (!roles.length) return res.status(400).json({ error: "يجب اختيار دور واحد على الأقل" });
     if (roles.some((item) => !allowedRoles.includes(item))) return res.status(400).json({ error: "يوجد دور غير صحيح" });
     if (permissions.some((item) => !PERMISSIONS.includes(item))) return res.status(400).json({ error: "يوجد صلاحية غير صحيحة" });
+    if (deniedPermissions.some((item) => !PERMISSIONS.includes(item))) return res.status(400).json({ error: "يوجد استثناء صلاحية غير صحيح" });
 
-    const oldResult = await pool.query(`SELECT id, roles, permissions, is_active FROM users WHERE id = $1`, [id]);
+    const oldResult = await pool.query(`SELECT id, roles, permissions, direct_denied_permissions, is_active FROM users WHERE id = $1`, [id]);
     if (!oldResult.rows.length) return res.status(404).json({ error: "المستخدم غير موجود" });
     const oldValue = oldResult.rows[0];
 
@@ -152,14 +130,15 @@ const updateUserAccess = async (req, res) => {
       SET role = $1,
           roles = $2::text[],
           permissions = $3::text[],
-          is_active = COALESCE($4, is_active)
-      WHERE id = $5
-      RETURNING id, full_name, email, employee_number, employee_id, role, roles, permissions, is_active, created_at
+          direct_denied_permissions = $4::text[],
+          is_active = COALESCE($5, is_active)
+      WHERE id = $6
+      RETURNING id, full_name, email, employee_number, employee_id, role, roles, permissions, direct_denied_permissions, is_active, created_at
       `,
-      [roles[0], roles, permissions, typeof isActive === "boolean" ? isActive : null, id]
+      [roles[0], roles, permissions, deniedPermissions, typeof isActive === "boolean" ? isActive : null, id]
     );
 
-    clearAccessCache();
+    invalidatePermissionCache();
     await writePermissionLog(req.user?.id, id, "تم تعديل الصلاحيات", oldValue, result.rows[0]);
     res.status(200).json({ message: "تم تحديث صلاحيات المستخدم بنجاح", user: result.rows[0] });
   } catch (error) {
@@ -169,8 +148,18 @@ const updateUserAccess = async (req, res) => {
 
 const getMyAccess = async (req, res) => {
   try {
-    const access = await calculateAccessFast(req.user.id, req.user);
-    res.status(200).json({ roles: access.roles, permissions: access.permissions, employee_id: access.employee_id, employee_number: access.employee_number });
+    const access = await getUserAccess(req.user.id, req.user, { force: true });
+    res.status(200).json({
+      roles: access.roles,
+      permissions: access.permissions,
+      direct_permissions: access.direct_permissions,
+      direct_denied_permissions: access.direct_denied_permissions,
+      role_permissions: access.role_permissions,
+      job_title: access.job_title,
+      job_title_permissions: access.job_title_permissions,
+      employee_id: access.employee_id,
+      employee_number: access.employee_number,
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

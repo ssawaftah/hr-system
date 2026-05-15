@@ -2,6 +2,12 @@ const pool = require('../db');
 
 const todayJordanSql = `(CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Amman')::date`;
 const nowJordanSql = `(CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Amman')::time`;
+const nowMinutesSql = `((EXTRACT(HOUR FROM (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Amman')::time)::int * 60) + EXTRACT(MINUTE FROM (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Amman')::time)::int)`;
+
+const timeToMinutes = (time, fallback = '00:00') => {
+  const [h, m] = String(time || fallback).slice(0,5).split(':').map(Number);
+  return (Number(h) || 0) * 60 + (Number(m) || 0);
+};
 
 const getCurrentEmployeeId = async (req) => {
   if (req.user?.employee_id) return Number(req.user.employee_id);
@@ -30,6 +36,10 @@ const requireEmployee = async (req, res) => {
 const ensurePortalSchema = async () => {
   await pool.query(`ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS source VARCHAR(40) DEFAULT 'system'`);
   await pool.query(`ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
+  await pool.query(`ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS late_minutes INTEGER DEFAULT 0`);
+  await pool.query(`ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS overtime_minutes INTEGER DEFAULT 0`);
+  await pool.query(`ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS overtime_type VARCHAR(40)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS attendance_employee_date_idx ON attendance_records(employee_id, attendance_date DESC)`);
   await pool.query(`
     CREATE TABLE IF NOT EXISTS finance_employee_settings (
       id SERIAL PRIMARY KEY,
@@ -40,9 +50,18 @@ const ensurePortalSchema = async () => {
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `);
-  await pool.query(`ALTER TABLE finance_employee_settings ADD COLUMN IF NOT EXISTS leave_balance_current NUMERIC(8,2) DEFAULT 14`);
-  await pool.query(`ALTER TABLE finance_employee_settings ADD COLUMN IF NOT EXISTS leave_days_consumed NUMERIC(8,2) DEFAULT 0`);
-  await pool.query(`ALTER TABLE finance_employee_settings ADD COLUMN IF NOT EXISTS exit_hours_per_leave_day NUMERIC(8,2) DEFAULT 8`);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS employee_leave_balances (
+      id SERIAL PRIMARY KEY,
+      employee_id INTEGER NOT NULL UNIQUE REFERENCES employees(id) ON DELETE CASCADE,
+      current_balance NUMERIC(8,2) DEFAULT 14,
+      consumed_days NUMERIC(8,2) DEFAULT 0,
+      remaining_days NUMERIC(8,2) DEFAULT 14,
+      updated_by INTEGER,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
 };
 
 const getCurrentShift = async (employeeId) => {
@@ -70,14 +89,16 @@ const getSelfProfile = async (req, res) => {
     await ensurePortalSchema();
     const employeeId = await requireEmployee(req, res);
     if (!employeeId) return;
+    await pool.query(`INSERT INTO employee_leave_balances (employee_id, current_balance, consumed_days, remaining_days) VALUES ($1,14,0,14) ON CONFLICT (employee_id) DO NOTHING`, [employeeId]);
     const profile = await pool.query(
       `SELECT e.*, d.name AS department_name, jt.name AS job_title_label,
-              fs.leave_balance_current, fs.leave_days_consumed,
-              COALESCE(fs.leave_balance_current,14) - COALESCE(fs.leave_days_consumed,0) AS leave_balance_remaining
+              lb.current_balance AS leave_balance_current,
+              lb.consumed_days AS leave_days_consumed,
+              lb.remaining_days AS leave_balance_remaining
        FROM employees e
        LEFT JOIN departments d ON d.id=e.department_id
        LEFT JOIN job_titles jt ON jt.id=e.job_title_id
-       LEFT JOIN finance_employee_settings fs ON fs.employee_id=e.id
+       LEFT JOIN employee_leave_balances lb ON lb.employee_id=e.id
        WHERE e.id=$1`,
       [employeeId]
     );
@@ -108,18 +129,37 @@ const checkInOut = async (req, res) => {
     const employeeId = await requireEmployee(req, res);
     if (!employeeId) return;
     const action = req.body.action === 'checkout' ? 'checkout' : 'checkin';
+    const shift = await getCurrentShift(employeeId);
+    const shiftStart = timeToMinutes(shift.start_time, '07:00');
+    const shiftEnd = timeToMinutes(shift.end_time, '15:00');
+    const grace = Number(shift.late_grace_minutes || 0);
+    const nowMinResult = await pool.query(`SELECT ${nowMinutesSql} AS minutes`);
+    const nowMinutes = Number(nowMinResult.rows[0].minutes || 0);
     const existing = await pool.query(`SELECT * FROM attendance_records WHERE employee_id=$1 AND attendance_date=${todayJordanSql} ORDER BY id DESC LIMIT 1`, [employeeId]);
+
     if (action === 'checkin') {
       if (existing.rows[0]?.check_in) return res.status(409).json({ error: 'تم تسجيل الحضور مسبقًا لهذا اليوم' });
+      const lateMinutes = Math.max(0, nowMinutes - shiftStart - grace);
+      const status = lateMinutes > 0 ? 'late' : 'present';
+      const notes = lateMinutes > 0
+        ? `تسجيل حضور من بوابة الموظف - متأخر ${lateMinutes} دقيقة عن شفت ${shift.name}`
+        : `تسجيل حضور من بوابة الموظف - ضمن وقت شفت ${shift.name}`;
       const result = existing.rows.length
-        ? await pool.query(`UPDATE attendance_records SET check_in=${nowJordanSql}, status='present', source='self_service', updated_at=CURRENT_TIMESTAMP WHERE id=$1 RETURNING *`, [existing.rows[0].id])
-        : await pool.query(`INSERT INTO attendance_records (employee_id, attendance_date, check_in, status, source, notes, updated_at) VALUES ($1, ${todayJordanSql}, ${nowJordanSql}, 'present', 'self_service', 'تسجيل حضور من بوابة الموظف', CURRENT_TIMESTAMP) RETURNING *`, [employeeId]);
-      return res.json({ message: 'تم تسجيل الحضور بنجاح', attendance: result.rows[0] });
+        ? await pool.query(`UPDATE attendance_records SET check_in=${nowJordanSql}, status=$2, source='self_service', notes=$3, late_minutes=$4, updated_at=CURRENT_TIMESTAMP WHERE id=$1 RETURNING *`, [existing.rows[0].id, status, notes, lateMinutes])
+        : await pool.query(`INSERT INTO attendance_records (employee_id, attendance_date, check_in, status, source, notes, late_minutes, updated_at) VALUES ($1, ${todayJordanSql}, ${nowJordanSql}, $2, 'self_service', $3, $4, CURRENT_TIMESTAMP) RETURNING *`, [employeeId, status, notes, lateMinutes]);
+      return res.json({ message: lateMinutes > 0 ? `تم تسجيل الحضور مع تأخير ${lateMinutes} دقيقة` : 'تم تسجيل الحضور بنجاح', attendance: result.rows[0] });
     }
+
     if (!existing.rows.length || !existing.rows[0].check_in) return res.status(400).json({ error: 'لا يمكن تسجيل الانصراف قبل تسجيل الحضور' });
     if (existing.rows[0].check_out) return res.status(409).json({ error: 'تم تسجيل الانصراف مسبقًا لهذا اليوم' });
-    const result = await pool.query(`UPDATE attendance_records SET check_out=${nowJordanSql}, updated_at=CURRENT_TIMESTAMP WHERE id=$1 RETURNING *`, [existing.rows[0].id]);
-    res.json({ message: 'تم تسجيل الانصراف بنجاح', attendance: result.rows[0] });
+    const overtimeMinutes = Math.max(0, nowMinutes - shiftEnd);
+    const isFridayResult = await pool.query(`SELECT EXTRACT(DOW FROM ${todayJordanSql})::int AS dow`);
+    const isFriday = Number(isFridayResult.rows[0].dow) === 5;
+    const overtimeType = overtimeMinutes > 0 ? (isFriday ? 'friday' : 'normal') : null;
+    const extraNote = overtimeMinutes > 0 ? ` - إضافي ${overtimeMinutes} دقيقة (${isFriday ? 'جمعة/عطلة' : 'عادي'})` : '';
+    const baseNotes = existing.rows[0].notes || 'تسجيل من بوابة الموظف';
+    const result = await pool.query(`UPDATE attendance_records SET check_out=${nowJordanSql}, overtime_minutes=$2, overtime_type=$3, notes=$4, updated_at=CURRENT_TIMESTAMP WHERE id=$1 RETURNING *`, [existing.rows[0].id, overtimeMinutes, overtimeType, `${baseNotes}${extraNote}`]);
+    res.json({ message: overtimeMinutes > 0 ? `تم تسجيل الانصراف مع احتساب ${overtimeMinutes} دقيقة إضافي` : 'تم تسجيل الانصراف بنجاح', attendance: result.rows[0] });
   } catch (error) { res.status(500).json({ error: error.message }); }
 };
 
@@ -129,7 +169,7 @@ const getSelfAttendance = async (req, res) => {
     if (!employeeId) return;
     const month = String(req.query.month || new Date().toISOString().slice(0,7));
     const result = await pool.query(
-      `SELECT attendance_date, check_in, check_out, status, notes, source, absence_reason
+      `SELECT attendance_date, check_in, check_out, status, notes, source, absence_reason, late_minutes, overtime_minutes, overtime_type
        FROM attendance_records
        WHERE employee_id=$1 AND attendance_date >= ($2 || '-01')::date AND attendance_date < (($2 || '-01')::date + INTERVAL '1 month')
        ORDER BY attendance_date ASC`,

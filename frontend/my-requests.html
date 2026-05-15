@@ -4,12 +4,17 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
   <title>الطلبات</title>
-  <link rel="stylesheet" href="./css/app.css?v=manual-1" />
+  <link rel="stylesheet" href="./css/app.css?v=my-requests-final-1" />
 
   <style>
-    .requests-mobile-page {
+    body {
+      background: #f7f9fc;
+    }
+
+    .requests-page {
       max-width: 980px;
       margin: 0 auto;
+      padding-bottom: 95px;
     }
 
     .requests-employee-hero {
@@ -60,7 +65,7 @@
       font-weight: 900;
     }
 
-    .my-requests-main-btn {
+    .main-requests-btn {
       display: block;
       width: min(680px, 100%);
       margin: 26px auto 44px;
@@ -105,98 +110,206 @@
       box-shadow: 0 18px 44px rgba(79, 154, 244, 0.18);
     }
 
-    .request-type-card .request-icon {
+    .request-icon {
       font-size: 48px;
       line-height: 1;
       color: #4f9af4;
     }
 
-    .requests-modal {
+    .requests-list-screen {
+      display: none;
+    }
+
+    .requests-list-screen.is-active {
+      display: block;
+    }
+
+    .requests-home-screen.is-hidden {
+      display: none;
+    }
+
+    .back-btn {
+      border: none;
+      background: #fff;
+      color: #111;
+      border-radius: 16px;
+      padding: 12px 18px;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 8px 26px rgba(20, 32, 60, 0.08);
+      margin-bottom: 14px;
+    }
+
+    .requests-filter-card {
+      background: #fff;
+      border-radius: 24px;
+      padding: 22px;
+      margin: 18px 0 26px;
+      box-shadow: 0 10px 35px rgba(20, 32, 60, 0.10);
+      border: 1px solid #e7ebf3;
+    }
+
+    .requests-filter-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .requests-filter-grid label {
+      display: block;
+      color: #8aa7d8;
+      font-weight: 900;
+      font-size: 22px;
+      margin-bottom: 10px;
+    }
+
+    .requests-filter-grid select {
+      width: 100%;
+      border: 3px solid #4f9af4;
+      border-radius: 18px;
+      padding: 15px 16px;
+      font-size: 22px;
+      background: #fff;
+      outline: none;
+    }
+
+    .show-results-btn {
+      width: 100%;
+      border: none;
+      border-radius: 999px;
+      padding: 18px;
+      background: linear-gradient(135deg, #4f9af4, #2f86ee);
+      color: #fff;
+      font-weight: 900;
+      font-size: 24px;
+      cursor: pointer;
+    }
+
+    .requests-table-wrap {
+      background: #fff;
+      border-radius: 18px;
+      overflow: hidden;
+      border: 2px solid #222;
+      box-shadow: 0 8px 26px rgba(0, 0, 0, 0.07);
+    }
+
+    .requests-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+      table-layout: fixed;
+    }
+
+    .requests-table th,
+    .requests-table td {
+      border: 2px solid #333;
+      padding: 13px 10px;
+      text-align: center;
+      font-size: 21px;
+      vertical-align: middle;
+      word-break: break-word;
+    }
+
+    .requests-table th {
+      background: #f7fbff;
+      font-weight: 900;
+    }
+
+    .view-request-btn {
+      border: none;
+      background: #4f9af4;
+      color: #fff;
+      border-radius: 10px;
+      padding: 10px 15px;
+      font-size: 20px;
+      cursor: pointer;
+      font-weight: 900;
+    }
+
+    .empty-box {
+      background: #fff;
+      border-radius: 20px;
+      padding: 26px;
+      text-align: center;
+      font-size: 20px;
+      color: #777;
+      border: 1px solid #e7ebf3;
+    }
+
+    .request-modal {
       position: fixed;
       inset: 0;
-      background: rgba(18, 20, 28, 0.45);
       z-index: 9999;
+      background: rgba(18, 20, 28, 0.45);
       display: none;
       align-items: center;
       justify-content: center;
       padding: 18px;
     }
 
-    .requests-modal.is-open {
+    .request-modal.is-open {
       display: flex;
     }
 
-    .requests-modal-card {
-      width: min(760px, 100%);
-      max-height: 88vh;
+    .request-modal-card {
+      width: min(720px, 100%);
+      max-height: 86vh;
       overflow: auto;
       background: #fff;
-      border-radius: 30px;
-      padding: 24px;
+      border-radius: 28px;
+      padding: 22px;
       box-shadow: 0 30px 80px rgba(0, 0, 0, 0.25);
     }
 
-    .requests-modal-header {
+    .request-modal-head {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 16px;
+      gap: 12px;
       margin-bottom: 18px;
     }
 
-    .requests-modal-header h2 {
+    .request-modal-head h2 {
       margin: 0;
-      font-size: 28px;
+      font-size: 26px;
       font-weight: 900;
     }
 
-    .requests-close-btn {
-      border: 0;
-      border-radius: 16px;
-      padding: 12px 18px;
-      background: #f2f4f8;
-      color: #111;
+    .close-modal-btn {
+      border: none;
+      background: #f1f3f8;
+      border-radius: 14px;
+      padding: 11px 16px;
       font-weight: 900;
       cursor: pointer;
     }
 
-    .request-list-item {
-      border: 1px solid #e6e8ef;
-      border-radius: 20px;
-      padding: 16px;
-      margin: 12px 0;
-      background: #fff;
+    .details-grid-local {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
     }
 
-    .request-list-item strong {
+    .detail-box-local {
+      background: #f8faff;
+      border: 1px solid #e4e9f4;
+      border-radius: 16px;
+      padding: 14px;
+    }
+
+    .detail-box-local span {
       display: block;
-      font-size: 19px;
-      font-weight: 900;
-      margin-bottom: 8px;
-    }
-
-    .request-list-item small {
       color: #777;
-      font-weight: 700;
+      font-weight: 800;
+      margin-bottom: 6px;
     }
 
-    .request-status-pill {
-      display: inline-flex;
-      margin-top: 10px;
-      border-radius: 999px;
-      background: #eef4ff;
-      color: #2e7be8;
-      padding: 7px 13px;
-      font-weight: 900;
-    }
-
-    .request-details-box {
-      margin-top: 12px;
-      border-top: 1px solid #ececf2;
-      padding-top: 12px;
-      color: #555;
-      line-height: 1.8;
-      font-weight: 700;
+    .detail-box-local strong {
+      display: block;
+      font-size: 18px;
+      color: #111;
+      line-height: 1.7;
     }
 
     .request-submit-message {
@@ -220,6 +333,10 @@
     }
 
     @media (max-width: 760px) {
+      .requests-page {
+        padding: 0 10px 95px;
+      }
+
       .requests-employee-hero {
         margin: -14px -14px 24px;
         padding: 22px 16px;
@@ -239,7 +356,7 @@
         font-size: 16px;
       }
 
-      .my-requests-main-btn {
+      .main-requests-btn {
         font-size: 22px;
         padding: 18px;
       }
@@ -255,8 +372,41 @@
         border-width: 3px;
       }
 
-      .request-type-card .request-icon {
+      .request-icon {
         font-size: 40px;
+      }
+
+      .requests-filter-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+
+      .requests-filter-grid label {
+        font-size: 18px;
+      }
+
+      .requests-filter-grid select {
+        font-size: 19px;
+        padding: 13px;
+      }
+
+      .show-results-btn {
+        font-size: 21px;
+      }
+
+      .requests-table th,
+      .requests-table td {
+        font-size: 17px;
+        padding: 10px 6px;
+      }
+
+      .view-request-btn {
+        font-size: 16px;
+        padding: 8px 11px;
+      }
+
+      .details-grid-local {
+        grid-template-columns: 1fr;
       }
     }
   </style>
@@ -272,7 +422,7 @@
       <nav class="sidebar-menu"></nav>
     </aside>
 
-    <main class="main-content page-shell requests-mobile-page">
+    <main class="main-content page-shell requests-page">
       <header class="topbar">
         <div class="header-title-area">
           <h1>الطلبات</h1>
@@ -281,89 +431,110 @@
         <button id="logoutBtn" class="logout-btn">تسجيل الخروج</button>
       </header>
 
-      <section class="requests-employee-hero">
-        <div class="requests-avatar">👤</div>
-        <div class="requests-hero-info">
-          <h2 id="employeeNameHero">الموظف</h2>
-          <p><b id="employeeNumberHero">-</b> : <span id="employeeJobHero">موظف</span></p>
-        </div>
+      <section id="requestsHomeScreen" class="requests-home-screen">
+        <section class="requests-employee-hero">
+          <div class="requests-avatar">👤</div>
+          <div class="requests-hero-info">
+            <h2 id="employeeNameHero">الموظف</h2>
+            <p><b id="employeeNumberHero">-</b> : <span id="employeeJobHero">موظف</span></p>
+          </div>
+        </section>
+
+        <button id="openRequestsListBtn" class="main-requests-btn">طلباتي</button>
+
+        <section class="content-card">
+          <div class="section-header">
+            <div>
+              <h2>تقديم طلب جديد</h2>
+              <p>اختر نوع الطلب من الكروت التالية.</p>
+            </div>
+          </div>
+
+          <div class="request-types-grid">
+            <button class="request-type-card" data-type="leave">
+              <span class="request-icon">🏖️</span>
+              <span>طلب إجازة</span>
+            </button>
+
+            <button class="request-type-card" data-type="exit">
+              <span class="request-icon">🚪</span>
+              <span>طلب مغادرة</span>
+            </button>
+
+            <button class="request-type-card" data-type="overtime">
+              <span class="request-icon">⏱️</span>
+              <span>طلب عمل إضافي</span>
+            </button>
+
+            <button class="request-type-card" data-type="advance">
+              <span class="request-icon">💵</span>
+              <span>طلب سلفة</span>
+            </button>
+
+            <button class="request-type-card" data-type="complaint">
+              <span class="request-icon">📣</span>
+              <span>طلب شكوى</span>
+            </button>
+
+            <button class="request-type-card" data-type="resignation">
+              <span class="request-icon">👤✖</span>
+              <span>طلب استقالة</span>
+            </button>
+
+            <button class="request-type-card" data-type="custom_allowance">
+              <span class="request-icon">✨</span>
+              <span>مخصصات أخرى</span>
+            </button>
+
+            <button class="request-type-card" data-type="custom">
+              <span class="request-icon">🏠</span>
+              <span>طلبات أخرى</span>
+            </button>
+          </div>
+        </section>
       </section>
 
-      <button id="openMyRequestsBtn" class="my-requests-main-btn">طلباتي</button>
+      <section id="requestsListScreen" class="requests-list-screen">
+        <button id="backToRequestsHome" class="back-btn">رجوع</button>
 
-      <section class="content-card">
-        <div class="section-header">
-          <div>
-            <h2>تقديم طلب جديد</h2>
-            <p>اختر نوع الطلب من الكروت التالية.</p>
+        <section class="requests-filter-card">
+          <div class="requests-filter-grid">
+            <div>
+              <label for="yearFilter">السنوات</label>
+              <select id="yearFilter"></select>
+            </div>
+
+            <div>
+              <label for="statusFilter">الحالة</label>
+              <select id="statusFilter">
+                <option value="all">الكل</option>
+                <option value="pending">قيد الانتظار</option>
+                <option value="approved">موافق عليه</option>
+                <option value="rejected">مرفوض</option>
+                <option value="cancelled">ملغي</option>
+                <option value="needs_info">يحتاج معلومات</option>
+                <option value="draft">مسودة</option>
+              </select>
+            </div>
           </div>
-        </div>
 
-        <div class="request-types-grid">
-          <button class="request-type-card" data-type="leave">
-            <span class="request-icon">🏖️</span>
-            <span>طلب إجازة</span>
-          </button>
+          <button id="showResultsBtn" class="show-results-btn">عرض النتائج</button>
+        </section>
 
-          <button class="request-type-card" data-type="exit">
-            <span class="request-icon">🚪</span>
-            <span>طلب مغادرة</span>
-          </button>
+        <section id="requestsResultBox">
+          <div class="empty-box">جاري تحميل الطلبات...</div>
+        </section>
 
-          <button class="request-type-card" data-type="overtime">
-            <span class="request-icon">⏱️</span>
-            <span>طلب عمل إضافي</span>
-          </button>
-
-          <button class="request-type-card" data-type="advance">
-            <span class="request-icon">💵</span>
-            <span>طلب سلفة</span>
-          </button>
-
-          <button class="request-type-card" data-type="complaint">
-            <span class="request-icon">📣</span>
-            <span>طلب شكوى</span>
-          </button>
-
-          <button class="request-type-card" data-type="resignation">
-            <span class="request-icon">👤✖</span>
-            <span>طلب استقالة</span>
-          </button>
-
-          <button class="request-type-card" data-type="custom_allowance">
-            <span class="request-icon">✨</span>
-            <span>مخصصات أخرى</span>
-          </button>
-
-          <button class="request-type-card" data-type="custom">
-            <span class="request-icon">🏠</span>
-            <span>طلبات أخرى</span>
-          </button>
-        </div>
+        <p id="requestsDebugNote" class="requests-debug-note"></p>
       </section>
     </main>
   </div>
 
-  <div id="myRequestsModal" class="requests-modal">
-    <div class="requests-modal-card">
-      <div class="requests-modal-header">
-        <h2>طلباتي السابقة</h2>
-        <button class="requests-close-btn" data-close-modal="myRequestsModal">إغلاق</button>
-      </div>
-
-      <div id="myRequestsList">
-        <div class="empty-soft">جاري تحميل الطلبات...</div>
-      </div>
-
-      <p id="requestsDebugNote" class="requests-debug-note"></p>
-    </div>
-  </div>
-
-  <div id="requestFormModal" class="requests-modal">
-    <div class="requests-modal-card">
-      <div class="requests-modal-header">
+  <div id="requestFormModal" class="request-modal">
+    <div class="request-modal-card">
+      <div class="request-modal-head">
         <h2 id="requestFormTitle">طلب جديد</h2>
-        <button class="requests-close-btn" data-close-modal="requestFormModal">إغلاق</button>
+        <button id="closeRequestFormModal" class="close-modal-btn">إغلاق</button>
       </div>
 
       <form id="requestForm" class="form-grid two">
@@ -388,16 +559,39 @@
     </div>
   </div>
 
-  <script src="./js/navigation-config.js?v=manual-1"></script>
-  <script src="./js/auth-guard.js?v=manual-1"></script>
+  <div id="requestDetailsModal" class="request-modal">
+    <div class="request-modal-card">
+      <div class="request-modal-head">
+        <h2>تفاصيل الطلب</h2>
+        <button id="closeDetailsModal" class="close-modal-btn">إغلاق</button>
+      </div>
+
+      <div id="requestDetailsContent" class="details-grid-local"></div>
+    </div>
+  </div>
+
+  <script src="./js/navigation-config.js?v=my-requests-final-1"></script>
+  <script src="./js/auth-guard.js?v=my-requests-final-1"></script>
 
   <script>
     const $ = (id) => document.getElementById(id);
 
+    const LOCAL_KEY = "hr_employee_requests_local_echo_v2";
     let currentType = "leave";
-    const LOCAL_KEY = "hr_employee_requests_local_echo_v1";
+    let allRequests = [];
 
     const typeLabels = {
+      leave: "الإجازات",
+      exit: "المغادرة",
+      overtime: "العمل الإضافي",
+      advance: "السلف",
+      complaint: "الشكاوى",
+      resignation: "الاستقالة",
+      custom_allowance: "المخصصات",
+      custom: "طلبات أخرى"
+    };
+
+    const cardTypeLabels = {
       leave: "طلب إجازة",
       exit: "طلب مغادرة",
       overtime: "طلب عمل إضافي",
@@ -445,10 +639,10 @@
     }
 
     function formatDate(value) {
-      return value ? String(value).slice(0, 10) : new Date().toISOString().slice(0, 10);
+      return value ? String(value).slice(0, 10) : "-";
     }
 
-    function safeText(value, fallback = "-") {
+    function safe(value, fallback = "-") {
       return value === undefined || value === null || value === "" ? fallback : String(value);
     }
 
@@ -471,11 +665,31 @@
       localStorage.setItem(LOCAL_KEY, JSON.stringify(rows.slice(0, 50)));
     }
 
-    function detailsToText(data = {}) {
-      return Object.entries(data)
-        .filter(([_, value]) => value !== undefined && value !== null && value !== "")
-        .map(([key, value]) => `${key}: ${value}`)
-        .join(" | ");
+    function requestYear(row) {
+      const raw = row.created_at || row.submitted_at || "";
+      const year = String(raw).slice(0, 4);
+      return /^\d{4}$/.test(year) ? year : String(new Date().getFullYear());
+    }
+
+    function requestType(row) {
+      return row.request_type || "custom";
+    }
+
+    function requestStatus(row) {
+      return row.status || "pending";
+    }
+
+    function requestDetailsText(row) {
+      const data = row.request_data || {};
+      const parts = [];
+
+      Object.entries(data).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== "") {
+          parts.push(`${key}: ${value}`);
+        }
+      });
+
+      return parts.join(" | ") || row.request_title || "لا توجد تفاصيل إضافية";
     }
 
     function requestFields(type) {
@@ -641,8 +855,8 @@
       }
 
       return {
-        title: $("reqTitle")?.value || typeLabels[type] || "طلب",
-        details: notes || reason || typeLabels[type] || "طلب",
+        title: $("reqTitle")?.value || cardTypeLabels[type] || "طلب",
+        details: notes || reason || cardTypeLabels[type] || "طلب",
         reason,
         notes
       };
@@ -655,8 +869,8 @@
     }
 
     async function fetchRequests() {
-      const errors = [];
       let serverRows = [];
+      const errors = [];
 
       try {
         const data = await api("/employee-portal/requests");
@@ -677,65 +891,130 @@
       const merged = [...readLocalRequests(), ...serverRows];
       const seen = new Set();
 
-      const rows = merged.filter((row) => {
+      allRequests = merged.filter((row) => {
         const key = String(row.id || row.local_id || `${row.request_type}-${row.created_at}`);
         if (seen.has(key)) return false;
         seen.add(key);
         return true;
       });
 
-      return { rows, errors };
+      return errors;
     }
 
-    async function renderRequests() {
-      const list = $("myRequestsList");
-      const debug = $("requestsDebugNote");
+    function fillYearFilter() {
+      const yearFilter = $("yearFilter");
+      const currentYear = new Date().getFullYear();
 
-      list.innerHTML = `<div class="empty-soft">جاري تحميل الطلبات...</div>`;
-      debug.textContent = "";
+      const years = new Set([String(currentYear)]);
 
-      const { rows, errors } = await fetchRequests();
+      allRequests.forEach((row) => {
+        years.add(requestYear(row));
+      });
 
-      if (errors.length) {
-        debug.textContent = "ملاحظات الاتصال: " + errors.join(" / ");
-      }
+      const sortedYears = Array.from(years).sort((a, b) => Number(b) - Number(a));
+
+      yearFilter.innerHTML = sortedYears.map((year) => {
+        return `<option value="${year}">${year}</option>`;
+      }).join("");
+
+      yearFilter.value = String(currentYear);
+    }
+
+    function filterRequests() {
+      const selectedYear = $("yearFilter").value;
+      const selectedStatus = $("statusFilter").value;
+
+      return allRequests.filter((row) => {
+        const matchesYear = requestYear(row) === selectedYear;
+        const matchesStatus = selectedStatus === "all" || requestStatus(row) === selectedStatus;
+        return matchesYear && matchesStatus;
+      });
+    }
+
+    function renderRequestsTable() {
+      const box = $("requestsResultBox");
+      const rows = filterRequests();
 
       if (!rows.length) {
-        list.innerHTML = `<div class="empty-soft">لا توجد طلبات سابقة لهذا الحساب</div>`;
+        box.innerHTML = `<div class="empty-box">لا توجد طلبات ضمن الفلترة الحالية</div>`;
         return;
       }
 
-      list.innerHTML = rows.map((row) => {
-        const data = row.request_data || {};
-        const type = row.request_type || "custom";
+      box.innerHTML = `
+        <div class="requests-table-wrap">
+          <table class="requests-table">
+            <thead>
+              <tr>
+                <th>التاريخ</th>
+                <th>النوع</th>
+                <th>الحالة</th>
+                <th>عرض</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows.map((row, index) => `
+                <tr>
+                  <td>${formatDate(row.created_at || row.submitted_at)}</td>
+                  <td>${typeLabels[requestType(row)] || safe(row.request_title, "طلب")}</td>
+                  <td>${statusLabels[requestStatus(row)] || requestStatus(row)}</td>
+                  <td>
+                    <button class="view-request-btn" type="button" data-row-index="${index}">
+                      💬
+                    </button>
+                  </td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      `;
 
-        return `
-          <article class="request-list-item">
-            <strong>${typeLabels[type] || row.request_title || "طلب"}</strong>
-            <small>${formatDate(row.created_at || row.submitted_at)} • ${safeText(row.request_title, "")}</small>
-            <br />
-            <span class="request-status-pill">${statusLabels[row.status] || row.status || "قيد الانتظار"}</span>
-            <div class="request-details-box">${detailsToText(data) || "لا توجد تفاصيل إضافية"}</div>
-          </article>
-        `;
-      }).join("");
+      box.querySelectorAll("[data-row-index]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const row = rows[Number(button.dataset.rowIndex)];
+          showDetails(row);
+        });
+      });
     }
 
-    function openModal(id) {
-      $(id)?.classList.add("is-open");
+    function detailBox(label, value) {
+      return `
+        <div class="detail-box-local">
+          <span>${label}</span>
+          <strong>${safe(value)}</strong>
+        </div>
+      `;
     }
 
-    function closeModal(id) {
-      $(id)?.classList.remove("is-open");
+    function showDetails(row) {
+      $("requestDetailsContent").innerHTML = [
+        detailBox("نوع الطلب", typeLabels[requestType(row)] || row.request_title || "طلب"),
+        detailBox("الحالة", statusLabels[requestStatus(row)] || requestStatus(row)),
+        detailBox("التاريخ", formatDate(row.created_at || row.submitted_at)),
+        detailBox("العنوان", row.request_title || "-"),
+        detailBox("التفاصيل", requestDetailsText(row))
+      ].join("");
+
+      $("requestDetailsModal").classList.add("is-open");
     }
 
     function openRequestForm(type) {
       currentType = type;
-      $("requestFormTitle").textContent = typeLabels[type] || "طلب جديد";
+      $("requestFormTitle").textContent = cardTypeLabels[type] || "طلب جديد";
       $("dynamicFields").innerHTML = requestFields(type);
       $("requestMsg").textContent = "";
       $("requestMsg").className = "request-submit-message";
-      openModal("requestFormModal");
+      $("requestFormModal").classList.add("is-open");
+    }
+
+    function showRequestsList() {
+      $("requestsHomeScreen").classList.add("is-hidden");
+      $("requestsListScreen").classList.add("is-active");
+    }
+
+    function showRequestsHome() {
+      $("requestsHomeScreen").classList.remove("is-hidden");
+      $("requestsListScreen").classList.remove("is-active");
     }
 
     async function loadEmployeeHero() {
@@ -753,20 +1032,42 @@
       } catch (_) {}
     }
 
+    async function reloadRequestsAndRender() {
+      $("requestsResultBox").innerHTML = `<div class="empty-box">جاري تحميل الطلبات...</div>`;
+      const errors = await fetchRequests();
+      fillYearFilter();
+      renderRequestsTable();
+
+      if (errors.length) {
+        $("requestsDebugNote").textContent = "ملاحظات الاتصال: " + errors.join(" / ");
+      } else {
+        $("requestsDebugNote").textContent = "";
+      }
+    }
+
     async function initPage() {
       if (typeof window.loadLoggedUser === "function") {
         await window.loadLoggedUser();
       }
 
       await loadEmployeeHero();
+      await reloadRequestsAndRender();
 
-      document.querySelectorAll("[data-close-modal]").forEach((button) => {
-        button.addEventListener("click", () => closeModal(button.dataset.closeModal));
+      $("openRequestsListBtn").addEventListener("click", async () => {
+        showRequestsList();
+        await reloadRequestsAndRender();
       });
 
-      $("openMyRequestsBtn").addEventListener("click", async () => {
-        openModal("myRequestsModal");
-        await renderRequests();
+      $("backToRequestsHome").addEventListener("click", showRequestsHome);
+
+      $("showResultsBtn").addEventListener("click", renderRequestsTable);
+
+      $("closeRequestFormModal").addEventListener("click", () => {
+        $("requestFormModal").classList.remove("is-open");
+      });
+
+      $("closeDetailsModal").addEventListener("click", () => {
+        $("requestDetailsModal").classList.remove("is-open");
       });
 
       document.querySelectorAll("[data-type]").forEach((button) => {
@@ -784,7 +1085,7 @@
           local_id: "local-" + Date.now(),
           id: "local-" + Date.now(),
           request_type: currentType,
-          request_title: typeLabels[currentType] || "طلب",
+          request_title: cardTypeLabels[currentType] || "طلب",
           request_data: dataPayload,
           status: "pending",
           created_at: new Date().toISOString(),
@@ -818,10 +1119,10 @@
         event.target.reset();
 
         setTimeout(async () => {
-          closeModal("requestFormModal");
-          openModal("myRequestsModal");
-          await renderRequests();
-        }, 600);
+          $("requestFormModal").classList.remove("is-open");
+          showRequestsList();
+          await reloadRequestsAndRender();
+        }, 650);
       });
     }
 

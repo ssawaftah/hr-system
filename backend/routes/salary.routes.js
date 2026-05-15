@@ -25,28 +25,35 @@ const { updateSalaryStatusSafe } = require("../controllers/salary-status.control
 const authMiddleware = require("../middlewares/auth.middleware");
 const permissionMiddleware = require("../middlewares/permission.middleware");
 
-router.get("/finance", authMiddleware, permissionMiddleware("salaries.view"), getFinanceOverview);
-router.get("/settings", authMiddleware, permissionMiddleware("salaries.view"), getFinanceSettings);
-router.post("/settings", authMiddleware, permissionMiddleware("salaries.create"), saveFinanceSetting);
-router.put("/settings", authMiddleware, permissionMiddleware("salaries.create"), saveFinanceSetting);
+const viewFinance = permissionMiddleware("finance.view", "finance.dashboard.view", "finance.payroll_slips.view_all", "finance.settings.view", "finance.advances.view", "finance.reports.view", "salaries.view");
+const manageSettings = permissionMiddleware("finance.settings.manage", "salaries.create");
+const createPayroll = permissionMiddleware("finance.payroll_slips.create", "finance.payroll_slips.recalculate", "salaries.create");
+const editPayroll = permissionMiddleware("finance.payroll_slips.edit", "salaries.create");
+const reviewPayroll = permissionMiddleware("finance.payroll_slips.review", "finance.payroll_slips.approve", "finance.payroll_slips.mark_paid", "finance.payroll_slips.publish", "salaries.review", "salaries.approve", "salaries.publish");
+const manageAdvances = permissionMiddleware("finance.advances.create", "finance.advances.manage", "salaries.create");
 
-router.get("/leave-balances/:employeeId", authMiddleware, permissionMiddleware("salaries.view"), getLeaveBalance);
-router.post("/leave-balances", authMiddleware, permissionMiddleware("salaries.create"), saveLeaveBalance);
-router.put("/leave-balances", authMiddleware, permissionMiddleware("salaries.create"), saveLeaveBalance);
+router.get("/finance", authMiddleware, viewFinance, getFinanceOverview);
+router.get("/settings", authMiddleware, permissionMiddleware("finance.settings.view", "finance.settings.manage", "salaries.view"), getFinanceSettings);
+router.post("/settings", authMiddleware, manageSettings, saveFinanceSetting);
+router.put("/settings", authMiddleware, manageSettings, saveFinanceSetting);
 
-router.get("/advances", authMiddleware, permissionMiddleware("salaries.view"), getAdvances);
-router.post("/advances", authMiddleware, permissionMiddleware("salaries.create"), createAdvance);
+router.get("/leave-balances/:employeeId", authMiddleware, permissionMiddleware("finance.settings.view", "finance.settings.manage", "salaries.view"), getLeaveBalance);
+router.post("/leave-balances", authMiddleware, manageSettings, saveLeaveBalance);
+router.put("/leave-balances", authMiddleware, manageSettings, saveLeaveBalance);
 
-router.get("/", authMiddleware, permissionMiddleware("salaries.view"), getSalaries);
-router.get("/preview", authMiddleware, permissionMiddleware("salaries.view"), getSalaryPreview);
-router.post("/generate", authMiddleware, permissionMiddleware("salaries.create"), generateSalary);
-router.post("/", authMiddleware, permissionMiddleware("salaries.create"), createSalary);
-router.get("/:id", authMiddleware, permissionMiddleware("salaries.view"), getSalaryById);
-router.post("/:id/items", authMiddleware, permissionMiddleware("salaries.create"), addSalaryItem);
-router.put("/:id/items/:itemId", authMiddleware, permissionMiddleware("salaries.create"), updateSalaryItem);
-router.delete("/:id/items/:itemId", authMiddleware, permissionMiddleware("salaries.create"), deleteSalaryItem);
-router.patch("/:id/status", authMiddleware, permissionMiddleware("salaries.review", "salaries.approve", "salaries.publish"), updateSalaryStatusSafe);
-router.put("/:id/status", authMiddleware, permissionMiddleware("salaries.review", "salaries.approve", "salaries.publish"), updateSalaryStatusSafe);
-router.delete("/:id", authMiddleware, permissionMiddleware("salaries.delete"), deleteSalary);
+router.get("/advances", authMiddleware, permissionMiddleware("finance.advances.view", "finance.advances.manage", "salaries.view"), getAdvances);
+router.post("/advances", authMiddleware, manageAdvances, createAdvance);
+
+router.get("/", authMiddleware, permissionMiddleware("finance.payroll_slips.view_all", "finance.payroll_slips.view", "salaries.view"), getSalaries);
+router.get("/preview", authMiddleware, permissionMiddleware("finance.payroll_slips.view_all", "finance.payroll_slips.create", "finance.payroll_slips.recalculate", "salaries.view"), getSalaryPreview);
+router.post("/generate", authMiddleware, createPayroll, generateSalary);
+router.post("/", authMiddleware, createPayroll, createSalary);
+router.get("/:id", authMiddleware, permissionMiddleware("finance.payroll_slips.view_all", "finance.payroll_slips.view", "salaries.view"), getSalaryById);
+router.post("/:id/items", authMiddleware, editPayroll, addSalaryItem);
+router.put("/:id/items/:itemId", authMiddleware, editPayroll, updateSalaryItem);
+router.delete("/:id/items/:itemId", authMiddleware, editPayroll, deleteSalaryItem);
+router.patch("/:id/status", authMiddleware, reviewPayroll, updateSalaryStatusSafe);
+router.put("/:id/status", authMiddleware, reviewPayroll, updateSalaryStatusSafe);
+router.delete("/:id", authMiddleware, permissionMiddleware("finance.payroll_slips.edit", "salaries.delete"), deleteSalary);
 
 module.exports = router;

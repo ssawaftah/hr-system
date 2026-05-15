@@ -32,14 +32,34 @@
     return value === "needs_info";
   };
 
+  const localKeys = ["hr_employee_requests_local_echo_v1", "hr_employee_requests_local_echo_v2", "hr_employee_requests_local_echo_v3"];
+
   const removeLocalRequest = (id) => {
     try {
-      const keys = ["hr_employee_requests_local_echo_v1", "hr_employee_requests_local_echo_v2", "hr_employee_requests_local_echo_v3"];
-      for (const key of keys) {
+      for (const key of localKeys) {
         const rows = JSON.parse(localStorage.getItem(key) || "[]");
         const filtered = rows.filter((row) => String(row.id || row.local_id) !== String(id));
         localStorage.setItem(key, JSON.stringify(filtered));
       }
+    } catch (_) {}
+  };
+
+  const syncLocalEchoWithServer = async () => {
+    try {
+      if (typeof api !== "function") return;
+      const data = await api("/employee-portal/requests");
+      const serverIds = new Set((data.requests || []).map((row) => String(row.id)));
+      if (!serverIds.size) return;
+      let changed = false;
+      for (const key of localKeys) {
+        const rows = JSON.parse(localStorage.getItem(key) || "[]");
+        const filtered = rows.filter((row) => String(row.id || "").startsWith("local-") || !serverIds.has(String(row.id)));
+        if (filtered.length !== rows.length) {
+          localStorage.setItem(key, JSON.stringify(filtered));
+          changed = true;
+        }
+      }
+      if (changed && typeof reloadRequestsAndRender === "function") await reloadRequestsAndRender();
     } catch (_) {}
   };
 
@@ -48,6 +68,8 @@
     if (!request?.id || String(request.id).startsWith("local-")) return "";
     return `
       <div class="detail-box-local" style="grid-column:1/-1;background:#fff8f8;border-color:#ffd9d9">
+        <span>إلغاء الطلب</span>
+        <strong>يمكنك إلغاء الطلب لأنه لا يزال قيد الانتظار. عند الإلغاء سيتم حذفه نهائيًا من قاعدة البيانات ولن يظهر في طلباتك.</strong>
         <button id="cancelPendingRequestBtn" class="view-request-btn" type="button" style="margin-top:12px;background:#d93025">إلغاء الطلب</button>
         <p id="cancelRequestMsg" class="request-submit-message"></p>
       </div>
@@ -128,9 +150,7 @@
           msg.textContent = "تم إلغاء الطلب وحذفه بنجاح.";
           msg.className = "request-submit-message ok";
           if (typeof reloadRequestsAndRender === "function") await reloadRequestsAndRender();
-          setTimeout(() => {
-            document.getElementById("requestDetailsModal")?.classList.remove("is-open");
-          }, 650);
+          setTimeout(() => document.getElementById("requestDetailsModal")?.classList.remove("is-open"), 650);
         } catch (error) {
           msg.textContent = error.message || "تعذر إلغاء الطلب";
           msg.className = "request-submit-message err";
@@ -158,6 +178,7 @@
             method: "PATCH",
             body: JSON.stringify({ action: "respond_info", note })
           });
+          removeLocalRequest(request.id);
           msg.textContent = "تم إرسال المعلومات بنجاح، وعاد الطلب إلى قيد الانتظار.";
           msg.className = "request-submit-message ok";
           request.status = "pending";
@@ -170,4 +191,6 @@
       };
     }
   };
+
+  setTimeout(syncLocalEchoWithServer, 900);
 })();

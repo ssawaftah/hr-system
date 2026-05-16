@@ -1,19 +1,108 @@
+/* Dashboard topbar and page composition */
+.dashboard-page .topbar{
+  grid-template-columns:auto minmax(0,1fr) auto!important;
+  border-radius:14px!important;
+  padding:10px 12px!important;
+}
+.dashboard-page .topbar .header-title-area{
+  display:grid!important;
+  gap:2px!important;
+}
+.dashboard-page .topbar .header-actions{
+  display:flex!important;
+  align-items:center!important;
+  gap:8px!important;
+  overflow:visible!important;
+}
+.dashboard-page .topbar .header-icon-btn,
+.dashboard-page .topbar .logout-btn,
+.dashboard-page .topbar .header-menu-btn{
+  width:auto!important;
+  min-width:0!important;
+  max-width:none!important;
+  height:42px!important;
+  min-height:42px!important;
+  border-radius:10px!important;
+  padding:0 12px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:8px!important;
+  font-size:13px!important;
+  font-weight:900!important;
+  line-height:1!important;
+  background:#fff!important;
+  color:var(--text)!important;
+  border:1px solid var(--border)!important;
+  box-shadow:none!important;
+}
+.dashboard-page .topbar .header-icon-btn span,
+.dashboard-page .topbar .logout-btn span,
+.dashboard-page .topbar .header-menu-btn span{
+  display:inline!important;
+  font-size:13px!important;
+}
+.dashboard-page .topbar .logout-btn::before{
+  display:none!important;
+  content:none!important;
+}
+.dashboard-page .topbar .logout-btn{
+  color:var(--danger)!important;
+  border-color:#f1c7c7!important;
+}
+.dashboard-page .topbar .app-icon{
+  width:18px!important;
+  height:18px!important;
+  flex:0 0 18px!important;
+}
+.dashboard-lite-page .dashboard-main{
+  max-width:1180px!important;
+  width:100%!important;
+  margin-inline:auto!important;
+}
+.dashboard-lite-page .today-report-panel{
+  padding:18px!important;
+  border-radius:14px!important;
+}
+.dashboard-lite-page .today-report-panel .section-header{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) auto!important;
+  align-items:start!important;
+  gap:12px!important;
+  margin-bottom:16px!important;
+}
+.dashboard-lite-page .today-report-panel h1{
+  font-size:clamp(28px,5vw,38px)!important;
+  line-height:1.15!important;
+  margin:8px 0!important;
+}
+.dashboard-lite-page .today-report-panel p{
+  max-width:760px!important;
+  color:var(--muted)!important;
+  font-size:14px!important;
+  line-height:1.8!important;
+}
+
 /* Dashboard today report alignment fix */
 .dashboard-lite-page .today-report-grid{
   display:grid!important;
   grid-template-columns:repeat(4,minmax(0,1fr))!important;
-  gap:14px!important;
-  margin-top:18px!important;
+  gap:12px!important;
+  margin-top:0!important;
 }
 .dashboard-lite-page .today-report-card{
-  min-height:150px!important;
+  min-height:132px!important;
   display:grid!important;
-  grid-template-columns:minmax(0,1fr) 88px!important;
-  grid-template-rows:auto 1fr!important;
+  grid-template-columns:minmax(0,1fr) 74px!important;
+  grid-template-rows:auto auto!important;
   align-items:center!important;
-  gap:10px 14px!important;
-  padding:18px!important;
+  gap:8px 12px!important;
+  padding:16px!important;
   overflow:hidden!important;
+  border-radius:12px!important;
+  background:#f8fafc!important;
+  border:1px solid var(--border)!important;
+  box-shadow:none!important;
 }
 .dashboard-lite-page .today-report-card::before{display:none!important;}
 .dashboard-lite-page .today-report-card span{
@@ -29,14 +118,14 @@
 .dashboard-lite-page .today-report-card strong{
   grid-column:2 / 3!important;
   grid-row:1 / 3!important;
-  width:88px!important;
-  height:88px!important;
-  border-radius:28px!important;
+  width:74px!important;
+  height:74px!important;
+  border-radius:12px!important;
   display:flex!important;
   align-items:center!important;
   justify-content:center!important;
   margin:0!important;
-  font-size:42px!important;
+  font-size:34px!important;
   line-height:1!important;
   font-weight:900!important;
   letter-spacing:-.04em!important;
@@ -172,20 +261,43 @@
 }
 @media(max-width:1200px){
   .dashboard-lite-page .today-report-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;}
+  .dashboard-simple-layout{grid-template-columns:1fr!important;}
 }
 @media(max-width:760px){
-  .dashboard-lite-page .today-report-grid{grid-template-columns:1fr!important;}
+  .dashboard-page .topbar{
+    grid-template-columns:44px minmax(0,1fr) auto!important;
+    align-items:center!important;
+  }
+  .dashboard-page .topbar .header-actions{
+    gap:6px!important;
+  }
+  .dashboard-page .topbar .header-icon-btn,
+  .dashboard-page .topbar .logout-btn{
+    height:40px!important;
+    min-height:40px!important;
+    padding:0 10px!important;
+  }
+  .dashboard-page .topbar .header-icon-btn span,
+  .dashboard-page .topbar .logout-btn span{
+    display:none!important;
+  }
+  .dashboard-page .topbar .header-menu-btn{
+    width:44px!important;
+    min-width:44px!important;
+    padding:0!important;
+  }
+  .dashboard-page .topbar .header-menu-btn span{
+    display:none!important;
+  }
   .dashboard-lite-page .today-report-card{
-    grid-template-columns:minmax(0,1fr) 84px!important;
-    min-height:118px!important;
-    padding:16px!important;
-    border-radius:26px!important;
+    grid-template-columns:minmax(0,1fr) 68px!important;
+    min-height:108px!important;
+    padding:14px!important;
   }
   .dashboard-lite-page .today-report-card strong{
-    width:84px!important;
-    height:84px!important;
-    border-radius:26px!important;
-    font-size:38px!important;
+    width:68px!important;
+    height:68px!important;
+    font-size:30px!important;
   }
   .dashboard-lite-page .announcements-panel .panel-heading{
     grid-template-columns:1fr!important;
@@ -202,9 +314,10 @@
   }
 }
 @media(max-width:420px){
+  .dashboard-lite-page .today-report-grid{grid-template-columns:1fr!important;}
   .dashboard-lite-page .today-report-card{
-    grid-template-columns:minmax(0,1fr) 76px!important;
-    min-height:112px!important;
+    grid-template-columns:minmax(0,1fr) 68px!important;
+    min-height:104px!important;
     gap:8px 10px!important;
   }
   .dashboard-lite-page .today-report-card strong{

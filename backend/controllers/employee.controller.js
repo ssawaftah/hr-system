@@ -10,6 +10,7 @@ const normalizeBoolean = (value) => {
 };
 
 const getActorId = (req) => req.user?.id || null;
+const money = (value) => Number(value || 0);
 
 const ensureEmployeeSchema = async (client = pool) => {
   await ensurePermissionSchema();
@@ -190,7 +191,7 @@ const createEmployee = async (req, res) => {
     const employeeNumber = (req.body.employee_number || req.body.national_id || "").trim();
     const status = req.body.status || (req.body.is_active === false ? "inactive" : "active");
     const departments = normalizeDepartments(req.body);
-    const result = await client.query(`INSERT INTO employees (employee_number, full_name, national_id, phone, email, address, job_title, job_title_id, job_title_name, direct_manager_id, department_id, hire_date, employment_type, status, is_active, updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,NULL,$11,$12,$13,$14,CURRENT_TIMESTAMP) RETURNING *`, [employeeNumber, full_name.trim(), national_id || employeeNumber, phone || null, email || null, address || null, jobTitle.name, jobTitle.id, jobTitle.name, direct_manager_id || null, hire_date || null, employment_type || "full_time", status, status === "active"]);
+    const result = await client.query(`INSERT INTO employees (employee_number, full_name, national_id, phone, email, address, job_title, job_title_id, job_title_name, direct_manager_id, department_id, hire_date, employment_type, basic_salary, social_security_enabled, social_security_rate, status, is_active, updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,NULL,$11,$12,$13,$14,$15,$16,$17,CURRENT_TIMESTAMP) RETURNING *`, [employeeNumber, full_name.trim(), national_id || employeeNumber, phone || null, email || null, address || null, jobTitle.name, jobTitle.id, jobTitle.name, direct_manager_id || null, hire_date || null, employment_type || "full_time", money(req.body.basic_salary), req.body.social_security_enabled !== false, money(req.body.social_security_rate || 7.5), status, status === "active"]);
     const employee = result.rows[0]; await applyDepartmentMemberships(client, employee.id, departments, req); const account = await syncEmployeeAccount(client, employee, req.body); await writeAuditLog(client, req, "تم إنشاء الموظف", employee.id, null, { employee, account }); await client.query("COMMIT"); res.status(201).json({ message: "تم إنشاء الموظف وحساب الدخول بنجاح", employee, account });
   } catch (error) { await client.query("ROLLBACK"); res.status(500).json({ error: error.message }); } finally { client.release(); }
 };
@@ -208,7 +209,7 @@ const updateEmployee = async (req, res) => {
     const employeeNumber = (req.body.employee_number || req.body.national_id || "").trim();
     const status = req.body.status || (normalizeBoolean(req.body.is_active) ? "active" : "inactive");
     const departments = normalizeDepartments(req.body);
-    const result = await client.query(`UPDATE employees SET employee_number=$1, full_name=$2, national_id=$3, phone=$4, email=$5, address=$6, job_title=$7, job_title_id=$8, job_title_name=$9, direct_manager_id=$10, hire_date=$11, employment_type=$12, status=$13, is_active=$14, updated_at=CURRENT_TIMESTAMP WHERE id=$15 RETURNING *`, [employeeNumber, req.body.full_name.trim(), req.body.national_id || employeeNumber, req.body.phone || null, req.body.email || null, req.body.address || null, jobTitle.name, jobTitle.id, jobTitle.name, req.body.direct_manager_id || null, req.body.hire_date || null, req.body.employment_type || "full_time", status, status === "active", id]);
+    const result = await client.query(`UPDATE employees SET employee_number=$1, full_name=$2, national_id=$3, phone=$4, email=$5, address=$6, job_title=$7, job_title_id=$8, job_title_name=$9, direct_manager_id=$10, hire_date=$11, employment_type=$12, basic_salary=$13, social_security_enabled=$14, social_security_rate=$15, status=$16, is_active=$17, updated_at=CURRENT_TIMESTAMP WHERE id=$18 RETURNING *`, [employeeNumber, req.body.full_name.trim(), req.body.national_id || employeeNumber, req.body.phone || null, req.body.email || null, req.body.address || null, jobTitle.name, jobTitle.id, jobTitle.name, req.body.direct_manager_id || null, req.body.hire_date || null, req.body.employment_type || "full_time", money(req.body.basic_salary), req.body.social_security_enabled !== false, money(req.body.social_security_rate || 7.5), status, status === "active", id]);
     await applyDepartmentMemberships(client, id, departments, req); const account = await syncEmployeeAccount(client, result.rows[0], req.body); await writeAuditLog(client, req, "تم تعديل بيانات الموظف", Number(id), existing.rows[0], { employee: result.rows[0], account }); await client.query("COMMIT"); res.status(200).json({ message: "تم تعديل الموظف وحساب الدخول بنجاح", employee: result.rows[0], account });
   } catch (error) { await client.query("ROLLBACK"); res.status(500).json({ error: error.message }); } finally { client.release(); }
 };

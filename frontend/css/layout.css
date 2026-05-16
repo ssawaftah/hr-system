@@ -1,4 +1,7 @@
 .app-layout{min-height:100vh;display:grid;grid-template-columns:var(--sidebar-width) minmax(0,1fr);gap:var(--page-gap);padding:calc(var(--topbar-height) + 24px) 20px 20px}
+body.apple-system-ui:not(.auth-ready) .app-layout{visibility:hidden;opacity:0}
+body.apple-system-ui.auth-checking:not(.auth-ready)::before{content:"جاري التحقق من صلاحيات الدخول...";position:fixed;inset:0;z-index:999999;display:grid;place-items:center;padding:24px;background:radial-gradient(circle at 16% 12%,rgba(124,58,237,.10),transparent 30%),radial-gradient(circle at 86% 18%,rgba(0,122,255,.08),transparent 34%),var(--bg);color:var(--muted);font-weight:900;text-align:center}
+body.apple-system-ui.auth-ready .app-layout{visibility:visible;opacity:1;transition:opacity .16s ease}
 .main-content{min-width:0;padding-bottom:48px}
 .page-shell{display:grid;gap:20px}
 .page-header,.content-card,.dashboard-panel,.stat-card,.summary-card,.metric-card{background:var(--surface);border:1px solid var(--border-soft);border-radius:var(--radius-xl);box-shadow:var(--shadow-sm);padding:22px}

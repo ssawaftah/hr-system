@@ -3,25 +3,62 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>تسجيل الدخول</title>
-  <link rel="stylesheet" href="./css/style.css" />
+  <title>تسجيل الدخول | نظام الموارد البشرية</title>
+  <link rel="stylesheet" href="./css/login.css" />
 </head>
 <body class="login-page">
-  <div class="login-container">
-    <h1>تسجيل الدخول</h1>
+  <main class="login-shell" aria-labelledby="loginTitle">
+    <section class="login-intro" aria-label="نظام الموارد البشرية">
+      <div class="brand-mark">HR</div>
+      <div>
+        <p class="eyebrow">بوابة الموظفين والإدارة</p>
+        <h1>نظام موارد بشرية واضح وسهل الاستخدام</h1>
+        <p class="intro-copy">
+          سجّل الدخول للوصول إلى بيانات الموظفين، الحضور، الرواتب، الإجازات، والتقارير من مكان واحد.
+        </p>
+      </div>
 
-    <form id="loginForm">
-      <input type="text" id="employee_number" inputmode="numeric" placeholder="رقم الموظف" required />
-      <input type="password" id="password" placeholder="كلمة المرور" required />
-      <button type="submit">دخول</button>
-    </form>
+      <div class="status-grid" aria-label="مزايا النظام">
+        <div>
+          <span></span>
+          <strong>دخول آمن</strong>
+          <small>برقم الموظف وكلمة المرور</small>
+        </div>
+        <div>
+          <span></span>
+          <strong>صلاحيات واضحة</strong>
+          <small>واجهة مناسبة لكل دور</small>
+        </div>
+      </div>
+    </section>
 
-    <p id="message"></p>
+    <section class="login-card" aria-label="تسجيل الدخول">
+      <div class="form-heading">
+        <p>مرحباً بعودتك</p>
+        <h2 id="loginTitle">تسجيل الدخول</h2>
+      </div>
 
-    <div class="login-help">
-      <p>استخدم رقم الموظف وكلمة المرور المسجلة لحسابك.</p>
-    </div>
-  </div>
+      <form id="loginForm" class="login-form">
+        <label for="employee_number">
+          <span>رقم الموظف</span>
+          <input type="text" id="employee_number" inputmode="numeric" autocomplete="username" placeholder="مثال: 1001" required />
+        </label>
+
+        <label for="password">
+          <span>كلمة المرور</span>
+          <input type="password" id="password" autocomplete="current-password" placeholder="أدخل كلمة المرور" required />
+        </label>
+
+        <button id="loginButton" type="submit">دخول إلى النظام</button>
+      </form>
+
+      <p id="message" class="login-message" aria-live="polite"></p>
+
+      <p class="login-help">
+        استخدم رقم الموظف وكلمة المرور المسجلة لحسابك. عند نسيان بيانات الدخول، تواصل مع مسؤول الموارد البشرية.
+      </p>
+    </section>
+  </main>
 
   <script src="./js/login.js"></script>
 </body>

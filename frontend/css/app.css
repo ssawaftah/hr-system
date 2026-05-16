@@ -1,14 +1,14 @@
 @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap');
-@import url('./variables.css?v=clean-26');
-@import url('./reset.css?v=clean-26');
-@import url('./layout.css?v=clean-26');
-@import url('./navigation.css?v=clean-26');
-@import url('./components.css?v=clean-26');
-@import url('./forms.css?v=clean-26');
-@import url('./tables.css?v=clean-26');
-@import url('./modals.css?v=clean-26');
-@import url('./responsive.css?v=clean-26');
-@import url('./modules.css?v=clean-26');
+@import url('./variables.css?v=auth-43');
+@import url('./reset.css?v=auth-43');
+@import url('./layout.css?v=auth-43');
+@import url('./navigation.css?v=auth-43');
+@import url('./components.css?v=auth-43');
+@import url('./forms.css?v=auth-43');
+@import url('./tables.css?v=auth-43');
+@import url('./modals.css?v=auth-43');
+@import url('./responsive.css?v=auth-43');
+@import url('./modules.css?v=auth-43');
 
 /* Simplified dashboard */
 .dashboard-lite-page .dashboard-main{display:grid;gap:20px}.dashboard-lite-page .today-report-panel{background:radial-gradient(circle at 12% 14%,rgba(0,122,255,.12),transparent 30%),radial-gradient(circle at 92% 6%,rgba(124,58,237,.12),transparent 34%),#fff;border-radius:34px;padding:24px}.dashboard-lite-page .today-report-panel h1{margin:6px 0 8px;font-size:clamp(28px,4vw,44px);font-weight:900;letter-spacing:-.03em}.dashboard-lite-page .today-report-panel p{margin:0;color:var(--muted);font-weight:800;line-height:1.8}.today-report-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-top:18px}.today-report-card{background:rgba(255,255,255,.82);border:1px solid rgba(229,229,234,.9);border-radius:28px;padding:18px;display:grid;gap:8px;min-height:138px;box-shadow:var(--shadow-xs);position:relative;overflow:hidden}.today-report-card:before{content:'';position:absolute;inset:auto 16px 16px auto;width:72px;height:72px;border-radius:24px;opacity:.12}.today-report-card.present:before{background:#34c759}.today-report-card.absent:before{background:#ff3b30}.today-report-card.late:before{background:#ff9500}.today-report-card.pending:before{background:#007aff}.today-report-card span{font-size:13px;font-weight:900;color:var(--muted)}.today-report-card strong{font-size:42px;font-weight:900;line-height:1;letter-spacing:-.04em}.today-report-card small{font-weight:800;color:var(--muted);line-height:1.6}.dashboard-simple-layout{display:grid;grid-template-columns:minmax(320px,.75fr) minmax(0,1.25fr);gap:20px;align-items:start}.dashboard-actions-panel,.announcements-panel{margin:0!important}.dashboard-lite-page .today-actions-list a{grid-template-columns:44px minmax(0,1fr)!important}.today-action-text{display:grid;gap:3px}.today-action-text strong{font-size:15px}.today-action-text small{font-size:12px}.dashboard-lite-page .announcement-card{border:1px solid var(--border);border-radius:24px;padding:16px;background:#fff;box-shadow:var(--shadow-xs);display:grid;gap:8px}.dashboard-lite-page .announcement-card h3{margin:0;font-size:18px;font-weight:900}.dashboard-lite-page .announcement-card p{margin:0;color:var(--muted);font-weight:800;line-height:1.75}.dashboard-lite-page .announcement-meta{display:flex;gap:8px;flex-wrap:wrap;color:var(--muted);font-size:12px;font-weight:800}.dashboard-lite-page .announcement-card footer{border-top:1px solid var(--border);padding-top:10px;display:grid;gap:2px}.dashboard-lite-page .announcement-card footer strong{font-size:13px}.dashboard-lite-page .announcement-card footer small{color:var(--muted);font-weight:800}.dashboard-lite-page .announcement-badge{width:max-content;border-radius:999px;padding:6px 10px;font-size:11px;font-weight:900}.dashboard-lite-page .announcement-badge.general{background:#eef6ff;color:#007aff}.dashboard-lite-page .announcement-badge.private{background:#fff2f2;color:#ff3b30}

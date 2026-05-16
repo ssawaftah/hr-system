@@ -49,6 +49,20 @@ const ensureUxFixes = () => {
   document.documentElement.dir = "rtl";
   document.body.dir = "rtl";
   document.body.classList.add("apple-system-ui");
+  document.body.classList.add("auth-checking");
+};
+
+const isEmployeeOnlyAccess = () => {
+  const roles = normalizeList(loggedAccess.roles);
+  const permissions = normalizeList(loggedAccess.permissions);
+  return roles.includes("employee") && !roles.includes("admin") && !permissions.includes("system.admin");
+};
+
+const shouldDeferRevealForPage = () => getCurrentPageName() === "dashboard.html" && isEmployeeOnlyAccess();
+
+const revealProtectedShell = () => {
+  document.body.classList.remove("auth-checking");
+  document.body.classList.add("auth-ready");
 };
 
 const closeSidebar = () => {
@@ -167,6 +181,7 @@ const applyLoadedUser = (user, access) => {
   applyActionPermissions();
   enhancePageStructure();
   if (!enforcePagePermission()) return null;
+  if (!shouldDeferRevealForPage()) revealProtectedShell();
   setTimeout(enhanceTables, 250);
   setTimeout(enhanceTables, 1200);
   return { ...loggedUser, roles: loggedAccess.roles, permissions: loggedAccess.permissions, employee_id: loggedAccess.employee_id, employee_number: loggedAccess.employee_number };
@@ -204,3 +219,5 @@ window.hasPermission = hasPermission;
 window.hasAnyPermission = hasAnyPermission;
 window.normalizeList = normalizeList;
 window.rebuildSidebar = rebuildSidebar;
+window.revealProtectedShell = revealProtectedShell;
+window.isEmployeeOnlyAccess = isEmployeeOnlyAccess;

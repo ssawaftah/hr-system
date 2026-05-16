@@ -78,6 +78,10 @@ const loadPendingRequestsFallback=async()=>{
 const initDashboard = async () => {
   const user = await loadLoggedUser();
   if (!user) return;
+  const roles = Array.isArray(user.roles) ? user.roles : [user.role].filter(Boolean);
+  const permissions = Array.isArray(user.permissions) ? user.permissions : [];
+  const employeeOnly = roles.includes('employee') && !roles.includes('admin') && !permissions.includes('system.admin');
+  if (employeeOnly) return;
   try {
     const [statsResponse,announcementsResponse,attendanceToday,pendingRequests] = await Promise.all([
       fetch(`${API_BASE_URL}/dashboard/stats?_=${Date.now()}`, { headers: { Authorization: `Bearer ${token}` } }).catch(()=>null),
@@ -103,6 +107,8 @@ const initDashboard = async () => {
     console.log(error);
     renderTodayReport({},user);
     renderDashboardAnnouncements([]);
+  } finally {
+    if (typeof revealProtectedShell === 'function') revealProtectedShell();
   }
 };
 

@@ -8,6 +8,7 @@ const {
   getSelfAttendance,
   getSelfRequests,
   getSelfSalarySlip,
+  getSelfFinanceSettings,
 } = require('../controllers/employee-portal.controller');
 
 router.use(authMiddleware);
@@ -17,5 +18,6 @@ router.post('/attendance', checkInOut);
 router.get('/attendance', getSelfAttendance);
 router.get('/requests', getSelfRequests);
 router.get('/salary-slip', getSelfSalarySlip);
+router.get('/finance-settings', getSelfFinanceSettings);
 
 module.exports = router;

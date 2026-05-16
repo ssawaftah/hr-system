@@ -56,11 +56,39 @@ const ensureAttendanceUniqueIndex = async () => {
 };
 
 const ensurePortalSchema = async () => {
+  await pool.query(`CREATE TABLE IF NOT EXISTS work_shifts (id SERIAL PRIMARY KEY, name VARCHAR(120) NOT NULL, start_time TIME NOT NULL DEFAULT '07:00', end_time TIME NOT NULL DEFAULT '15:00', late_grace_minutes INTEGER DEFAULT 0, is_active BOOLEAN DEFAULT true, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
+  await pool.query(`ALTER TABLE work_shifts ADD COLUMN IF NOT EXISTS shift_type VARCHAR(30) DEFAULT 'custom'`);
+  await pool.query(`ALTER TABLE work_shifts ADD COLUMN IF NOT EXISTS work_days JSONB DEFAULT '["saturday","sunday","monday","tuesday","wednesday","thursday"]'::jsonb`);
+  await pool.query(`ALTER TABLE work_shifts ADD COLUMN IF NOT EXISTS official_work_hours NUMERIC(5,2) DEFAULT 8`);
+  await pool.query(`ALTER TABLE work_shifts ADD COLUMN IF NOT EXISTS is_default BOOLEAN DEFAULT false`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS employee_shift_assignments (id SERIAL PRIMARY KEY, employee_id INTEGER NOT NULL REFERENCES employees(id) ON DELETE CASCADE, shift_id INTEGER NOT NULL REFERENCES work_shifts(id) ON DELETE RESTRICT, effective_from DATE DEFAULT CURRENT_DATE, effective_to DATE, is_active BOOLEAN DEFAULT true, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)`);
   await pool.query(`ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS source VARCHAR(40) DEFAULT 'system'`);
   await pool.query(`ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
   await pool.query(`ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS late_minutes INTEGER DEFAULT 0`);
   await pool.query(`ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS overtime_minutes INTEGER DEFAULT 0`);
   await pool.query(`ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS overtime_type VARCHAR(40)`);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS finance_employee_settings (
+      id SERIAL PRIMARY KEY,
+      employee_id INTEGER NOT NULL UNIQUE REFERENCES employees(id) ON DELETE CASCADE,
+      basic_salary NUMERIC(12,2) DEFAULT 0,
+      social_security_rate NUMERIC(6,3) DEFAULT 7.5,
+      overtime_multiplier NUMERIC(5,2) DEFAULT 1.25,
+      holiday_overtime_multiplier NUMERIC(5,2) DEFAULT 1.5,
+      late_deduction_method VARCHAR(50) DEFAULT 'minutes_multiplier',
+      absence_deduction_method VARCHAR(50) DEFAULT 'leave_balance_then_salary',
+      salary_cycle_start_day INTEGER DEFAULT 1,
+      salary_cycle_end_day INTEGER DEFAULT 31,
+      notes TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  await pool.query(`ALTER TABLE finance_employee_settings ADD COLUMN IF NOT EXISTS late_minute_multiplier NUMERIC(6,2) DEFAULT 2`);
+  await pool.query(`ALTER TABLE finance_employee_settings ADD COLUMN IF NOT EXISTS late_round_minutes INTEGER DEFAULT 30`);
+  await pool.query(`ALTER TABLE finance_employee_settings ADD COLUMN IF NOT EXISTS late_round_to_hours BOOLEAN DEFAULT true`);
+  await pool.query(`ALTER TABLE finance_employee_settings ADD COLUMN IF NOT EXISTS unexcused_absence_multiplier NUMERIC(6,2) DEFAULT 2`);
+  await pool.query(`ALTER TABLE finance_employee_settings ADD COLUMN IF NOT EXISTS personal_exit_hours_per_leave_day NUMERIC(6,2) DEFAULT 8`);
   await ensureAttendanceUniqueIndex();
   await pool.query(`
     CREATE TABLE IF NOT EXISTS employee_requests (
@@ -125,13 +153,16 @@ const getSelfProfile = async (req, res) => {
     if (!employeeId) return;
     await pool.query(`INSERT INTO employee_leave_balances (employee_id, current_balance, consumed_days, remaining_days) VALUES ($1,14,0,14) ON CONFLICT (employee_id) DO NOTHING`, [employeeId]);
     const profile = await pool.query(
-      `SELECT e.*, d.name AS department_name, jt.name AS job_title_label,
+      `SELECT e.*, COALESCE(fes.basic_salary, e.basic_salary, 0) AS basic_salary,
+              COALESCE(fes.social_security_rate, e.social_security_rate, 7.5) AS social_security_rate,
+              d.name AS department_name, jt.name AS job_title_label,
               lb.current_balance AS leave_balance_current,
               lb.consumed_days AS leave_days_consumed,
               lb.remaining_days AS leave_balance_remaining
        FROM employees e
        LEFT JOIN departments d ON d.id=e.department_id
        LEFT JOIN job_titles jt ON jt.id=e.job_title_id
+       LEFT JOIN finance_employee_settings fes ON fes.employee_id=e.id
        LEFT JOIN employee_leave_balances lb ON lb.employee_id=e.id
        WHERE e.id=$1`,
       [employeeId]
@@ -199,12 +230,78 @@ const getSelfAttendance = async (req, res) => {
     if (!employeeId) return;
     const month = String(req.query.month || new Date().toISOString().slice(0,7));
     const result = await pool.query(
-      `SELECT attendance_date, check_in, check_out, status, notes, source, absence_reason, late_minutes, overtime_minutes, overtime_type
-       FROM attendance_records
-       WHERE employee_id=$1 AND attendance_date >= ($2 || '-01')::date AND attendance_date < (($2 || '-01')::date + INTERVAL '1 month')
-       ORDER BY attendance_date ASC`, [employeeId, month]
+      `SELECT
+         a.attendance_date,
+         a.check_in,
+         a.check_out,
+         a.status,
+         a.notes,
+         a.source,
+         a.absence_reason,
+         a.leave_request_id,
+         COALESCE(ws.id, default_ws.id) AS shift_id,
+         COALESCE(ws.name, default_ws.name, 'الدوام الافتراضي') AS shift_name,
+         COALESCE(ws.start_time, default_ws.start_time, TIME '07:00') AS shift_start_time,
+         COALESCE(ws.end_time, default_ws.end_time, TIME '15:00') AS shift_end_time,
+         COALESCE(ws.late_grace_minutes, default_ws.late_grace_minutes, 0) AS shift_late_grace_minutes,
+         COALESCE(ws.official_work_hours, default_ws.official_work_hours, 8) AS official_work_hours,
+         COALESCE(fes.basic_salary, e.basic_salary, 0) AS basic_salary,
+         COALESCE(fes.late_minute_multiplier, 2) AS late_minute_multiplier,
+         COALESCE(fes.late_round_minutes, 30) AS late_round_minutes,
+         COALESCE(fes.late_round_to_hours, true) AS late_round_to_hours,
+         GREATEST(
+           0,
+           COALESCE(a.late_minutes, 0),
+           CASE WHEN a.check_in IS NULL THEN 0 ELSE
+             ((EXTRACT(HOUR FROM a.check_in)::int * 60) + EXTRACT(MINUTE FROM a.check_in)::int)
+             - ((EXTRACT(HOUR FROM COALESCE(ws.start_time, default_ws.start_time, TIME '07:00'))::int * 60) + EXTRACT(MINUTE FROM COALESCE(ws.start_time, default_ws.start_time, TIME '07:00'))::int)
+             - COALESCE(ws.late_grace_minutes, default_ws.late_grace_minutes, 0)
+           END
+         )::int AS late_minutes,
+         GREATEST(
+           0,
+           COALESCE(a.overtime_minutes, 0),
+           CASE WHEN a.check_out IS NULL THEN 0 ELSE
+             ((EXTRACT(HOUR FROM a.check_out)::int * 60) + EXTRACT(MINUTE FROM a.check_out)::int)
+             - ((EXTRACT(HOUR FROM COALESCE(ws.end_time, default_ws.end_time, TIME '15:00'))::int * 60) + EXTRACT(MINUTE FROM COALESCE(ws.end_time, default_ws.end_time, TIME '15:00'))::int)
+           END
+         )::int AS overtime_minutes,
+         COALESCE(a.overtime_type, CASE WHEN EXTRACT(DOW FROM a.attendance_date)::int = 5 THEN 'friday' ELSE 'normal' END) AS overtime_type
+       FROM attendance_records a
+       JOIN employees e ON e.id=a.employee_id
+       LEFT JOIN employee_shift_assignments esa ON esa.employee_id=a.employee_id
+        AND esa.is_active=true
+        AND esa.effective_from <= a.attendance_date
+        AND (esa.effective_to IS NULL OR esa.effective_to >= a.attendance_date)
+       LEFT JOIN work_shifts ws ON ws.id=esa.shift_id AND COALESCE(ws.is_active,true)=true
+       LEFT JOIN work_shifts default_ws ON default_ws.is_default=true AND COALESCE(default_ws.is_active,true)=true
+       LEFT JOIN finance_employee_settings fes ON fes.employee_id=a.employee_id
+       WHERE a.employee_id=$1 AND a.attendance_date >= ($2 || '-01')::date AND a.attendance_date < (($2 || '-01')::date + INTERVAL '1 month')
+       ORDER BY a.attendance_date ASC, esa.effective_from DESC NULLS LAST, esa.id DESC NULLS LAST`,
+      [employeeId, month]
     );
     res.json({ attendance: result.rows });
+  } catch (error) { res.status(500).json({ error: error.message }); }
+};
+
+const getSelfFinanceSettings = async (req, res) => {
+  try {
+    await ensurePortalSchema();
+    const employeeId = await requireEmployee(req, res);
+    if (!employeeId) return;
+    const settings = await pool.query(
+      `SELECT COALESCE(fes.basic_salary, e.basic_salary, 0) AS basic_salary,
+              COALESCE(fes.overtime_multiplier, 1.25) AS overtime_multiplier,
+              COALESCE(fes.holiday_overtime_multiplier, 1.5) AS holiday_overtime_multiplier,
+              late_deduction_method, late_minute_multiplier, late_round_minutes,
+              late_round_to_hours, personal_exit_hours_per_leave_day
+       FROM employees e
+       LEFT JOIN finance_employee_settings fes ON fes.employee_id=e.id
+       WHERE e.id=$1
+       LIMIT 1`,
+      [employeeId]
+    );
+    res.json({ settings: settings.rows[0] || null, currency: 'JOD' });
   } catch (error) { res.status(500).json({ error: error.message }); }
 };
 
@@ -242,4 +339,4 @@ const getSelfSalarySlip = async (req, res) => {
   } catch (error) { res.status(500).json({ error: error.message }); }
 };
 
-module.exports = { getSelfProfile, getToday, checkInOut, getSelfAttendance, getSelfRequests, getSelfSalarySlip };
+module.exports = { getSelfProfile, getToday, checkInOut, getSelfAttendance, getSelfRequests, getSelfSalarySlip, getSelfFinanceSettings };

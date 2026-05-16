@@ -1,1 +1,130 @@
-<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>بوابة الموظف</title><link rel="stylesheet" href="./css/app.css?v=clean-45"></head><body class="apple-system-ui"><div class="app-layout"><aside class="sidebar"><div class="sidebar-logo"><span class="brand-mark">HR</span><span>نظام الموارد البشرية</span></div><nav class="sidebar-menu"></nav></aside><main class="main-content page-shell"><header class="topbar"><div class="header-title-area"><h1>بوابة الموظف</h1><p>سجل حضورك، راجع حضورك، واعرض قسيمة الراتب المنشورة.</p></div><button id="logoutBtn" class="logout-btn">تسجيل الخروج</button></header><section class="content-card today-report-panel"><div class="section-header"><div><span class="page-kicker">الشفت الحالي</span><h1>الدوام اليومي</h1></div></div><div id="portalShiftBox" class="details-grid"></div></section><section class="grid-2"><article class="content-card"><div class="section-header"><div><h2>سجل الحضور</h2></div></div><div class="filter-bar"><input type="month" id="portalMonth"><button id="loadAttendanceBtn" class="secondary-btn">عرض النتائج</button></div><div class="table-scroll"><table><thead><tr><th>التاريخ</th><th>حضور</th><th>انصراف</th><th>ملاحظات</th></tr></thead><tbody id="portalAttendanceBody"><tr><td colspan="4">جاري التحميل...</td></tr></tbody></table></div></article><article class="content-card"><div class="section-header"><div><h2>قسيمة الراتب</h2></div></div><div class="filter-bar"><input type="month" id="salaryMonth"><button id="loadSalaryBtn" class="secondary-btn">عرض القسيمة</button></div><div id="salarySlipBox"><div class="empty-soft">جاري التحميل...</div></div></article></section><section class="content-card"><div class="section-header"><div><h2>الحركات</h2><p>الإجازات والمغادرات والسلف والشكاوى حسب السنة.</p></div></div><div class="filter-bar"><input type="number" id="portalYear" min="2020" max="2100"><button id="loadMovementsBtn" class="secondary-btn">عرض النتائج</button></div><div id="movementsBox"><div class="empty-soft">جاري التحميل...</div></div></section></main></div><script src="./js/navigation-config.js?v=clean-45"></script><script src="./js/auth-guard.js?v=clean-45"></script><script src="./js/employee-self.js?v=clean-45"></script><script>initEmployeePortal();</script></body></html>
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>بوابة الموظف</title>
+  <link rel="stylesheet" href="./css/app.css?v=system-7">
+</head>
+<body class="apple-system-ui employee-portal-page">
+  <div class="app-layout">
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <span class="brand-mark">HR</span>
+        <span>نظام الموارد البشرية</span>
+      </div>
+      <nav class="sidebar-menu"></nav>
+    </aside>
+
+    <main class="main-content page-shell">
+      <header class="topbar">
+        <div class="header-title-area">
+          <h1>بوابة الموظف</h1>
+          <p>مساحة شخصية لمراجعة حضورك وراتبك وحركاتك بدون تفاصيل إدارية.</p>
+        </div>
+        <button id="logoutBtn" class="logout-btn" type="button">تسجيل الخروج</button>
+      </header>
+
+      <section id="portalHome" class="portal-home">
+        <div class="portal-welcome">
+          <span class="page-kicker">بوابة الموظف</span>
+          <h1>اختر القسم الذي تريد مراجعته</h1>
+          <p>كل قسم يفتح صفحة خاصة به داخل البوابة، والبيانات تعرض حسب حساب الموظف الحالي فقط.</p>
+        </div>
+
+        <div class="portal-section-grid">
+          <button class="portal-section-card" type="button" data-portal-section="attendance">
+            <span class="portal-card-icon">01</span>
+            <strong>سجل الحضور</strong>
+            <small>الحضور والانصراف الحقيقي حسب الشهر.</small>
+          </button>
+          <button class="portal-section-card" type="button" data-portal-section="salary">
+            <span class="portal-card-icon">02</span>
+            <strong>قسيمة الراتب</strong>
+            <small>القسيمة المنشورة وبنود الدخل والاقتطاع.</small>
+          </button>
+          <button class="portal-section-card" type="button" data-portal-section="movements">
+            <span class="portal-card-icon">03</span>
+            <strong>الحركات</strong>
+            <small>الطلبات وسجلات الحضور مرتبة حسب السنة.</small>
+          </button>
+          <a class="portal-section-card" href="./my-requests.html">
+            <span class="portal-card-icon">04</span>
+            <strong>طلباتي</strong>
+            <small>إرسال ومتابعة الإجازات والمغادرات والسلف.</small>
+          </a>
+        </div>
+      </section>
+
+      <section id="portalAttendanceSection" class="content-card portal-detail-section" data-section-panel="attendance" hidden>
+        <div class="section-header">
+          <div>
+            <span class="page-kicker">سجل الحضور</span>
+            <h2>الحضور والانصراف</h2>
+            <p>يعرض السجلات الفعلية المرتبطة بحسابك لهذا الشهر.</p>
+          </div>
+          <button class="secondary-btn portal-back-btn" type="button">العودة للأقسام</button>
+        </div>
+        <div class="filter-bar">
+          <input type="month" id="portalMonth">
+          <button id="loadAttendanceBtn" class="secondary-btn" type="button">عرض النتائج</button>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>التاريخ</th>
+                <th>الشفت</th>
+                <th>حضور</th>
+                <th>انصراف</th>
+                <th>الحالة</th>
+                <th>ملاحظات</th>
+              </tr>
+            </thead>
+            <tbody id="portalAttendanceBody">
+              <tr><td colspan="6">اختر الشهر ثم اعرض النتائج</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="portalSalarySection" class="content-card portal-detail-section" data-section-panel="salary" hidden>
+        <div class="section-header">
+          <div>
+            <span class="page-kicker">قسيمة الراتب</span>
+            <h2>القسيمة المنشورة</h2>
+            <p>يعرض الراتب المنشور فقط للموظف الحالي.</p>
+          </div>
+          <button class="secondary-btn portal-back-btn" type="button">العودة للأقسام</button>
+        </div>
+        <div class="filter-bar">
+          <input type="month" id="salaryMonth">
+          <button id="loadSalaryBtn" class="secondary-btn" type="button">عرض القسيمة</button>
+        </div>
+        <div id="salarySlipBox"><div class="empty-soft">اختر الشهر ثم اعرض القسيمة</div></div>
+      </section>
+
+      <section id="portalMovementsSection" class="content-card portal-detail-section" data-section-panel="movements" hidden>
+        <div class="section-header">
+          <div>
+            <span class="page-kicker">الحركات</span>
+            <h2>سجل الحركات السنوي</h2>
+            <p>يجمع الطلبات وسجلات الحضور الفعلية في سنة واحدة.</p>
+          </div>
+          <button class="secondary-btn portal-back-btn" type="button">العودة للأقسام</button>
+        </div>
+        <div class="filter-bar">
+          <input type="number" id="portalYear" min="2020" max="2100">
+          <button id="loadMovementsBtn" class="secondary-btn" type="button">عرض النتائج</button>
+        </div>
+        <div id="movementsBox"><div class="empty-soft">اختر السنة ثم اعرض النتائج</div></div>
+      </section>
+    </main>
+  </div>
+
+  <script src="./js/navigation-config.js?v=clean-45"></script>
+  <script src="./js/auth-guard.js?v=system-1"></script>
+  <script src="./js/employee-self.js?v=system-9"></script>
+  <script>initEmployeePortal();</script>
+</body>
+</html>
